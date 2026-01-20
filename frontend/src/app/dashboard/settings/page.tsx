@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import ScheduleSelector from '@/components/onboarding/ScheduleSelector';
 import ChannelSelector from '@/components/onboarding/ChannelSelector';
+import type { DeliverySchedule } from '@/types';
 
 export default function SettingsPage() {
   const { user, fetchUser } = useAuthStore();
@@ -14,7 +15,7 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState('');
 
   // Preferences state
-  const [schedule, setSchedule] = useState(user?.preferences?.delivery_schedule || {
+  const [schedule, setSchedule] = useState<DeliverySchedule>(user?.preferences?.delivery_schedule || {
     frequency: 'daily',
     time: '14:00',
     timezone: 'Europe/Bucharest',

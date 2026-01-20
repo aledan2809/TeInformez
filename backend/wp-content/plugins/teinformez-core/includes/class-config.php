@@ -39,6 +39,7 @@ class Config {
     const ALLOWED_ORIGINS = [
         'http://localhost:3000',           // Local development
         'https://teinformez.eu',           // Production
+        'https://teinformez.vercel.app',   // Vercel production
         'https://*.vercel.app',            // Vercel preview deployments
     ];
 
