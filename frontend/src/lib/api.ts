@@ -86,6 +86,20 @@ class ApiClient {
     return token;
   }
 
+  async forgotPassword(email: string): Promise<string> {
+    const response = await this.client.post<APIResponse>('/auth/forgot-password', { email });
+    return response.data.message || 'Email trimis';
+  }
+
+  async resetPassword(email: string, token: string, password: string): Promise<string> {
+    const response = await this.client.post<APIResponse>('/auth/reset-password', {
+      email,
+      token,
+      password,
+    });
+    return response.data.message || 'Parolă resetată cu succes';
+  }
+
   // User preferences endpoints
   async getPreferences(): Promise<UserPreferences> {
     const response = await this.client.get<APIResponse<{ preferences: UserPreferences }>>('/user/preferences');

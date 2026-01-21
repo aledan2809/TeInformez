@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2, X } from 'lucide-react';
+import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2, X, Pencil } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Subscription, Categories } from '@/types';
 
@@ -27,9 +27,13 @@ export default function SubscriptionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
   const [newCategory, setNewCategory] = useState('');
   const [newTopic, setNewTopic] = useState('');
+  const [editTopic, setEditTopic] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -97,6 +101,40 @@ export default function SubscriptionsPage() {
       setSubscriptions((prev) => prev.filter((sub) => sub.id !== id));
     } catch (err) {
       setError('Failed to delete subscription');
+    }
+  };
+
+  const handleEdit = (sub: Subscription) => {
+    setEditingSubscription(sub);
+    setEditTopic(sub.topic_keyword || '');
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingSubscription) return;
+
+    setIsEditing(true);
+    try {
+      await api.updateSubscription(editingSubscription.id, {
+        topic_keyword: editTopic || undefined,
+      });
+
+      // Update local state
+      setSubscriptions((prev) =>
+        prev.map((sub) =>
+          sub.id === editingSubscription.id
+            ? { ...sub, topic_keyword: editTopic }
+            : sub
+        )
+      );
+
+      setShowEditModal(false);
+      setEditingSubscription(null);
+      setEditTopic('');
+    } catch (err) {
+      setError('Nu s-a putut actualiza abonamentul');
+    } finally {
+      setIsEditing(false);
     }
   };
 
@@ -172,6 +210,15 @@ export default function SubscriptionsPage() {
                 </div>
 
                 <div className="flex items-center space-x-2">
+                  {/* Edit button */}
+                  <button
+                    onClick={() => handleEdit(sub)}
+                    className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-gray-400 hover:text-blue-600"
+                    title="Editează"
+                  >
+                    <Pencil className="h-5 w-5" />
+                  </button>
+
                   {/* Toggle button */}
                   <button
                     onClick={() => handleToggle(sub.id)}
@@ -294,6 +341,85 @@ export default function SubscriptionsPage() {
                     <Plus className="h-4 w-4 mr-2" />
                     Adaugă
                   </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Subscription Modal */}
+      {showEditModal && editingSubscription && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Editează abonament</h2>
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingSubscription(null);
+                }}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Categorie
+                </label>
+                <input
+                  type="text"
+                  value={getCategoryLabel(editingSubscription.category_slug)}
+                  disabled
+                  className="input w-full bg-gray-100"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Categoria nu poate fi modificată. Șterge și adaugă una nouă dacă vrei să schimbi categoria.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Subiect specific
+                </label>
+                <input
+                  type="text"
+                  value={editTopic}
+                  onChange={(e) => setEditTopic(e.target.value)}
+                  placeholder="ex: Tesla, Bitcoin, FCSB..."
+                  className="input w-full"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Lasă gol pentru a primi toate știrile din categorie
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 p-4 border-t">
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingSubscription(null);
+                }}
+                className="btn-outline"
+              >
+                Anulează
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={isEditing}
+                className="btn-primary"
+              >
+                {isEditing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Se salvează...
+                  </>
+                ) : (
+                  'Salvează'
                 )}
               </button>
             </div>

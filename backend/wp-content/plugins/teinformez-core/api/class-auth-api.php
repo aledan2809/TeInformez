@@ -3,6 +3,8 @@ namespace TeInformez\API;
 
 use TeInformez\User_Manager;
 use TeInformez\GDPR_Handler;
+use TeInformez\Email_Sender;
+use TeInformez\Config;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -46,6 +48,20 @@ class Auth_API extends REST_API {
         register_rest_route($this->namespace, '/auth/refresh', [
             'methods' => 'POST',
             'callback' => [$this, 'refresh_token'],
+            'permission_callback' => '__return_true'
+        ]);
+
+        // Request password reset
+        register_rest_route($this->namespace, '/auth/forgot-password', [
+            'methods' => 'POST',
+            'callback' => [$this, 'forgot_password'],
+            'permission_callback' => '__return_true'
+        ]);
+
+        // Reset password with token
+        register_rest_route($this->namespace, '/auth/reset-password', [
+            'methods' => 'POST',
+            'callback' => [$this, 'reset_password'],
             'permission_callback' => '__return_true'
         ]);
     }
@@ -282,6 +298,122 @@ class Auth_API extends REST_API {
         }
 
         return (int)$user_id;
+    }
+
+    /**
+     * Request password reset
+     */
+    public function forgot_password($request) {
+        $params = $request->get_json_params();
+
+        $validation = $this->validate_required($params, ['email']);
+        if (is_wp_error($validation)) {
+            return $validation;
+        }
+
+        $email = sanitize_email($params['email']);
+        $user = get_user_by('email', $email);
+
+        // Always return success to prevent email enumeration attacks
+        $success_message = __('If an account exists with this email, you will receive a password reset link.', 'teinformez');
+
+        if (!$user) {
+            return $this->success([], $success_message);
+        }
+
+        // Generate reset token (valid for 24 hours)
+        $reset_token = $this->generate_reset_token($user->ID);
+
+        // Save token in user meta
+        update_user_meta($user->ID, '_teinformez_reset_token', $reset_token);
+        update_user_meta($user->ID, '_teinformez_reset_expires', time() + (24 * HOUR_IN_SECONDS));
+
+        // Build reset link
+        $frontend_url = Config::get('frontend_url', 'https://teinformez.vercel.app');
+        $reset_link = $frontend_url . '/reset-password?token=' . urlencode($reset_token) . '&email=' . urlencode($email);
+
+        // Send email
+        $email_sender = new Email_Sender();
+        $email_sender->send_password_reset($email, $reset_link);
+
+        return $this->success([], $success_message);
+    }
+
+    /**
+     * Reset password with token
+     */
+    public function reset_password($request) {
+        $params = $request->get_json_params();
+
+        $validation = $this->validate_required($params, ['email', 'token', 'password']);
+        if (is_wp_error($validation)) {
+            return $validation;
+        }
+
+        $email = sanitize_email($params['email']);
+        $token = sanitize_text_field($params['token']);
+        $password = $params['password'];
+
+        // Validate password strength
+        if (strlen($password) < 8) {
+            return $this->error(
+                __('Password must be at least 8 characters long.', 'teinformez'),
+                'weak_password',
+                400
+            );
+        }
+
+        $user = get_user_by('email', $email);
+
+        if (!$user) {
+            return $this->error(
+                __('Invalid reset link.', 'teinformez'),
+                'invalid_token',
+                400
+            );
+        }
+
+        // Verify token
+        $stored_token = get_user_meta($user->ID, '_teinformez_reset_token', true);
+        $expires = get_user_meta($user->ID, '_teinformez_reset_expires', true);
+
+        if (empty($stored_token) || !hash_equals($stored_token, $token)) {
+            return $this->error(
+                __('Invalid reset link.', 'teinformez'),
+                'invalid_token',
+                400
+            );
+        }
+
+        if (time() > (int)$expires) {
+            // Clean up expired token
+            delete_user_meta($user->ID, '_teinformez_reset_token');
+            delete_user_meta($user->ID, '_teinformez_reset_expires');
+
+            return $this->error(
+                __('Reset link has expired. Please request a new one.', 'teinformez'),
+                'token_expired',
+                400
+            );
+        }
+
+        // Reset password
+        wp_set_password($password, $user->ID);
+
+        // Clean up token
+        delete_user_meta($user->ID, '_teinformez_reset_token');
+        delete_user_meta($user->ID, '_teinformez_reset_expires');
+
+        return $this->success([], __('Password reset successfully. You can now log in with your new password.', 'teinformez'));
+    }
+
+    /**
+     * Generate secure reset token
+     */
+    private function generate_reset_token($user_id) {
+        $random = bin2hex(random_bytes(32));
+        $data = $user_id . '|' . $random . '|' . time();
+        return base64_encode($data . '|' . hash_hmac('sha256', $data, AUTH_KEY));
     }
 
     /**

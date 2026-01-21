@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { Mail, ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
+import { api } from '@/lib/api';
 
 interface ForgotPasswordForm {
   email: string;
@@ -25,16 +26,11 @@ export default function ForgotPasswordPage() {
     setError('');
 
     try {
-      // For now, we'll simulate the request
-      // In Phase C, this will connect to WordPress password reset
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // TODO: Implement actual password reset API call
-      // await api.requestPasswordReset(data.email);
-
+      await api.forgotPassword(data.email);
       setIsSuccess(true);
     } catch (err: any) {
-      setError('A apărut o eroare. Te rugăm să încerci din nou.');
+      // Always show success to prevent email enumeration
+      setIsSuccess(true);
     } finally {
       setIsLoading(false);
     }

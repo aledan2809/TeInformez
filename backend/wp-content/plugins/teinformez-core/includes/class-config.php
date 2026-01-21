@@ -55,9 +55,12 @@ class Config {
     const MAX_SOCIAL_SNIPPET_LENGTH = 280;  // characters
 
     // === EMAIL CONFIGURATION ===
-    const EMAIL_PROVIDER = 'sendgrid';
+    const EMAIL_PROVIDER = 'brevo';       // 'brevo', 'wp_mail', or 'sendgrid'
     const EMAIL_FROM_NAME = 'TeInformez';
     const EMAIL_FROM_ADDRESS = 'noreply@teinformez.eu';
+
+    // === FRONTEND URL ===
+    const FRONTEND_URL = 'https://teinformez.vercel.app';
 
     // === CATEGORIES (can be overridden in admin) ===
     const DEFAULT_CATEGORIES = [
