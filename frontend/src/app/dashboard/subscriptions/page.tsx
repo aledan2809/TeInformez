@@ -1,27 +1,77 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react';
+import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2, X } from 'lucide-react';
 import { api } from '@/lib/api';
-import type { Subscription } from '@/types';
+import type { Subscription, Categories } from '@/types';
+
+// Category labels in Romanian
+const CATEGORY_LABELS: Record<string, string> = {
+  tech: 'Tehnologie',
+  auto: 'Auto',
+  finance: 'Finanțe',
+  entertainment: 'Divertisment',
+  sports: 'Sport',
+  science: 'Știință',
+  politics: 'Politică',
+  business: 'Business',
+};
+
+const getCategoryLabel = (slug: string): string => {
+  return CATEGORY_LABELS[slug] || slug.charAt(0).toUpperCase() + slug.slice(1).replace('-', ' ');
+};
 
 export default function SubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [categories, setCategories] = useState<Categories>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
+  const [newTopic, setNewTopic] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
 
   useEffect(() => {
-    fetchSubscriptions();
+    fetchData();
   }, []);
 
-  const fetchSubscriptions = async () => {
+  const fetchData = async () => {
     try {
-      const data = await api.getSubscriptions();
-      setSubscriptions(data);
+      const [subsData, catsData] = await Promise.all([
+        api.getSubscriptions(),
+        api.getCategories(),
+      ]);
+      setSubscriptions(subsData);
+      setCategories(catsData);
     } catch (err) {
-      setError('Failed to load subscriptions');
+      setError('Nu s-au putut încărca datele');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAddSubscription = async () => {
+    if (!newCategory) return;
+
+    setIsAdding(true);
+    try {
+      const subscriptionId = await api.addSubscription({
+        category_slug: newCategory,
+        topic_keyword: newTopic || undefined,
+      });
+
+      // Refresh subscriptions list
+      const updatedSubs = await api.getSubscriptions();
+      setSubscriptions(updatedSubs);
+
+      // Reset form and close modal
+      setNewCategory('');
+      setNewTopic('');
+      setShowModal(false);
+    } catch (err) {
+      setError('Nu s-a putut adăuga abonamentul');
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -68,7 +118,7 @@ export default function SubscriptionsPage() {
             Gestionează categoriile și topicurile la care ești abonat
           </p>
         </div>
-        <button className="btn-primary">
+        <button onClick={() => setShowModal(true)} className="btn-primary">
           <Plus className="h-4 w-4 mr-2" />
           Adaugă abonament
         </button>
@@ -84,8 +134,8 @@ export default function SubscriptionsPage() {
       {/* Subscriptions list */}
       {subscriptions.length === 0 ? (
         <div className="card text-center py-12">
-          <p className="text-gray-500 mb-4">Nu ai încă niciun abonament activ</p>
-          <button className="btn-primary">
+          <p className="text-gray-500 mb-4">Nu ai încă niciun abonament</p>
+          <button onClick={() => setShowModal(true)} className="btn-primary">
             <Plus className="h-4 w-4 mr-2" />
             Adaugă primul abonament
           </button>
@@ -102,8 +152,8 @@ export default function SubscriptionsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="font-semibold text-gray-900 capitalize">
-                      {sub.category_slug.replace('-', ' ')}
+                    <h3 className="font-semibold text-gray-900">
+                      {getCategoryLabel(sub.category_slug)}
                     </h3>
                     {!sub.is_active && (
                       <span className="px-2 py-1 text-xs font-medium bg-gray-200 text-gray-700 rounded">
@@ -168,6 +218,85 @@ export default function SubscriptionsPage() {
             <p className="text-2xl font-bold text-gray-400">
               {subscriptions.filter((s) => !s.is_active).length}
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Add Subscription Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Adaugă abonament nou</h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Categorie *
+                </label>
+                <select
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  className="input w-full"
+                >
+                  <option value="">Selectează o categorie</option>
+                  {Object.keys(categories).map((slug) => (
+                    <option key={slug} value={slug}>
+                      {getCategoryLabel(slug)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Subiect specific (opțional)
+                </label>
+                <input
+                  type="text"
+                  value={newTopic}
+                  onChange={(e) => setNewTopic(e.target.value)}
+                  placeholder="ex: Tesla, Bitcoin, FCSB..."
+                  className="input w-full"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Lasă gol pentru a primi toate știrile din categorie
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 p-4 border-t">
+              <button
+                onClick={() => setShowModal(false)}
+                className="btn-outline"
+              >
+                Anulează
+              </button>
+              <button
+                onClick={handleAddSubscription}
+                disabled={!newCategory || isAdding}
+                className="btn-primary"
+              >
+                {isAdding ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Se adaugă...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adaugă
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

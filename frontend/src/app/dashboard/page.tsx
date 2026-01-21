@@ -6,6 +6,22 @@ import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import type { SubscriptionStats } from '@/types';
 
+// Category labels in Romanian
+const CATEGORY_LABELS: Record<string, string> = {
+  tech: 'Tehnologie',
+  auto: 'Auto',
+  finance: 'Finanțe',
+  entertainment: 'Divertisment',
+  sports: 'Sport',
+  science: 'Știință',
+  politics: 'Politică',
+  business: 'Business',
+};
+
+const getCategoryLabel = (slug: string): string => {
+  return CATEGORY_LABELS[slug] || slug.charAt(0).toUpperCase() + slug.slice(1).replace('-', ' ');
+};
+
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const [stats, setStats] = useState<SubscriptionStats | null>(null);
@@ -70,8 +86,8 @@ export default function DashboardPage() {
           <div className="space-y-3">
             {stats.by_category.map((cat) => (
               <div key={cat.category_slug} className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700 capitalize">
-                  {cat.category_slug.replace('-', ' ')}
+                <span className="text-sm font-medium text-gray-700">
+                  {getCategoryLabel(cat.category_slug)}
                 </span>
                 <span className="text-sm font-semibold text-primary-600">{cat.count}</span>
               </div>

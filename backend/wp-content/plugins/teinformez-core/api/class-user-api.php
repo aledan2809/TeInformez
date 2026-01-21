@@ -139,7 +139,8 @@ class User_API extends REST_API {
     public function get_subscriptions($request) {
         $user_id = $this->get_current_user_id();
         $sub_manager = new Subscription_Manager();
-        $subscriptions = $sub_manager->get_user_subscriptions($user_id);
+        // Get ALL subscriptions (not just active ones) for dashboard display
+        $subscriptions = $sub_manager->get_user_subscriptions($user_id, false);
 
         return $this->success(['subscriptions' => $subscriptions]);
     }
