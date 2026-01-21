@@ -57,23 +57,8 @@ class REST_API {
      * Returns user_id if valid, false otherwise
      */
     protected function validate_token($token) {
-        global $wpdb;
-
-        // Get all users and check their nonce
-        $users = $wpdb->get_results("SELECT ID FROM {$wpdb->users}");
-
-        foreach ($users as $user) {
-            // Set user temporarily to verify nonce
-            wp_set_current_user($user->ID);
-
-            if (wp_verify_nonce($token, 'teinformez_auth_' . $user->ID)) {
-                return $user->ID;
-            }
-        }
-
-        // Reset current user
-        wp_set_current_user(0);
-        return false;
+        // Use the static method from Auth_API
+        return Auth_API::validate_auth_token($token);
     }
 
     /**

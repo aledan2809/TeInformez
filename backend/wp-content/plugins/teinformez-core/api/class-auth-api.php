@@ -230,21 +230,58 @@ class Auth_API extends REST_API {
     }
 
     /**
-     * Generate JWT-like token (simplified)
+     * Generate secure token using HMAC
      */
     private function generate_token($user_id) {
-        $user = get_userdata($user_id);
+        $expires_at = time() + (7 * DAY_IN_SECONDS); // 7 days
 
-        $payload = [
-            'user_id' => $user_id,
-            'email' => $user->user_email,
-            'issued_at' => time(),
-            'expires_at' => time() + (7 * DAY_IN_SECONDS) // 7 days
-        ];
+        // Create token data
+        $token_data = $user_id . '|' . $expires_at;
 
-        // In production, use proper JWT library (firebase/php-jwt)
-        // For now, using WordPress nonce system
-        return wp_create_nonce('teinformez_auth_' . $user_id);
+        // Sign with WordPress AUTH_KEY (unique per site)
+        $signature = hash_hmac('sha256', $token_data, AUTH_KEY);
+
+        // Return base64 encoded token: user_id|expires_at|signature
+        return base64_encode($token_data . '|' . $signature);
+    }
+
+    /**
+     * Validate token and return user_id if valid
+     */
+    public static function validate_auth_token($token) {
+        // Decode token
+        $decoded = base64_decode($token);
+        if (!$decoded) {
+            return false;
+        }
+
+        $parts = explode('|', $decoded);
+        if (count($parts) !== 3) {
+            return false;
+        }
+
+        list($user_id, $expires_at, $signature) = $parts;
+
+        // Check if expired
+        if (time() > (int)$expires_at) {
+            return false;
+        }
+
+        // Verify signature
+        $token_data = $user_id . '|' . $expires_at;
+        $expected_signature = hash_hmac('sha256', $token_data, AUTH_KEY);
+
+        if (!hash_equals($expected_signature, $signature)) {
+            return false;
+        }
+
+        // Verify user exists
+        $user = get_userdata((int)$user_id);
+        if (!$user) {
+            return false;
+        }
+
+        return (int)$user_id;
     }
 
     /**
