@@ -11,6 +11,7 @@ if (!defined('ABSPATH')) {
 class REST_API {
 
     protected $namespace = 'teinformez/v1';
+    protected static $authenticated_user_id = null;
 
     public function __construct() {
         add_action('rest_api_init', [$this, 'register_routes']);
@@ -21,16 +22,67 @@ class REST_API {
     }
 
     /**
-     * Check if user is authenticated
+     * Check if user is authenticated via Bearer token or WordPress session
      */
     public function is_authenticated($request) {
-        return is_user_logged_in();
+        // First check WordPress session (cookie-based auth)
+        if (is_user_logged_in()) {
+            return true;
+        }
+
+        // Then check Bearer token from Authorization header
+        $auth_header = $request->get_header('Authorization');
+        if (!$auth_header) {
+            return false;
+        }
+
+        // Extract token from "Bearer <token>"
+        if (preg_match('/Bearer\s+(.+)$/i', $auth_header, $matches)) {
+            $token = $matches[1];
+
+            // Try to authenticate with the token
+            $user_id = $this->validate_token($token);
+            if ($user_id) {
+                wp_set_current_user($user_id);
+                self::$authenticated_user_id = $user_id;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Validate authentication token
+     * Returns user_id if valid, false otherwise
+     */
+    protected function validate_token($token) {
+        global $wpdb;
+
+        // Get all users and check their nonce
+        $users = $wpdb->get_results("SELECT ID FROM {$wpdb->users}");
+
+        foreach ($users as $user) {
+            // Set user temporarily to verify nonce
+            wp_set_current_user($user->ID);
+
+            if (wp_verify_nonce($token, 'teinformez_auth_' . $user->ID)) {
+                return $user->ID;
+            }
+        }
+
+        // Reset current user
+        wp_set_current_user(0);
+        return false;
     }
 
     /**
      * Get current user ID
      */
     public function get_current_user_id() {
+        if (self::$authenticated_user_id) {
+            return self::$authenticated_user_id;
+        }
         return get_current_user_id();
     }
 
