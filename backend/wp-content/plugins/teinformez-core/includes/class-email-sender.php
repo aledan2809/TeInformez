@@ -39,6 +39,11 @@ class Email_Sender {
     private function send_via_brevo($to_email, $subject, $html_content, $text_content = '') {
         $url = 'https://api.brevo.com/v3/smtp/email';
 
+        error_log('TeInformez Brevo: Preparing to send email');
+        error_log('TeInformez Brevo: From: ' . $this->from_name . ' <' . $this->from_email . '>');
+        error_log('TeInformez Brevo: To: ' . $to_email);
+        error_log('TeInformez Brevo: Subject: ' . $subject);
+
         $body = [
             'sender' => [
                 'name' => $this->from_name,
@@ -66,17 +71,22 @@ class Email_Sender {
         ]);
 
         if (is_wp_error($response)) {
-            error_log('Brevo email error: ' . $response->get_error_message());
+            error_log('TeInformez Brevo ERROR: ' . $response->get_error_message());
             return false;
         }
 
         $status_code = wp_remote_retrieve_response_code($response);
+        $response_body = wp_remote_retrieve_body($response);
+
+        error_log('TeInformez Brevo Response Status: ' . $status_code);
+        error_log('TeInformez Brevo Response Body: ' . $response_body);
 
         if ($status_code >= 200 && $status_code < 300) {
+            error_log('TeInformez Brevo: Email sent successfully!');
             return true;
         }
 
-        error_log('Brevo email failed with status: ' . $status_code . ' - ' . wp_remote_retrieve_body($response));
+        error_log('TeInformez Brevo FAILED: Status ' . $status_code . ' - ' . $response_body);
         return false;
     }
 
@@ -100,10 +110,18 @@ class Email_Sender {
 
         $html_content = $this->get_email_template('password_reset', [
             'reset_link' => $reset_link,
-            'valid_hours' => 24
+            'valid_hours' => '24'
         ]);
 
-        return $this->send($user_email, $subject, $html_content);
+        error_log('TeInformez: Attempting to send password reset email to: ' . $user_email);
+        error_log('TeInformez: Reset link: ' . $reset_link);
+        error_log('TeInformez: Brevo API key configured: ' . (!empty($this->api_key) ? 'YES' : 'NO'));
+
+        $result = $this->send($user_email, $subject, $html_content);
+
+        error_log('TeInformez: Email send result: ' . ($result ? 'SUCCESS' : 'FAILED'));
+
+        return $result;
     }
 
     /**
@@ -207,9 +225,14 @@ class Email_Sender {
 
         $template = $templates[$template_name] ?? '';
 
-        // Replace variables
+        // Replace variables - don't escape URLs
         foreach ($vars as $key => $value) {
-            $template = str_replace('{{' . $key . '}}', esc_html($value), $template);
+            // Don't escape URLs (they contain special characters that need to remain intact)
+            if (strpos($key, 'link') !== false || strpos($key, 'url') !== false) {
+                $template = str_replace('{{' . $key . '}}', esc_url($value), $template);
+            } else {
+                $template = str_replace('{{' . $key . '}}', esc_html($value), $template);
+            }
         }
 
         return $template;

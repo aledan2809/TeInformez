@@ -64,6 +64,13 @@ function teinformez_init() {
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-user-manager.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-subscription-manager.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-gdpr-handler.php';
+    require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-email-sender.php';
+
+    // Load news processing classes (Phase B)
+    require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-news-source-manager.php';
+    require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-news-fetcher.php';
+    require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-ai-processor.php';
+    require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-news-publisher.php';
 
     // Load API endpoints
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-rest-api.php';
@@ -84,6 +91,32 @@ function teinformez_init() {
     }
 }
 add_action('plugins_loaded', 'teinformez_init');
+
+// Cron job handlers (Phase B - News Aggregation)
+add_action('teinformez_fetch_news', function() {
+    $fetcher = new TeInformez\News_Fetcher();
+    $fetcher->fetch_all();
+});
+
+add_action('teinformez_process_news', function() {
+    $processor = new TeInformez\AI_Processor();
+    $processor->process_queue();
+
+    // Also check for auto-publish
+    $publisher = new TeInformez\News_Publisher();
+    $publisher->auto_publish_expired();
+    $publisher->publish_approved();
+});
+
+add_action('teinformez_check_deliveries', function() {
+    // TODO: Implement delivery to subscribers
+    // This will be Phase C
+});
+
+add_action('teinformez_daily_cleanup', function() {
+    $publisher = new TeInformez\News_Publisher();
+    $publisher->cleanup_old_items(30);
+});
 
 // Add CORS headers for headless
 add_action('rest_api_init', function() {
