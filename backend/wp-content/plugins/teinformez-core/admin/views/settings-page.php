@@ -35,7 +35,76 @@ use TeInformez\Config;
 
             <tr>
                 <th scope="row">
-                    <label for="sendgrid_api_key"><?php _e('SendGrid API Key', 'teinformez'); ?></label>
+                    <label for="brevo_api_key"><?php _e('Brevo API Key', 'teinformez'); ?></label>
+                </th>
+                <td>
+                    <input type="password"
+                           id="brevo_api_key"
+                           name="brevo_api_key"
+                           value="<?php echo esc_attr(Config::get('brevo_api_key', '')); ?>"
+                           class="regular-text"
+                    />
+                    <p class="description">
+                        <?php _e('Required for sending emails (password reset, notifications). Free: 300 emails/day.', 'teinformez'); ?>
+                        <a href="https://app.brevo.com/settings/keys/api" target="_blank"><?php _e('Get API key', 'teinformez'); ?></a>
+                    </p>
+                </td>
+            </tr>
+
+            <tr>
+                <th scope="row">
+                    <label for="from_email"><?php _e('From Email', 'teinformez'); ?></label>
+                </th>
+                <td>
+                    <input type="email"
+                           id="from_email"
+                           name="from_email"
+                           value="<?php echo esc_attr(Config::get('from_email', 'noreply@teinformez.eu')); ?>"
+                           class="regular-text"
+                    />
+                    <p class="description">
+                        <?php _e('Email address used as sender for all outgoing emails.', 'teinformez'); ?>
+                    </p>
+                </td>
+            </tr>
+
+            <tr>
+                <th scope="row">
+                    <label for="from_name"><?php _e('From Name', 'teinformez'); ?></label>
+                </th>
+                <td>
+                    <input type="text"
+                           id="from_name"
+                           name="from_name"
+                           value="<?php echo esc_attr(Config::get('from_name', 'TeInformez')); ?>"
+                           class="regular-text"
+                    />
+                    <p class="description">
+                        <?php _e('Name shown as sender for all outgoing emails.', 'teinformez'); ?>
+                    </p>
+                </td>
+            </tr>
+
+            <tr>
+                <th scope="row">
+                    <label for="frontend_url"><?php _e('Frontend URL', 'teinformez'); ?></label>
+                </th>
+                <td>
+                    <input type="url"
+                           id="frontend_url"
+                           name="frontend_url"
+                           value="<?php echo esc_attr(Config::get('frontend_url', 'https://teinformez.vercel.app')); ?>"
+                           class="regular-text"
+                    />
+                    <p class="description">
+                        <?php _e('URL of the Next.js frontend (used for password reset links, etc.).', 'teinformez'); ?>
+                    </p>
+                </td>
+            </tr>
+
+            <tr>
+                <th scope="row">
+                    <label for="sendgrid_api_key"><?php _e('SendGrid API Key (optional)', 'teinformez'); ?></label>
                 </th>
                 <td>
                     <input type="password"
@@ -45,7 +114,7 @@ use TeInformez\Config;
                            class="regular-text"
                     />
                     <p class="description">
-                        <?php _e('Required for sending personalized news emails.', 'teinformez'); ?>
+                        <?php _e('Alternative to Brevo. Only used if Brevo API key is not set.', 'teinformez'); ?>
                         <a href="https://app.sendgrid.com/settings/api_keys" target="_blank"><?php _e('Get API key', 'teinformez'); ?></a>
                     </p>
                 </td>

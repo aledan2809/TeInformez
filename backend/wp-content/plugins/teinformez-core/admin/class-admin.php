@@ -103,7 +103,11 @@ class Admin {
 
         $fields = [
             'openai_api_key',
+            'brevo_api_key',
             'sendgrid_api_key',
+            'from_email',
+            'from_name',
+            'frontend_url',
             'admin_review_period',
             'news_fetch_interval'
         ];
