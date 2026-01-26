@@ -15,16 +15,29 @@ import type {
 const API_BASE_URL = process.env.NEXT_PUBLIC_WP_API_URL || 'http://localhost/wp-json';
 const API_NAMESPACE = 'teinformez/v1';
 
+// Enforce HTTPS in production
+const getSecureApiUrl = () => {
+  const url = API_BASE_URL;
+
+  // In production (non-localhost), enforce HTTPS
+  if (typeof window !== 'undefined' && !url.includes('localhost')) {
+    return url.replace(/^http:/, 'https:');
+  }
+
+  return url;
+};
+
 class ApiClient {
   private client: AxiosInstance;
 
   constructor() {
     this.client = axios.create({
-      baseURL: `${API_BASE_URL}/${API_NAMESPACE}`,
+      baseURL: `${getSecureApiUrl()}/${API_NAMESPACE}`,
       headers: {
         'Content-Type': 'application/json',
       },
       withCredentials: true,
+      timeout: 30000, // 30 second timeout
     });
 
     // Request interceptor to add auth token
@@ -36,17 +49,68 @@ class ApiClient {
       return config;
     });
 
-    // Response interceptor for error handling
+    // Response interceptor for comprehensive error handling
     this.client.interceptors.response.use(
       (response) => response,
       (error: AxiosError<APIResponse>) => {
-        if (error.response?.status === 401) {
-          // Unauthorized - clear token and redirect to login
-          Cookies.remove('teinformez_token');
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login';
-          }
+        // Handle network errors (timeout, no connection)
+        if (!error.response) {
+          const networkError = {
+            ...error,
+            message: 'Eroare de conexiune. Verifică conexiunea la internet.',
+          };
+          return Promise.reject(networkError);
         }
+
+        const status = error.response.status;
+        const message = error.response.data?.message;
+
+        // Handle specific HTTP status codes
+        switch (status) {
+          case 401:
+            // Unauthorized - clear token and redirect to login
+            Cookies.remove('teinformez_token');
+            if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+              window.location.href = '/login';
+            }
+            error.message = message || 'Sesiune expirată. Te rugăm să te autentifici din nou.';
+            break;
+
+          case 403:
+            // Forbidden - user doesn't have permission
+            error.message = message || 'Nu ai permisiunea să accesezi această resursă.';
+            break;
+
+          case 404:
+            // Not found
+            error.message = message || 'Resursa solicitată nu a fost găsită.';
+            break;
+
+          case 422:
+            // Validation error
+            error.message = message || 'Date invalide. Verifică informațiile introduse.';
+            break;
+
+          case 429:
+            // Rate limiting
+            error.message = message || 'Prea multe cereri. Te rugăm să încerci din nou mai târziu.';
+            break;
+
+          case 500:
+            // Internal server error
+            error.message = message || 'Eroare de server. Te rugăm să încerci din nou.';
+            break;
+
+          case 503:
+            // Service unavailable
+            error.message = message || 'Serviciul este temporar indisponibil. Te rugăm să încerci mai târziu.';
+            break;
+
+          default:
+            // Generic error
+            error.message = message || `Eroare: ${status}. Te rugăm să încerci din nou.`;
+        }
+
         return Promise.reject(error);
       }
     );
@@ -56,7 +120,8 @@ class ApiClient {
   async register(data: RegisterData): Promise<AuthResponse> {
     const response = await this.client.post<APIResponse<AuthResponse>>('/auth/register', data);
     if (response.data.data?.token) {
-      Cookies.set('teinformez_token', response.data.data.token, { expires: 7 });
+      // Token expires in 24 hours (matches backend)
+      Cookies.set('teinformez_token', response.data.data.token, { expires: 1 });
     }
     return response.data.data!;
   }
@@ -64,7 +129,8 @@ class ApiClient {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     const response = await this.client.post<APIResponse<AuthResponse>>('/auth/login', credentials);
     if (response.data.data?.token) {
-      Cookies.set('teinformez_token', response.data.data.token, { expires: 7 });
+      // Token expires in 24 hours (matches backend)
+      Cookies.set('teinformez_token', response.data.data.token, { expires: 1 });
     }
     return response.data.data!;
   }
@@ -82,7 +148,8 @@ class ApiClient {
   async refreshToken(): Promise<string> {
     const response = await this.client.post<APIResponse<{ token: string }>>('/auth/refresh');
     const token = response.data.data!.token;
-    Cookies.set('teinformez_token', token, { expires: 7 });
+    // Token expires in 24 hours (matches backend)
+    Cookies.set('teinformez_token', token, { expires: 1 });
     return token;
   }
 

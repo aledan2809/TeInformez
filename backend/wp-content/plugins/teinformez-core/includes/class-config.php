@@ -144,6 +144,41 @@ class Config {
     }
 
     /**
+     * Check if origin matches allowed patterns (supports wildcards)
+     */
+    public static function is_origin_allowed($origin) {
+        if (empty($origin)) {
+            return false;
+        }
+
+        $allowed_origins = self::get_allowed_origins();
+
+        foreach ($allowed_origins as $allowed) {
+            // Exact match
+            if ($origin === $allowed) {
+                return true;
+            }
+
+            // Wildcard match (e.g., https://*.vercel.app)
+            if (strpos($allowed, '*') !== false) {
+                // Convert wildcard pattern to regex
+                $pattern = str_replace(
+                    ['*', '.'],
+                    ['.*', '\.'],
+                    $allowed
+                );
+                $pattern = '/^' . $pattern . '$/';
+
+                if (preg_match($pattern, $origin)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Get translatable UI strings
      */
     public static function get_strings() {

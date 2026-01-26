@@ -106,10 +106,32 @@ class Auth_API extends REST_API {
             );
         }
 
-        // Validate password strength (min 8 chars)
-        if (strlen($params['password']) < 8) {
+        // Validate password strength
+        $password = $params['password'];
+        $password_errors = [];
+
+        if (strlen($password) < 8) {
+            $password_errors[] = __('minimum 8 characters', 'teinformez');
+        }
+        if (!preg_match('/[A-Z]/', $password)) {
+            $password_errors[] = __('at least one uppercase letter', 'teinformez');
+        }
+        if (!preg_match('/[a-z]/', $password)) {
+            $password_errors[] = __('at least one lowercase letter', 'teinformez');
+        }
+        if (!preg_match('/[0-9]/', $password)) {
+            $password_errors[] = __('at least one number', 'teinformez');
+        }
+        if (!preg_match('/[^A-Za-z0-9]/', $password)) {
+            $password_errors[] = __('at least one special character', 'teinformez');
+        }
+
+        if (!empty($password_errors)) {
             return $this->error(
-                __('Password must be at least 8 characters long.', 'teinformez'),
+                sprintf(
+                    __('Password must contain: %s.', 'teinformez'),
+                    implode(', ', $password_errors)
+                ),
                 'weak_password',
                 400
             );
@@ -249,7 +271,9 @@ class Auth_API extends REST_API {
      * Generate secure token using HMAC
      */
     private function generate_token($user_id) {
-        $expires_at = time() + (7 * DAY_IN_SECONDS); // 7 days
+        // Token expires in 24 hours (security best practice)
+        // Refresh tokens available via /auth/refresh endpoint
+        $expires_at = time() + DAY_IN_SECONDS; // 24 hours
 
         // Create token data
         $token_data = $user_id . '|' . $expires_at;

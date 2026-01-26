@@ -33,7 +33,9 @@ class Database {
 
         foreach ($tables as $table) {
             $table_name = self::get_table($table);
-            if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") != $table_name) {
+            // Use prepare() to prevent SQL injection
+            $query = $wpdb->prepare("SHOW TABLES LIKE %s", $table_name);
+            if ($wpdb->get_var($query) != $table_name) {
                 return false;
             }
         }

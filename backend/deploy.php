@@ -27,19 +27,15 @@ echo "=== TeInformez Deploy Script ===\n\n";
 echo "Time: " . date('Y-m-d H:i:s') . "\n";
 echo "Server: " . php_uname() . "\n\n";
 
-// Change to the plugin directory
-$plugin_dir = __DIR__ . '/wp-content/plugins/teinformez-core';
+// Change to the git root directory (public_html)
+$git_dir = __DIR__;
 
-if (!is_dir($plugin_dir)) {
-    // Try alternative path
-    $plugin_dir = dirname(__DIR__) . '/public_html/wp-content/plugins/teinformez-core';
+// Verify it's a git repo
+if (!is_dir($git_dir . '/.git')) {
+    die("ERROR: Not a git repository!\nDirectory: " . $git_dir);
 }
 
-if (!is_dir($plugin_dir)) {
-    die("ERROR: Plugin directory not found!\nTried: " . $plugin_dir);
-}
-
-echo "Plugin directory: $plugin_dir\n\n";
+echo "Git directory: $git_dir\n\n";
 
 // Check if git is available
 $git_version = shell_exec('git --version 2>&1');
@@ -49,8 +45,8 @@ if (strpos($git_version, 'git version') === false) {
     die("ERROR: Git is not available on this server.");
 }
 
-// Change to plugin directory and run git pull
-chdir($plugin_dir);
+// Change to git directory and run git pull
+chdir($git_dir);
 echo "Current directory: " . getcwd() . "\n\n";
 
 // Git status before

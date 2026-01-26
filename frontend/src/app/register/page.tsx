@@ -126,6 +126,16 @@ export default function RegisterPage() {
                     value: 8,
                     message: 'Parola trebuie să aibă minim 8 caractere',
                   },
+                  validate: {
+                    hasUpperCase: (value) =>
+                      /[A-Z]/.test(value) || 'Trebuie să conțină cel puțin o literă mare',
+                    hasLowerCase: (value) =>
+                      /[a-z]/.test(value) || 'Trebuie să conțină cel puțin o literă mică',
+                    hasNumber: (value) =>
+                      /[0-9]/.test(value) || 'Trebuie să conțină cel puțin o cifră',
+                    hasSpecial: (value) =>
+                      /[^A-Za-z0-9]/.test(value) || 'Trebuie să conțină cel puțin un caracter special',
+                  },
                 })}
                 id="password"
                 type="password"
@@ -136,6 +146,9 @@ export default function RegisterPage() {
               {errors.password && (
                 <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
               )}
+              <p className="mt-1 text-xs text-gray-500">
+                Min. 8 caractere, 1 majusculă, 1 minusculă, 1 cifră, 1 caracter special
+              </p>
             </div>
 
             <div>

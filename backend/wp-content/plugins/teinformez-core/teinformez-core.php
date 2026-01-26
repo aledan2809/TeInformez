@@ -123,9 +123,9 @@ add_action('rest_api_init', function() {
     remove_filter('rest_pre_serve_request', 'rest_send_cors_headers');
     add_filter('rest_pre_serve_request', function($value) {
         $origin = get_http_origin();
-        $allowed_origins = TeInformez\Config::get_allowed_origins();
 
-        if (in_array($origin, $allowed_origins)) {
+        // Use the new wildcard-aware origin checker
+        if (TeInformez\Config::is_origin_allowed($origin)) {
             header('Access-Control-Allow-Origin: ' . $origin);
             header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
             header('Access-Control-Allow-Credentials: true');
