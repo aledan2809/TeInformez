@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, Calendar, Mail, TrendingUp } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Bell, Calendar, Mail, TrendingUp, Newspaper, ExternalLink } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import type { SubscriptionStats } from '@/types';
@@ -24,8 +25,11 @@ const getCategoryLabel = (slug: string): string => {
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+  const router = useRouter();
   const [stats, setStats] = useState<SubscriptionStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [personalizedNews, setPersonalizedNews] = useState<any[]>([]);
+  const [newsLoading, setNewsLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -39,6 +43,21 @@ export default function DashboardPage() {
       }
     };
     fetchStats();
+  }, []);
+
+  useEffect(() => {
+    const fetchPersonalizedNews = async () => {
+      setNewsLoading(true);
+      try {
+        const data = await api.getPersonalizedFeed({ page: 1, per_page: 6 });
+        setPersonalizedNews(data.news || []);
+      } catch (err) {
+        console.error('Failed to fetch personalized news:', err);
+      } finally {
+        setNewsLoading(false);
+      }
+    };
+    fetchPersonalizedNews();
   }, []);
 
   return (
@@ -77,6 +96,69 @@ export default function DashboardPage() {
           value={stats?.by_category?.length || 0}
           isLoading={isLoading}
         />
+      </div>
+
+      {/* Personalized News Feed */}
+      <div className="card mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold flex items-center">
+            <Newspaper className="h-5 w-5 mr-2 text-primary-600" />
+            Știrile tale personalizate
+          </h2>
+          <a href="/news" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+            Vezi toate →
+          </a>
+        </div>
+
+        {newsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="animate-pulse">
+                <div className="bg-gray-200 h-40 rounded-lg mb-3" />
+                <div className="bg-gray-200 h-4 rounded w-3/4 mb-2" />
+                <div className="bg-gray-200 h-3 rounded w-full" />
+              </div>
+            ))}
+          </div>
+        ) : personalizedNews.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {personalizedNews.map((item) => (
+              <div
+                key={item.id}
+                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => router.push(`/news/${item.id}`)}
+              >
+                {item.image && (
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="w-full h-32 object-cover rounded-lg mb-3"
+                  />
+                )}
+                <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+                  {item.title}
+                </h3>
+                <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                  {item.summary}
+                </p>
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>{item.source}</span>
+                  {item.original_url && (
+                    <ExternalLink className="h-3 w-3" />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Newspaper className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-600 mb-2">Nu sunt știri personalizate disponibile</p>
+            <p className="text-sm text-gray-500">
+              Adaugă mai multe abonamente pentru a primi știri personalizate.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Categories breakdown */}

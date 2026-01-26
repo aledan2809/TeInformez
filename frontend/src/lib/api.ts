@@ -230,14 +230,32 @@ class ApiClient {
     return response.data.data!.categories;
   }
 
-  // News endpoints (placeholder for Phase B)
-  async getNews(params?: { page?: number; per_page?: number }): Promise<any> {
-    const response = await this.client.get('/news', { params });
+  // News endpoints
+  async getNews(params?: { page?: number; per_page?: number; category?: string; search?: string }): Promise<any> {
+    const response = await this.client.get<APIResponse<{
+      news: any[];
+      total: number;
+      page: number;
+      per_page: number;
+      total_pages: number;
+    }>>('/news', { params });
     return response.data.data;
   }
 
+  async getNewsItem(id: number): Promise<any> {
+    const response = await this.client.get<APIResponse<{ news: any }>>(`/news/${id}`);
+    return response.data.data!.news;
+  }
+
   async getPersonalizedFeed(params?: { page?: number; per_page?: number }): Promise<any> {
-    const response = await this.client.get('/news/personalized', { params });
+    const response = await this.client.get<APIResponse<{
+      news: any[];
+      total: number;
+      page: number;
+      per_page: number;
+      total_pages: number;
+      subscriptions_count: number;
+    }>>('/news/personalized', { params });
     return response.data.data;
   }
 }
