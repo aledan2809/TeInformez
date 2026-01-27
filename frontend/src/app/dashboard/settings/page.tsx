@@ -49,7 +49,9 @@ export default function SettingsPage() {
       });
 
       setSuccess('Setările au fost salvate cu succes!');
-      await fetchUser(); // Refresh user data
+      // Note: fetchUser() disabled temporarily until backend is deployed
+      // This prevents logout if API fails when backend is not available
+      // await fetchUser(); // Refresh user data
     } catch (err: any) {
       setError(err.response?.data?.message || 'A apărut o eroare');
     } finally {
