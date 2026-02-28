@@ -93,6 +93,20 @@ class User_API extends REST_API {
             'permission_callback' => [$this, 'is_authenticated']
         ]);
 
+        // Change password
+        register_rest_route($this->namespace, '/user/change-password', [
+            'methods' => 'POST',
+            'callback' => [$this, 'change_password'],
+            'permission_callback' => [$this, 'is_authenticated']
+        ]);
+
+        // Change email
+        register_rest_route($this->namespace, '/user/change-email', [
+            'methods' => 'POST',
+            'callback' => [$this, 'change_email'],
+            'permission_callback' => [$this, 'is_authenticated']
+        ]);
+
         // Get available categories
         register_rest_route($this->namespace, '/categories', [
             'methods' => 'GET',
@@ -283,6 +297,78 @@ class User_API extends REST_API {
         wp_logout();
 
         return $this->success([], __('Account deleted successfully.', 'teinformez'));
+    }
+
+    /**
+     * Change password (requires current password)
+     */
+    public function change_password($request) {
+        $user_id = $this->get_current_user_id();
+        $params = $request->get_json_params();
+
+        $validation = $this->validate_required($params, ['current_password', 'new_password']);
+        if (is_wp_error($validation)) {
+            return $validation;
+        }
+
+        $user = get_userdata($user_id);
+        if (!wp_check_password($params['current_password'], $user->user_pass, $user_id)) {
+            return $this->error(__('Current password is incorrect.', 'teinformez'), 'wrong_password', 400);
+        }
+
+        $new_password = $params['new_password'];
+        if (strlen($new_password) < 8) {
+            return $this->error(__('New password must be at least 8 characters.', 'teinformez'), 'weak_password', 400);
+        }
+
+        wp_set_password($new_password, $user_id);
+
+        // Re-authenticate so current session stays valid
+        wp_set_current_user($user_id);
+        wp_set_auth_cookie($user_id, true);
+
+        return $this->success([], __('Password changed successfully.', 'teinformez'));
+    }
+
+    /**
+     * Change email (requires current password for verification)
+     */
+    public function change_email($request) {
+        $user_id = $this->get_current_user_id();
+        $params = $request->get_json_params();
+
+        $validation = $this->validate_required($params, ['new_email', 'password']);
+        if (is_wp_error($validation)) {
+            return $validation;
+        }
+
+        $user = get_userdata($user_id);
+        if (!wp_check_password($params['password'], $user->user_pass, $user_id)) {
+            return $this->error(__('Password is incorrect.', 'teinformez'), 'wrong_password', 400);
+        }
+
+        $new_email = sanitize_email($params['new_email']);
+        if (!is_email($new_email)) {
+            return $this->error(__('Invalid email address.', 'teinformez'), 'invalid_email', 400);
+        }
+
+        if (email_exists($new_email) && email_exists($new_email) !== $user_id) {
+            return $this->error(__('This email is already in use.', 'teinformez'), 'email_exists', 409);
+        }
+
+        $result = wp_update_user([
+            'ID' => $user_id,
+            'user_email' => $new_email,
+            'user_login' => $new_email,
+        ]);
+
+        if (is_wp_error($result)) {
+            return $this->error($result->get_error_message(), 'update_failed', 500);
+        }
+
+        return $this->success([
+            'email' => $new_email
+        ], __('Email changed successfully.', 'teinformez'));
     }
 
     /**
