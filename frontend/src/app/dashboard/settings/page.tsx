@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, Download, Trash2, Loader2 } from 'lucide-react';
+import { Save, Download, Trash2, Loader2, Lock, Mail } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import ScheduleSelector from '@/components/onboarding/ScheduleSelector';
@@ -23,6 +23,17 @@ export default function SettingsPage() {
   const [selectedChannels, setSelectedChannels] = useState<string[]>(
     user?.preferences?.delivery_channels || ['email']
   );
+
+  // Change password state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // Change email state
+  const [newEmail, setNewEmail] = useState('');
+  const [emailPassword, setEmailPassword] = useState('');
+  const [emailLoading, setEmailLoading] = useState(false);
 
   useEffect(() => {
     if (user?.preferences) {
@@ -49,13 +60,61 @@ export default function SettingsPage() {
       });
 
       setSuccess('Setările au fost salvate cu succes!');
-      // Note: fetchUser() disabled temporarily until backend is deployed
-      // This prevents logout if API fails when backend is not available
-      // await fetchUser(); // Refresh user data
+      await fetchUser();
     } catch (err: any) {
       setError(err.response?.data?.message || 'A apărut o eroare');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setError('');
+    setSuccess('');
+
+    if (newPassword !== confirmPassword) {
+      setError('Parolele noi nu se potrivesc.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError('Parola nouă trebuie să aibă minim 8 caractere.');
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const msg = await api.changePassword(currentPassword, newPassword);
+      setSuccess(msg);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Schimbarea parolei a eșuat');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleChangeEmail = async () => {
+    setError('');
+    setSuccess('');
+
+    if (!newEmail || !newEmail.includes('@')) {
+      setError('Introdu o adresă de email validă.');
+      return;
+    }
+
+    setEmailLoading(true);
+    try {
+      const msg = await api.changeEmail(newEmail, emailPassword);
+      setSuccess(msg);
+      setNewEmail('');
+      setEmailPassword('');
+      await fetchUser();
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Schimbarea emailului a eșuat');
+    } finally {
+      setEmailLoading(false);
     }
   };
 
@@ -124,6 +183,98 @@ export default function SettingsPage() {
           <p className="text-sm text-gray-500">
             Membru din {new Date(user?.registered_at || '').toLocaleDateString('ro-RO')}
           </p>
+        </div>
+      </div>
+
+      {/* Change Email */}
+      <div className="card mb-6">
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <Mail className="h-5 w-5" />
+          Schimbă emailul
+        </h2>
+        <div className="space-y-3">
+          <div>
+            <label className="label">Email nou</label>
+            <input
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="noua-adresa@email.com"
+              className="input"
+            />
+          </div>
+          <div>
+            <label className="label">Parola curentă (pentru confirmare)</label>
+            <input
+              type="password"
+              value={emailPassword}
+              onChange={(e) => setEmailPassword(e.target.value)}
+              placeholder="Introdu parola curentă"
+              className="input"
+            />
+          </div>
+          <button
+            onClick={handleChangeEmail}
+            disabled={emailLoading || !newEmail || !emailPassword}
+            className="btn-primary"
+          >
+            {emailLoading ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Se schimbă...</>
+            ) : (
+              <><Mail className="h-4 w-4 mr-2" />Schimbă emailul</>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Change Password */}
+      <div className="card mb-6">
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <Lock className="h-5 w-5" />
+          Schimbă parola
+        </h2>
+        <div className="space-y-3">
+          <div>
+            <label className="label">Parola curentă</label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Parola actuală"
+              className="input"
+            />
+          </div>
+          <div>
+            <label className="label">Parola nouă</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Minim 8 caractere"
+              className="input"
+            />
+          </div>
+          <div>
+            <label className="label">Confirmă parola nouă</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Repetă parola nouă"
+              className="input"
+            />
+          </div>
+          <button
+            onClick={handleChangePassword}
+            disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
+            className="btn-primary"
+          >
+            {passwordLoading ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Se schimbă...</>
+            ) : (
+              <><Lock className="h-4 w-4 mr-2" />Schimbă parola</>
+            )}
+          </button>
         </div>
       </div>
 

@@ -213,6 +213,23 @@ class ApiClient {
     return response.data.data!.stats;
   }
 
+  // Account management
+  async changePassword(currentPassword: string, newPassword: string): Promise<string> {
+    const response = await this.client.post<APIResponse>('/user/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+    return response.data.message || 'Parolă schimbată cu succes';
+  }
+
+  async changeEmail(newEmail: string, password: string): Promise<string> {
+    const response = await this.client.post<APIResponse<{ email: string }>>('/user/change-email', {
+      new_email: newEmail,
+      password,
+    });
+    return response.data.message || 'Email schimbat cu succes';
+  }
+
   // GDPR endpoints
   async exportUserData(): Promise<any> {
     const response = await this.client.get<APIResponse<{ data: any }>>('/user/export');

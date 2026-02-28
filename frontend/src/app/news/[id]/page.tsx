@@ -131,7 +131,7 @@ export default function NewsDetailPage() {
                 Sursă: <span className="font-medium">{news.source}</span>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-wrap gap-1">
               {news.original_url && (
                 <a
                   href={news.original_url}
@@ -143,13 +143,53 @@ export default function NewsDetailPage() {
                   Sursă originală
                 </a>
               )}
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Facebook
+              </a>
+              <a
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(news.title)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-black text-white hover:bg-gray-800"
+              >
+                X / Twitter
+              </a>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(news.title + ' ' + (typeof window !== 'undefined' ? window.location.href : ''))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-green-600 text-white hover:bg-green-700"
+              >
+                WhatsApp
+              </a>
+              <a
+                href={`https://t.me/share/url?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&text=${encodeURIComponent(news.title)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-sky-500 text-white hover:bg-sky-600"
+              >
+                Telegram
+              </a>
+              <a
+                href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&title=${encodeURIComponent(news.title)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-blue-800 text-white hover:bg-blue-900"
+              >
+                LinkedIn
+              </a>
               {typeof window !== 'undefined' && typeof navigator !== 'undefined' && 'share' in navigator && (
                 <button
                   onClick={handleShare}
                   className="btn-secondary text-sm"
                 >
                   <Share2 className="h-4 w-4 mr-1" />
-                  Distribuie
+                  Mai mult
                 </button>
               )}
             </div>

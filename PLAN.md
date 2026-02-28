@@ -623,94 +623,71 @@ class TeInformez_Config {
 
 **Status**: ✅ Backend și Frontend base sunt gata pentru deployment!
 
-### 🚧 Sprint 2: User Preferences (IN PROGRESS)
-- [ ] Onboarding wizard (frontend)
-  - [ ] Step 1: Selectare categorii
-  - [ ] Step 2: Adăugare topicuri specifice
-  - [ ] Step 3: Frecvență și timezone
-  - [ ] Step 4: Canale de livrare
-  - [ ] Final: Bulk save subscriptions
-- [ ] User dashboard (frontend)
-  - [ ] Overview cu stats
-  - [ ] Manage subscriptions
-  - [ ] Edit preferințe
-  - [ ] Account settings
-- [ ] Categorii și topicuri selectabile (UI components)
-- [ ] Setări frecvență și canale (UI)
+### ✅ Sprint 2: User Preferences (COMPLETED - 21 Ian 2026)
+- [x] Onboarding wizard (4 steps)
+  - [x] Step 1: Selectare categorii
+  - [x] Step 2: Adăugare topicuri specifice
+  - [x] Step 3: Frecvență și timezone
+  - [x] Step 4: Canale de livrare
+  - [x] Final: Bulk save subscriptions
+- [x] User dashboard
+  - [x] Overview cu stats
+  - [x] Manage subscriptions (CRUD + toggle)
+  - [x] Edit preferințe (setări)
+  - [x] Account settings (export data, delete account)
+- [x] Categorii și topicuri selectabile
+- [x] Setări frecvență și canale
 
-**Estimare**: 4-6 ore lucru
+### ✅ Sprint 3: News Aggregation (COMPLETED - 26 Ian 2026)
+- [x] RSS Parser (10 surse preconfigurate)
+- [ ] News API integration (NewsAPI, GNews) — SKIPPED (RSS sufficient)
+- [ ] Web scraper base class — SKIPPED
+- [x] Deduplication logic
+- [x] Cron jobs pentru fetch (every 30 min)
+- [x] Categorization automat cu AI
 
-### 📅 Sprint 3: News Aggregation (PLANNED - Phase B)
-- [ ] RSS Parser
-- [ ] News API integration (NewsAPI, GNews)
-- [ ] Web scraper base class
-- [ ] Deduplication logic
-- [ ] Cron jobs pentru fetch
-- [ ] Categorization automat cu AI
-
-**Estimare**: 2 săptămâni
-
-### 📅 Sprint 4: AI Processing (PLANNED - Phase B)
-- [ ] OpenAI integration complet
-- [ ] Summarization pipeline
-- [ ] Translation service
-- [ ] Image generation (DALL-E)
-- [ ] Admin review queue (UI + logic)
-- [ ] Auto-publish după review period
-
-**Estimare**: 1-2 săptămâni
+### ✅ Sprint 4: AI Processing (COMPLETED - 26 Ian 2026)
+- [x] OpenAI integration complet
+- [x] Summarization pipeline
+- [x] Translation service
+- [x] Image generation (DALL-E)
+- [x] Admin review queue (UI + logic)
+- [x] Auto-publish după review period
 
 ### 📅 Sprint 5: Delivery System (PLANNED - Phase C)
-- [ ] SendGrid integration
-- [ ] Email templates (HTML responsive)
+- [ ] Email delivery to subscribers (scheduled digests)
+- [ ] Email templates (HTML responsive newsletter)
 - [ ] Personalized digest generator
-- [ ] Delivery scheduler (enhanced WP Cron)
-- [ ] Social media posting (Facebook, Twitter)
+- [ ] Delivery scheduler (cron handler exists, logic TODO)
+- [ ] Social media posting (Facebook, Twitter) — deferred
 - [ ] Delivery logs și statistics
 
-**Estimare**: 2 săptămâni
-
-### 📅 Sprint 6: Polish & Launch (PLANNED)
-- [ ] UI/UX refinement
-- [ ] Share buttons (viral features)
+### ✅ Sprint 6 (partial): Polish (COMPLETED - 28 Feb 2026)
+- [x] Share button (Web Share API)
+- [x] Social share buttons (Facebook, Twitter, WhatsApp, Telegram, LinkedIn)
+- [x] Change password / change email in settings
+- [x] Stats page with real data
+- [x] Legal pages (Privacy, Terms, GDPR rights)
+- [x] VPS2 deployment (PHP-FPM + MariaDB + Nginx + SSL)
 - [ ] SEO optimization
 - [ ] Performance optimization
-- [ ] Security audit
 - [ ] Load testing
 - [ ] Soft launch (beta users)
-- [ ] Marketing landing page
-
-**Estimare**: 1 săptămână
 
 ---
 
-## 📊 Current Status (19 Ianuarie 2026)
+## 📊 Current Status (28 Februarie 2026)
 
 ### ✅ Completat
-1. **Backend WordPress Plugin** - 100%
-   - Tabele database create
-   - REST API endpoints funcționale
-   - GDPR compliance implementat
-   - Admin panel cu settings
-   - Configurare multilingvă (variabile)
-
-2. **Frontend Next.js** - 70%
-   - Homepage + Landing
-   - Register page cu GDPR
-   - Login page
-   - API client
-   - Auth flow complet
-   - TypeScript types
-   - Responsive design
-
-### 🚧 În Lucru
-3. **Onboarding Wizard** - 0%
-4. **User Dashboard** - 0%
+1. **Backend WordPress Plugin** — 23 API endpoints, 12 PHP classes, 5 DB tables
+2. **Frontend Next.js** — 15 pages, auth flow, dashboard, news, GDPR
+3. **Phase A** — User registration, onboarding, dashboard (100%)
+4. **Phase B** — News aggregation, AI processing, admin review (100%)
+5. **Deployment** — VPS2 (WordPress + SSL) + Vercel (frontend)
 
 ### 📅 Planned
-5. News Aggregation (Phase B)
-6. AI Processing (Phase B)
-7. Delivery System (Phase C)
+6. Phase C — Email delivery system (scheduled digests)
+7. Phase D — Analytics, optimization, launch
 
 ---
 
