@@ -121,6 +121,19 @@ add_action('teinformez_daily_cleanup', function() {
     $publisher->cleanup_old_items(30);
 });
 
+// Custom cron intervals (must be registered early, before scheduling)
+add_filter('cron_schedules', function($schedules) {
+    $schedules['every_15_minutes'] = [
+        'interval' => 900,
+        'display' => 'Every 15 minutes'
+    ];
+    $schedules['every_30_minutes'] = [
+        'interval' => 1800,
+        'display' => 'Every 30 minutes'
+    ];
+    return $schedules;
+});
+
 // Add CORS headers for headless
 add_action('rest_api_init', function() {
     remove_filter('rest_pre_serve_request', 'rest_send_cors_headers');
