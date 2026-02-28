@@ -683,7 +683,7 @@ class TeInformez_Config {
 2. **Frontend Next.js** — 15 pages, auth flow, dashboard, news, GDPR
 3. **Phase A** — User registration, onboarding, dashboard (100%)
 4. **Phase B** — News aggregation, AI processing, admin review (100%)
-5. **Deployment** — VPS2 (WordPress + SSL) + Vercel (frontend)
+5. **Deployment** — VPS2 (WordPress + Next.js standalone + SSL), both on same server
 
 ### 📅 Planned
 6. Phase C — Email delivery system (scheduled digests)

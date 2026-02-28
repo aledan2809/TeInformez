@@ -6,8 +6,8 @@ Last Updated: 2026-02-28
 - **Phase B** (News Aggregation): COMPLETE — RSS fetcher, OpenAI processing, admin approval, news pages
 - **Phase C** (Email/Social Delivery): NOT STARTED
 - **Phase D** (Analytics/Launch): NOT STARTED
-- **Frontend**: Deployed on Vercel (`teinformez.vercel.app`)
-- **Backend**: Deployed on VPS2 (72.62.155.74) — WordPress + teinformez-core plugin
+- **Frontend**: Deployed on VPS2 (72.62.155.74:3002) — Next.js standalone, PM2 `teinformez-frontend`
+- **Backend**: Deployed on VPS2 (72.62.155.74) — WordPress + teinformez-core plugin via PHP-FPM
 - **SSL**: Certbot, expires 2026-05-29
 - **DNS**: teinformez.eu → 72.62.155.74 (changed from Hostico shared hosting)
 

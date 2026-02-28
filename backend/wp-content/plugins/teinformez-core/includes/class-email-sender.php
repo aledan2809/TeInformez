@@ -132,7 +132,7 @@ class Email_Sender {
 
         $html_content = $this->get_email_template('welcome', [
             'user_name' => $user_name,
-            'dashboard_link' => Config::get('frontend_url', 'https://teinformez.vercel.app') . '/dashboard'
+            'dashboard_link' => Config::get('frontend_url', 'https://teinformez.eu') . '/dashboard'
         ]);
 
         return $this->send($user_email, $subject, $html_content);

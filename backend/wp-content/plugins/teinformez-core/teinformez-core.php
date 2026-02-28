@@ -72,6 +72,9 @@ function teinformez_init() {
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-ai-processor.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-news-publisher.php';
 
+    // Load delivery system (Phase C)
+    require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-delivery-handler.php';
+
     // Load API endpoints
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-rest-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-auth-api.php';
@@ -109,8 +112,8 @@ add_action('teinformez_process_news', function() {
 });
 
 add_action('teinformez_check_deliveries', function() {
-    // TODO: Implement delivery to subscribers
-    // This will be Phase C
+    $handler = new TeInformez\Delivery_Handler();
+    $handler->process_deliveries();
 });
 
 add_action('teinformez_daily_cleanup', function() {

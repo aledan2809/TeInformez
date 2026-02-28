@@ -230,6 +230,12 @@ class ApiClient {
     return response.data.message || 'Email schimbat cu succes';
   }
 
+  // Delivery history
+  async getDeliveries(): Promise<{ deliveries: any[]; stats: { total_delivered: number; sent: number; failed: number; last_delivery: string | null } }> {
+    const response = await this.client.get<APIResponse<{ deliveries: any[]; stats: any }>>('/user/deliveries');
+    return response.data.data!;
+  }
+
   // GDPR endpoints
   async exportUserData(): Promise<any> {
     const response = await this.client.get<APIResponse<{ data: any }>>('/user/export');

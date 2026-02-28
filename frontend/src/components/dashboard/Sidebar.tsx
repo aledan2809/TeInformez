@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Bell, Settings, LogOut, Newspaper, BarChart3 } from 'lucide-react';
+import { Home, Bell, Settings, LogOut, Newspaper, BarChart3, Send } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 
 const MENU_ITEMS = [
   { href: '/dashboard', icon: Home, label: 'Panou principal' },
   { href: '/dashboard/subscriptions', icon: Bell, label: 'Abonamente' },
+  { href: '/dashboard/deliveries', icon: Send, label: 'Livrări' },
   { href: '/dashboard/stats', icon: BarChart3, label: 'Statistici' },
   { href: '/dashboard/settings', icon: Settings, label: 'Setări' },
 ];

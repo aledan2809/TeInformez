@@ -60,7 +60,7 @@ class Config {
     const EMAIL_FROM_ADDRESS = 'noreply@teinformez.eu';
 
     // === FRONTEND URL ===
-    const FRONTEND_URL = 'https://teinformez.vercel.app';
+    const FRONTEND_URL = 'https://teinformez.eu';
 
     // === CATEGORIES (can be overridden in admin) ===
     const DEFAULT_CATEGORIES = [

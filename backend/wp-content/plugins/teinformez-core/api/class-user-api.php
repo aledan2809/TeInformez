@@ -3,6 +3,7 @@ namespace TeInformez\API;
 
 use TeInformez\User_Manager;
 use TeInformez\Subscription_Manager;
+use TeInformez\Delivery_Handler;
 use TeInformez\GDPR_Handler;
 use TeInformez\Config;
 
@@ -104,6 +105,13 @@ class User_API extends REST_API {
         register_rest_route($this->namespace, '/user/change-email', [
             'methods' => 'POST',
             'callback' => [$this, 'change_email'],
+            'permission_callback' => [$this, 'is_authenticated']
+        ]);
+
+        // Get delivery history
+        register_rest_route($this->namespace, '/user/deliveries', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_deliveries'],
             'permission_callback' => [$this, 'is_authenticated']
         ]);
 
@@ -369,6 +377,22 @@ class User_API extends REST_API {
         return $this->success([
             'email' => $new_email
         ], __('Email changed successfully.', 'teinformez'));
+    }
+
+    /**
+     * Get delivery history and stats
+     */
+    public function get_deliveries($request) {
+        $user_id = $this->get_current_user_id();
+        $handler = new Delivery_Handler();
+
+        $deliveries = $handler->get_user_deliveries($user_id, 50);
+        $stats = $handler->get_user_delivery_stats($user_id);
+
+        return $this->success([
+            'deliveries' => $deliveries,
+            'stats' => $stats,
+        ]);
     }
 
     /**
