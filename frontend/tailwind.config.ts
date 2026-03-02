@@ -6,6 +6,7 @@ const config: Config = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -20,6 +21,17 @@ const config: Config = {
           700: '#1d4ed8',
           800: '#1e40af',
           900: '#1e3a8a',
+        },
+        // Category colors
+        cat: {
+          tech: '#3B82F6',
+          auto: '#F97316',
+          finance: '#10B981',
+          entertainment: '#EC4899',
+          sports: '#22C55E',
+          science: '#8B5CF6',
+          politics: '#EF4444',
+          business: '#F59E0B',
         },
       },
       fontFamily: {

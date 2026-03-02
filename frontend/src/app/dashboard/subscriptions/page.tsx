@@ -151,8 +151,8 @@ export default function SubscriptionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Abonamentele tale</h1>
-          <p className="text-gray-600">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Abonamentele tale</h1>
+          <p className="text-gray-600 dark:text-gray-400">
             Gestionează categoriile și topicurile la care ești abonat
           </p>
         </div>
@@ -184,13 +184,13 @@ export default function SubscriptionsPage() {
             <div
               key={sub.id}
               className={`card ${
-                sub.is_active ? '' : 'bg-gray-50 border-gray-300'
+                sub.is_active ? '' : 'bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="font-semibold text-gray-900">
+                    <h3 className="font-semibold text-gray-900 dark:text-white">
                       {getCategoryLabel(sub.category_slug)}
                     </h3>
                     {!sub.is_active && (
@@ -252,7 +252,7 @@ export default function SubscriptionsPage() {
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="card text-center">
             <p className="text-sm text-gray-600 mb-1">Total</p>
-            <p className="text-2xl font-bold text-gray-900">{subscriptions.length}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{subscriptions.length}</p>
           </div>
           <div className="card text-center">
             <p className="text-sm text-gray-600 mb-1">Active</p>
@@ -272,8 +272,8 @@ export default function SubscriptionsPage() {
       {/* Add Subscription Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="flex items-center justify-between p-4 border-b">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
               <h2 className="text-lg font-semibold">Adaugă abonament nou</h2>
               <button
                 onClick={() => setShowModal(false)}
@@ -285,7 +285,7 @@ export default function SubscriptionsPage() {
 
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Categorie *
                 </label>
                 <select
@@ -303,7 +303,7 @@ export default function SubscriptionsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Subiect specific (opțional)
                 </label>
                 <input
@@ -351,8 +351,8 @@ export default function SubscriptionsPage() {
       {/* Edit Subscription Modal */}
       {showEditModal && editingSubscription && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="flex items-center justify-between p-4 border-b">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
               <h2 className="text-lg font-semibold">Editează abonament</h2>
               <button
                 onClick={() => {
@@ -367,7 +367,7 @@ export default function SubscriptionsPage() {
 
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Categorie
                 </label>
                 <input
@@ -382,7 +382,7 @@ export default function SubscriptionsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Subiect specific
                 </label>
                 <input

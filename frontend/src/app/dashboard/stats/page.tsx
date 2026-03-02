@@ -49,7 +49,7 @@ export default function StatsPage() {
 
   return (
     <div className="p-8 max-w-4xl">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8 flex items-center gap-3">
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8 flex items-center gap-3">
         <BarChart3 className="h-8 w-8 text-primary-600" />
         Statistici
       </h1>
@@ -77,7 +77,7 @@ export default function StatsPage() {
           Scor activitate
         </h2>
         <div className="flex items-center gap-4">
-          <div className="flex-1 bg-gray-200 rounded-full h-4">
+          <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-4">
             <div
               className="bg-primary-600 h-4 rounded-full transition-all"
               style={{ width: `${getActivePercentage()}%` }}
@@ -102,9 +102,9 @@ export default function StatsPage() {
               .sort((a, b) => b.count - a.count)
               .map((item) => (
                 <div key={item.category_slug} className="flex items-center justify-between">
-                  <span className="text-gray-700 capitalize">{item.category_slug}</span>
+                  <span className="text-gray-700 dark:text-gray-300 capitalize">{item.category_slug}</span>
                   <div className="flex items-center gap-2">
-                    <div className="w-32 bg-gray-200 rounded-full h-2">
+                    <div className="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div
                         className="bg-primary-500 h-2 rounded-full"
                         style={{
@@ -145,7 +145,7 @@ export default function StatsPage() {
             <p className="text-sm text-gray-500 mb-1">Program livrare</p>
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-gray-400" />
-              <span className="text-gray-700">
+              <span className="text-gray-700 dark:text-gray-300">
                 {schedule ? `${schedule.frequency === 'daily' ? 'Zilnic' : schedule.frequency === 'weekly' ? 'Săptămânal' : 'Lunar'} la ${schedule.time}` : 'Neconfigurat'}
               </span>
             </div>

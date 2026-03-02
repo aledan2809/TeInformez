@@ -1,0 +1,52 @@
+# Changelog — TeInformez
+
+## [2026-03-03] — Phase D: Analytics & SEO
+
+### Backend (PHP Plugin)
+- Added `view_count` column to `news_queue` table for article view tracking
+- Added `POST /news/{id}/view` endpoint — increments view counter
+- Added `GET /admin/analytics` endpoint — aggregated platform stats:
+  news pipeline, total views, top 10 articles, user growth, subscription
+  breakdown, delivery stats
+
+### Frontend (Next.js)
+- Added `api.trackView()` call on news detail page load
+- OpenAI API key configured in `.env.local` and seeded in Master DB
+
+## [2026-02-28] — VPS2 Deployment
+- Installed PHP 8.3-FPM + MariaDB 10.11 on VPS2 (72.62.155.74)
+- WordPress deployed with `teinformez-core` plugin symlinked from git repo
+- Nginx + Certbot SSL for teinformez.eu
+- Next.js standalone deployed via PM2 (port 3002)
+- DNS changed from Hostico shared hosting to VPS2
+- Updated `deploy.sh teinformez` script
+
+## [2026-02-21] — Phase B: News Aggregation & AI Processing
+- RSS feed fetcher: 10+ sources (HotNews, Digi24, TechCrunch, BBC, etc.)
+- AI Processor: OpenAI GPT-4 Turbo integration (summarize, translate, categorize)
+- DALL-E 3 image generation for articles without images
+- Admin review queue (approve/reject/edit) with auto-publish after 2h
+- News Publisher with approval workflow + cron-based auto-publishing
+- News list page with category filters, search, pagination
+- News detail page with AI summary, sharing buttons, related articles
+- Personalized news feed based on user subscriptions
+- Bookmarking / saved articles (client-side Zustand store)
+- Open Graph meta tags + JSON-LD NewsArticle structured data
+- Canonical URLs + Twitter cards
+
+## [2026-02-15] — Phase A: User Registration & Onboarding
+- User registration with GDPR consent + email/password validation
+- JWT authentication (24h expiry, Bearer token, refresh)
+- 4-step onboarding wizard (categories, topics, schedule, channels)
+- User dashboard: overview, subscriptions, settings, stats, deliveries
+- Subscription management (CRUD, toggle, bulk add)
+- Account settings (change password, change email)
+- Forgot/Reset password with email token
+- GDPR compliance (data export, account deletion, consent tracking)
+- Email delivery infrastructure (Brevo API + wp_mail fallback)
+- Delivery handler with timezone-aware scheduling (5 frequencies)
+- Responsive HTML email templates (digest, welcome, password reset)
+- Delivery history page + stats
+
+## [2026-02-15] — Governance Setup
+- Added MASTER governance files (SESSION_BOOT, STRATEGY, CONTEXT, DECISIONS, GUARDRAILS, CHANGELOG)

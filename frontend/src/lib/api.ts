@@ -270,6 +270,10 @@ class ApiClient {
     return response.data.data!.news;
   }
 
+  async trackView(id: number): Promise<void> {
+    await this.client.post(`/news/${id}/view`);
+  }
+
   async getPersonalizedFeed(params?: { page?: number; per_page?: number }): Promise<any> {
     const response = await this.client.get<APIResponse<{
       news: any[];

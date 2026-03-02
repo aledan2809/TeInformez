@@ -173,14 +173,14 @@ export default function OnboardingPage() {
   }, {} as Record<string, string>);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
       <div className="container-custom max-w-4xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             Bun venit, {user?.name || 'utilizator'}! 👋
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             Hai să personalizăm experiența ta de știri în câțiva pași simpli
           </p>
         </div>
@@ -196,8 +196,8 @@ export default function OnboardingPage() {
                       currentStep > step.id
                         ? 'bg-primary-600 border-primary-600 text-white'
                         : currentStep === step.id
-                        ? 'border-primary-600 bg-white text-primary-600'
-                        : 'border-gray-300 bg-white text-gray-400'
+                        ? 'border-primary-600 bg-white dark:bg-gray-800 text-primary-600'
+                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-400'
                     }`}
                   >
                     {currentStep > step.id ? (
@@ -207,7 +207,7 @@ export default function OnboardingPage() {
                     )}
                   </div>
                   <div className="mt-2 text-center">
-                    <p className="text-xs font-medium text-gray-900">{step.title}</p>
+                    <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{step.title}</p>
                     <p className="text-xs text-gray-500 hidden sm:block">{step.description}</p>
                   </div>
                 </div>

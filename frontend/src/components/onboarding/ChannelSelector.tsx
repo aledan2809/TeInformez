@@ -70,10 +70,10 @@ export default function ChannelSelector({ selectedChannels, onToggleChannel }: C
               className={cn(
                 'relative p-6 rounded-lg border-2 transition-all text-left',
                 isDisabled
-                  ? 'opacity-50 cursor-not-allowed bg-gray-50 border-gray-200'
+                  ? 'opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700'
                   : isSelected
-                  ? 'border-primary-600 bg-primary-50 hover:shadow-md'
-                  : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
+                  ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 hover:shadow-md'
+                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'
               )}
             >
               {/* Checkbox indicator */}
@@ -111,8 +111,8 @@ export default function ChannelSelector({ selectedChannels, onToggleChannel }: C
 
       {/* Selection summary */}
       {selectedChannels.length > 0 && (
-        <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
-          <p className="text-sm font-medium text-primary-900">
+        <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-4">
+          <p className="text-sm font-medium text-primary-900 dark:text-primary-200">
             📬 Vei primi știri pe:{' '}
             <strong>
               {selectedChannels

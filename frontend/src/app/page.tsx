@@ -1,11 +1,48 @@
 import Link from 'next/link';
 import { ArrowRight, Newspaper, Zap, Globe, Mail } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://teinformez.eu';
+
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'TeInformez.eu',
+  url: SITE_URL,
+  description: 'Platformă de știri personalizate cu AI pentru România',
+  contactPoint: {
+    '@type': 'ContactPoint',
+    email: 'support@4pro.io',
+    contactType: 'customer service',
+  },
+};
+
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'TeInformez.eu',
+  url: SITE_URL,
+  description: 'Știri personalizate, livrate când vrei tu',
+  inLanguage: 'ro',
+  publisher: {
+    '@type': 'Organization',
+    name: 'TeInformez.eu',
+  },
+};
 
 export default function HomePage() {
   return (
     <div className="min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
       {/* Header */}
-      <header className="border-b bg-white">
+      <header className="border-b bg-white dark:bg-gray-900">
         <div className="container-custom flex h-16 items-center justify-between">
           <div className="flex items-center space-x-2">
             <Newspaper className="h-8 w-8 text-primary-600" />
@@ -13,6 +50,7 @@ export default function HomePage() {
           </div>
 
           <nav className="flex items-center space-x-4">
+            <ThemeToggle />
             <Link href="/login" className="text-sm font-medium hover:text-primary-600">
               Autentificare
             </Link>
@@ -24,14 +62,14 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-primary-50 to-white py-20">
+      <section className="bg-gradient-to-b from-primary-50 to-white dark:from-gray-900 dark:to-gray-950 py-20">
         <div className="container-custom">
           <div className="mx-auto max-w-3xl text-center">
-            <h1 className="mb-6 text-5xl font-bold tracking-tight text-gray-900">
+            <h1 className="mb-6 text-5xl font-bold tracking-tight text-gray-900 dark:text-white">
               Știri personalizate,<br />
               livrate când vrei tu
             </h1>
-            <p className="mb-8 text-xl text-gray-600">
+            <p className="mb-8 text-xl text-gray-600 dark:text-gray-400">
               Alege categoriile tale preferate și primește știri rezumate de AI,
               traduse în limba dorită, direct pe email sau social media.
             </p>
@@ -53,7 +91,7 @@ export default function HomePage() {
         <div className="container-custom">
           <div className="mx-auto max-w-2xl text-center mb-16">
             <h2 className="mb-4">De ce TeInformez?</h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-gray-600 dark:text-gray-400">
               Platforma ta de știri personalizate, alimentată de AI
             </p>
           </div>
@@ -84,7 +122,7 @@ export default function HomePage() {
       </section>
 
       {/* How It Works */}
-      <section className="bg-gray-50 py-20">
+      <section className="bg-gray-50 dark:bg-gray-900 py-20">
         <div className="container-custom">
           <div className="mx-auto max-w-2xl text-center mb-16">
             <h2 className="mb-4">Cum funcționează?</h2>
@@ -125,7 +163,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t bg-white py-12">
+      <footer className="border-t bg-white dark:bg-gray-900 py-12">
         <div className="container-custom">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
@@ -133,14 +171,14 @@ export default function HomePage() {
                 <Newspaper className="h-6 w-6 text-primary-600" />
                 <span className="font-bold">TeInformez.eu</span>
               </div>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Știri personalizate, alimentate de AI
               </p>
             </div>
 
             <div>
               <h4 className="font-semibold mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 <li><Link href="/privacy" className="hover:text-primary-600">Politica de confidențialitate</Link></li>
                 <li><Link href="/terms" className="hover:text-primary-600">Termeni și condiții</Link></li>
                 <li><Link href="/gdpr" className="hover:text-primary-600">GDPR</Link></li>
@@ -149,13 +187,13 @@ export default function HomePage() {
 
             <div>
               <h4 className="font-semibold mb-4">Contact</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 <li>Email: support@4pro.io</li>
               </ul>
             </div>
           </div>
 
-          <div className="mt-8 pt-8 border-t text-center text-sm text-gray-500">
+          <div className="mt-8 pt-8 border-t text-center text-sm text-gray-500 dark:text-gray-400">
             <p>&copy; {new Date().getFullYear()} TeInformez.eu. Toate drepturile rezervate.</p>
           </div>
         </div>
@@ -169,7 +207,7 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
     <div className="text-center">
       <div className="mb-4 flex justify-center">{icon}</div>
       <h3 className="mb-2 text-lg font-semibold">{title}</h3>
-      <p className="text-gray-600">{description}</p>
+      <p className="text-gray-600 dark:text-gray-400">{description}</p>
     </div>
   );
 }
@@ -181,7 +219,7 @@ function StepCard({ number, title, description }: { number: string; title: strin
         {number}
       </div>
       <h3 className="mb-2 text-lg font-semibold">{title}</h3>
-      <p className="text-gray-600">{description}</p>
+      <p className="text-gray-600 dark:text-gray-400">{description}</p>
     </div>
   );
 }

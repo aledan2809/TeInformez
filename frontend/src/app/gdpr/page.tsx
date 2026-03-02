@@ -1,11 +1,15 @@
 import Link from 'next/link'
 
-export const metadata = { title: 'GDPR — Drepturile Tale — TeInformez' }
+export const metadata = {
+  title: 'GDPR — Drepturile Tale',
+  description: 'Drepturile tale conform GDPR pe TeInformez.eu — acces, rectificare, ștergere, portabilitate și export date.',
+  alternates: { canonical: '/gdpr' },
+}
 
 export default function GdprPage() {
   return (
-    <div className="min-h-screen bg-white">
-      <header className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur">
+    <div className="min-h-screen bg-white dark:bg-gray-950">
+      <header className="sticky top-0 z-50 border-b bg-white/95 dark:bg-gray-950/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
           <Link href="/" className="text-sm text-slate-500 hover:text-slate-900">&larr; Inapoi</Link>
           <span className="text-xs text-slate-400">Actualizat: 26 Februarie 2026</span>
@@ -16,7 +20,7 @@ export default function GdprPage() {
 
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">1. Ce este GDPR?</h2>
-          <p className="text-slate-700 leading-relaxed">
+          <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
             Regulamentul General privind Protectia Datelor (GDPR - Regulamentul UE 2016/679) este
             legislatia europeana care protejeaza datele personale ale cetatenilor UE. TeInformez,
             operat de TechBiz Hub L.L.C-FZ, respecta integral aceste reglementari.
@@ -25,7 +29,7 @@ export default function GdprPage() {
 
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">2. Ce date procesam</h2>
-          <p className="text-slate-700 leading-relaxed">
+          <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
             In contextul platformei de stiri personalizate, procesam:
           </p>
           <ul className="list-disc list-inside text-slate-700 space-y-1">
@@ -100,12 +104,12 @@ export default function GdprPage() {
 
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">4. Cum iti exerciti drepturile</h2>
-          <p className="text-slate-700 leading-relaxed">Ai mai multe optiuni:</p>
+          <p className="text-slate-700 dark:text-slate-300 leading-relaxed">Ai mai multe optiuni:</p>
           <ul className="list-disc list-inside text-slate-700 space-y-1">
             <li><strong>Self-service:</strong> Acceseaza Setarile Contului pentru rectificare, export sau stergere</li>
             <li><strong>Email:</strong> Trimite cerere la <strong>gdpr@4pro.io</strong></li>
           </ul>
-          <p className="text-slate-700 leading-relaxed">
+          <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
             Vom confirma primirea cererii in 48 de ore si vom raspunde in maximum 30 de zile calendaristice.
             In cazuri complexe, termenul poate fi extins cu inca 60 de zile, cu notificare prealabila.
           </p>
@@ -113,7 +117,7 @@ export default function GdprPage() {
 
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">5. Stocarea datelor</h2>
-          <p className="text-slate-700 leading-relaxed">
+          <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
             Toate datele sunt stocate pe servere situate in <strong>Uniunea Europeana</strong>.
             Nu transferam date in afara SEE (Spatiul Economic European) fara garantii adecvate
             conform Capitolului V din GDPR.
@@ -122,7 +126,7 @@ export default function GdprPage() {
 
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">6. Incalcari ale securitatii datelor</h2>
-          <p className="text-slate-700 leading-relaxed">
+          <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
             In cazul unei incalcari a securitatii datelor care prezinta un risc ridicat pentru
             drepturile si libertatile dumneavoastra, vom:
           </p>
@@ -135,7 +139,7 @@ export default function GdprPage() {
 
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">7. Procesare automata si profilare</h2>
-          <p className="text-slate-700 leading-relaxed">
+          <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
             Folosim algoritmi AI pentru personalizarea stirilor (recomandari bazate pe preferinte si
             istoric). Aceasta profilare:
           </p>
@@ -148,7 +152,7 @@ export default function GdprPage() {
 
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">8. Plangeri</h2>
-          <p className="text-slate-700 leading-relaxed">
+          <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
             Daca nu sunteti multumit de modul in care va procesam datele, aveti dreptul de a depune
             plangere la autoritatea de supraveghere:
           </p>

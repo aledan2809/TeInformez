@@ -154,7 +154,7 @@ export default function SettingsPage() {
 
   return (
     <div className="p-8 max-w-4xl">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Setări</h1>
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Setări</h1>
 
       {/* Messages */}
       {error && (

@@ -76,6 +76,8 @@ class Activator {
             categories TEXT,
             tags TEXT,
 
+            view_count BIGINT(20) UNSIGNED DEFAULT 0,
+
             fetched_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             processed_at DATETIME DEFAULT NULL,
             reviewed_at DATETIME DEFAULT NULL,

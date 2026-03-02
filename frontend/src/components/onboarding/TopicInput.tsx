@@ -75,7 +75,7 @@ export default function TopicInput({
         <div className="space-y-6">
           {selectedCategories.map((categorySlug) => (
             <div key={categorySlug} className="card">
-              <h3 className="font-semibold text-lg text-gray-900 mb-4">
+              <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-4">
                 {categoryLabels[categorySlug] || categorySlug}
               </h3>
 
@@ -89,7 +89,7 @@ export default function TopicInput({
                     return (
                       <span
                         key={idx}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-sm"
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 rounded-full text-sm"
                       >
                         {topic.keyword}
                         <button
@@ -136,7 +136,7 @@ export default function TopicInput({
       )}
 
       {/* Suggest new category */}
-      <div className="card bg-gray-50">
+      <div className="card bg-gray-50 dark:bg-gray-900">
         <div className="flex items-start gap-3">
           <Lightbulb className="h-5 w-5 text-amber-500 mt-0.5" />
           <div className="flex-1">

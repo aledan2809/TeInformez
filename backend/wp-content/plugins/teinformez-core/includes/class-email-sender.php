@@ -60,6 +60,11 @@ class Email_Sender {
             $body['textContent'] = $text_content;
         }
 
+        // Force IPv4 to avoid Brevo IPv6 whitelist issue
+        \add_action('http_api_curl', function($handle) {
+            curl_setopt($handle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+        });
+
         $response = wp_remote_post($url, [
             'headers' => [
                 'accept' => 'application/json',

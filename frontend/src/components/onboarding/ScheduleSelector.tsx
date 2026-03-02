@@ -60,11 +60,11 @@ export default function ScheduleSelector({ schedule, onScheduleChange }: Schedul
               }
               className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
                 schedule.frequency === freq.value
-                  ? 'border-primary-600 bg-primary-50'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
+                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600'
               }`}
             >
-              <div className="font-semibold text-gray-900">{freq.label}</div>
+              <div className="font-semibold text-gray-900 dark:text-white">{freq.label}</div>
               <div className="text-sm text-gray-500 mt-1">{freq.description}</div>
             </button>
           ))}
@@ -122,7 +122,7 @@ export default function ScheduleSelector({ schedule, onScheduleChange }: Schedul
 
       {/* Summary */}
       <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
-        <p className="text-sm font-medium text-primary-900">
+        <p className="text-sm font-medium text-primary-900 dark:text-primary-200">
           📅 Vei primi știri:{' '}
           <strong>
             {schedule.frequency === 'realtime' && 'În timp real'}

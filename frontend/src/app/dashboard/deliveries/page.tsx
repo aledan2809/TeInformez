@@ -88,7 +88,7 @@ export default function DeliveriesPage() {
 
   return (
     <div className="p-8 max-w-4xl">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8 flex items-center gap-3">
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8 flex items-center gap-3">
         <Send className="h-8 w-8 text-primary-600" />
         Istoric livrări
       </h1>
@@ -136,7 +136,7 @@ export default function DeliveriesPage() {
                     {item.news_title ? (
                       <Link
                         href={`/news/${item.news_id}`}
-                        className="text-sm font-medium text-gray-900 hover:text-primary-600 truncate block"
+                        className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-primary-600 truncate block"
                       >
                         {item.news_title}
                       </Link>

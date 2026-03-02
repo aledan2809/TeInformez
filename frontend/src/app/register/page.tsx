@@ -52,16 +52,16 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white dark:from-gray-900 dark:to-gray-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link href="/" className="flex justify-center items-center space-x-2 mb-6">
           <Newspaper className="h-10 w-10 text-primary-600" />
           <span className="text-2xl font-bold">TeInformez.eu</span>
         </Link>
-        <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900">
+        <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
           Creează cont gratuit
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
           Sau{' '}
           <Link href="/login" className="font-medium text-primary-600 hover:text-primary-500">
             autentifică-te dacă ai deja cont
@@ -184,7 +184,7 @@ export default function RegisterPage() {
                 />
               </div>
               <div className="ml-3 text-sm">
-                <label htmlFor="gdprConsent" className="text-gray-700">
+                <label htmlFor="gdprConsent" className="text-gray-700 dark:text-gray-300">
                   Accept{' '}
                   <Link href="/privacy" className="text-primary-600 hover:text-primary-500" target="_blank">
                     Politica de confidențialitate
@@ -222,13 +222,13 @@ export default function RegisterPage() {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="bg-white px-2 text-gray-500">
+                <span className="bg-white dark:bg-gray-800 px-2 text-gray-500 dark:text-gray-400">
                   Avantajele contului gratuit
                 </span>
               </div>
             </div>
 
-            <ul className="mt-4 space-y-2 text-sm text-gray-600">
+            <ul className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
               <li className="flex items-center">
                 <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
                 Știri personalizate după interesele tale

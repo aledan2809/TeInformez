@@ -38,15 +38,15 @@ export default function ForgotPasswordPage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="flex justify-center">
             <CheckCircle className="h-16 w-16 text-green-500" />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900 dark:text-white">
             Verifică-ți email-ul
           </h2>
-          <p className="mt-4 text-center text-gray-600">
+          <p className="mt-4 text-center text-gray-600 dark:text-gray-400">
             Dacă există un cont asociat cu această adresă de email,
             vei primi un link pentru resetarea parolei.
           </p>
@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link
           href="/login"
@@ -77,10 +77,10 @@ export default function ForgotPasswordPage() {
           Înapoi la autentificare
         </Link>
 
-        <h2 className="text-center text-3xl font-bold text-gray-900">
+        <h2 className="text-center text-3xl font-bold text-gray-900 dark:text-white">
           Ai uitat parola?
         </h2>
-        <p className="mt-2 text-center text-gray-600">
+        <p className="mt-2 text-center text-gray-600 dark:text-gray-400">
           Introdu adresa de email și îți vom trimite un link pentru resetare.
         </p>
       </div>

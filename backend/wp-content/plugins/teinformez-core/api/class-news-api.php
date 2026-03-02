@@ -32,6 +32,20 @@ class News_API extends REST_API {
             'callback' => [$this, 'get_personalized_feed'],
             'permission_callback' => [$this, 'is_authenticated']
         ]);
+
+        // Track news view
+        register_rest_route($this->namespace, '/news/(?P<id>\d+)/view', [
+            'methods' => 'POST',
+            'callback' => [$this, 'track_view'],
+            'permission_callback' => '__return_true'
+        ]);
+
+        // Admin analytics
+        register_rest_route($this->namespace, '/admin/analytics', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_analytics'],
+            'permission_callback' => [$this, 'is_authenticated']
+        ]);
     }
 
     /**
@@ -194,6 +208,86 @@ class News_API extends REST_API {
     }
 
     /**
+     * Track a news article view
+     */
+    public function track_view($request) {
+        global $wpdb;
+        $id = (int) $request->get_param('id');
+        $table = $wpdb->prefix . 'teinformez_news_queue';
+
+        $wpdb->query($wpdb->prepare(
+            "UPDATE {$table} SET view_count = view_count + 1 WHERE id = %d AND status = 'published'",
+            $id
+        ));
+
+        return $this->success(['tracked' => true]);
+    }
+
+    /**
+     * Get platform analytics (admin)
+     */
+    public function get_analytics($request) {
+        global $wpdb;
+        $news_table = $wpdb->prefix . 'teinformez_news_queue';
+        $users_table = $wpdb->prefix . 'teinformez_user_preferences';
+        $subs_table = $wpdb->prefix . 'teinformez_subscriptions';
+        $delivery_table = $wpdb->prefix . 'teinformez_delivery_log';
+
+        // News stats
+        $publisher = new \TeInformez\News_Publisher();
+        $news_stats = $publisher->get_stats();
+
+        // Total views
+        $total_views = (int) $wpdb->get_var("SELECT COALESCE(SUM(view_count), 0) FROM {$news_table}");
+
+        // Top 10 most viewed articles
+        $top_articles = $wpdb->get_results(
+            "SELECT id, processed_title as title, view_count, source_name as source, published_at
+             FROM {$news_table}
+             WHERE status = 'published' AND view_count > 0
+             ORDER BY view_count DESC LIMIT 10"
+        );
+
+        // User stats
+        $total_users = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$users_table}");
+        $users_last_7d = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$users_table} WHERE created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)"
+        );
+
+        // Subscription stats
+        $total_subs = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$subs_table} WHERE is_active = 1");
+        $top_categories = $wpdb->get_results(
+            "SELECT category_slug, COUNT(*) as count FROM {$subs_table}
+             WHERE is_active = 1 GROUP BY category_slug ORDER BY count DESC LIMIT 10",
+            ARRAY_A
+        );
+
+        // Delivery stats
+        $deliveries_sent = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$delivery_table} WHERE status = 'sent'");
+        $deliveries_failed = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$delivery_table} WHERE status = 'failed'");
+
+        return $this->success([
+            'news' => $news_stats,
+            'views' => [
+                'total' => $total_views,
+                'top_articles' => $top_articles,
+            ],
+            'users' => [
+                'total' => $total_users,
+                'new_last_7d' => $users_last_7d,
+            ],
+            'subscriptions' => [
+                'active' => $total_subs,
+                'top_categories' => $top_categories,
+            ],
+            'deliveries' => [
+                'sent' => $deliveries_sent,
+                'failed' => $deliveries_failed,
+            ],
+        ]);
+    }
+
+    /**
      * Format news item for API response
      */
     private function format_news_item($item) {
@@ -208,7 +302,8 @@ class News_API extends REST_API {
             'tags' => $item->tags,
             'published_at' => $item->published_at,
             'original_url' => $item->original_url,
-            'language' => $item->target_language ?: \TeInformez\Config::SITE_LANGUAGE
+            'language' => $item->target_language ?: \TeInformez\Config::SITE_LANGUAGE,
+            'view_count' => (int) ($item->view_count ?? 0),
         ];
     }
 }

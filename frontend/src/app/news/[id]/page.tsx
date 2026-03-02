@@ -1,10 +1,8 @@
-'use client';
+import type { Metadata } from 'next';
+import NewsDetailClient from './NewsDetailClient';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeft, Calendar, ExternalLink, Tag, Loader2, Share2 } from 'lucide-react';
-import { api } from '@/lib/api';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://teinformez.eu';
+const WP_API_URL = process.env.NEXT_PUBLIC_WP_API_URL || 'http://localhost/wp-json';
 
 interface NewsItem {
   id: number;
@@ -20,253 +18,109 @@ interface NewsItem {
   language: string;
 }
 
-export default function NewsDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const [news, setNews] = useState<NewsItem | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchNews();
-  }, [params.id]);
-
-  const fetchNews = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const newsId = parseInt(params.id as string);
-      const data = await api.getNewsItem(newsId);
-      setNews(data);
-    } catch (err: any) {
-      setError(err.message || 'Eroare la încărcarea știrii');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ro-RO', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+async function getNewsItem(id: string): Promise<NewsItem | null> {
+  try {
+    const res = await fetch(`${WP_API_URL}/teinformez/v1/news/${id}`, {
+      next: { revalidate: 300 },
     });
-  };
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.data?.news || null;
+  } catch {
+    return null;
+  }
+}
 
-  const handleShare = async () => {
-    if (navigator.share && news) {
-      try {
-        await navigator.share({
-          title: news.title,
-          text: news.summary,
-          url: window.location.href
-        });
-      } catch (err) {
-        console.log('Error sharing:', err);
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const news = await getNewsItem(id);
+
+  if (!news) {
+    return {
+      title: 'Știre negăsită',
+      description: 'Această știre nu există sau nu este disponibilă.',
+    };
+  }
+
+  const description = news.summary?.slice(0, 160) || news.title;
+  const url = `${SITE_URL}/news/${news.id}`;
+
+  return {
+    title: news.title,
+    description,
+    keywords: [...(news.categories || []), ...(news.tags || [])],
+    openGraph: {
+      title: news.title,
+      description,
+      type: 'article',
+      url,
+      locale: 'ro_RO',
+      siteName: 'TeInformez.eu',
+      publishedTime: news.published_at,
+      authors: [news.source],
+      tags: news.tags,
+      ...(news.image ? { images: [{ url: news.image, alt: news.title }] } : {}),
+    },
+    twitter: {
+      card: news.image ? 'summary_large_image' : 'summary',
+      title: news.title,
+      description,
+      ...(news.image ? { images: [news.image] } : {}),
+    },
+    alternates: {
+      canonical: url,
+    },
+  };
+}
+
+export default async function NewsDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const news = await getNewsItem(id);
+
+  const jsonLd = news
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'NewsArticle',
+        headline: news.title,
+        description: news.summary,
+        image: news.image || undefined,
+        datePublished: news.published_at,
+        author: {
+          '@type': 'Organization',
+          name: news.source,
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: 'TeInformez.eu',
+          url: SITE_URL,
+        },
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': `${SITE_URL}/news/${news.id}`,
+        },
+        articleSection: news.categories?.join(', '),
+        keywords: news.tags?.join(', '),
+        inLanguage: news.language || 'ro',
       }
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary-600 mx-auto mb-4" />
-          <p className="text-gray-600">Se încarcă știrea...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !news) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Știre negăsită</h2>
-          <p className="text-gray-600 mb-6">{error || 'Această știre nu există sau nu este disponibilă.'}</p>
-          <Link href="/news" className="btn-primary">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Înapoi la știri
-          </Link>
-        </div>
-      </div>
-    );
-  }
+    : null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="container mx-auto px-4 py-4">
-          <Link
-            href="/news"
-            className="inline-flex items-center text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Înapoi la știri
-          </Link>
-        </div>
-      </div>
-
-      {/* Article */}
-      <article className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          {/* Title */}
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            {news.title}
-          </h1>
-
-          {/* Meta */}
-          <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-200">
-            <div className="flex items-center text-sm text-gray-500 space-x-4">
-              <div className="flex items-center">
-                <Calendar className="h-4 w-4 mr-1" />
-                <span>{formatDate(news.published_at)}</span>
-              </div>
-              <div>
-                Sursă: <span className="font-medium">{news.source}</span>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2 flex-wrap gap-1">
-              {news.original_url && (
-                <a
-                  href={news.original_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-secondary text-sm"
-                >
-                  <ExternalLink className="h-4 w-4 mr-1" />
-                  Sursă originală
-                </a>
-              )}
-              <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700"
-              >
-                Facebook
-              </a>
-              <a
-                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(news.title)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-black text-white hover:bg-gray-800"
-              >
-                X / Twitter
-              </a>
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(news.title + ' ' + (typeof window !== 'undefined' ? window.location.href : ''))}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-green-600 text-white hover:bg-green-700"
-              >
-                WhatsApp
-              </a>
-              <a
-                href={`https://t.me/share/url?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&text=${encodeURIComponent(news.title)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-sky-500 text-white hover:bg-sky-600"
-              >
-                Telegram
-              </a>
-              <a
-                href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&title=${encodeURIComponent(news.title)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-blue-800 text-white hover:bg-blue-900"
-              >
-                LinkedIn
-              </a>
-              {typeof window !== 'undefined' && typeof navigator !== 'undefined' && 'share' in navigator && (
-                <button
-                  onClick={handleShare}
-                  className="btn-secondary text-sm"
-                >
-                  <Share2 className="h-4 w-4 mr-1" />
-                  Mai mult
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Categories and Tags */}
-          {(news.categories.length > 0 || news.tags.length > 0) && (
-            <div className="mb-6">
-              {news.categories.length > 0 && (
-                <div className="mb-3">
-                  <span className="text-sm font-semibold text-gray-700 mr-2">Categorii:</span>
-                  <div className="inline-flex flex-wrap gap-2">
-                    {news.categories.map((category) => (
-                      <span
-                        key={category}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800"
-                      >
-                        <Tag className="h-3 w-3 mr-1" />
-                        {category}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {news.tags.length > 0 && (
-                <div>
-                  <span className="text-sm font-semibold text-gray-700 mr-2">Tag-uri:</span>
-                  <div className="inline-flex flex-wrap gap-2">
-                    {news.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Image */}
-          {news.image && (
-            <div className="mb-6 rounded-lg overflow-hidden">
-              <img
-                src={news.image}
-                alt={news.title}
-                className="w-full h-auto"
-              />
-            </div>
-          )}
-
-          {/* Summary */}
-          {news.summary && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg border-l-4 border-primary-600">
-              <p className="text-lg font-medium text-gray-900 italic">
-                {news.summary}
-              </p>
-            </div>
-          )}
-
-          {/* Content */}
-          <div
-            className="prose prose-lg max-w-none"
-            dangerouslySetInnerHTML={{ __html: news.content }}
-          />
-        </div>
-
-        {/* Back button */}
-        <div className="mt-8 text-center">
-          <Link href="/news" className="btn-secondary">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Înapoi la toate știrile
-          </Link>
-        </div>
-      </article>
-    </div>
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      <NewsDetailClient />
+    </>
   );
 }

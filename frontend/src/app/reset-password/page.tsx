@@ -58,15 +58,15 @@ function ResetPasswordContent() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="flex justify-center">
             <CheckCircle className="h-16 w-16 text-green-500" />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900 dark:text-white">
             Parolă resetată cu succes!
           </h2>
-          <p className="mt-4 text-center text-gray-600">
+          <p className="mt-4 text-center text-gray-600 dark:text-gray-400">
             Parola ta a fost actualizată. Acum te poți autentifica cu noua parolă.
           </p>
           <div className="mt-8 text-center">
@@ -84,15 +84,15 @@ function ResetPasswordContent() {
 
   if (!token || !email) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="flex justify-center">
             <AlertCircle className="h-16 w-16 text-red-500" />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900 dark:text-white">
             Link invalid
           </h2>
-          <p className="mt-4 text-center text-gray-600">
+          <p className="mt-4 text-center text-gray-600 dark:text-gray-400">
             Link-ul de resetare este invalid sau a expirat.
           </p>
           <div className="mt-8 text-center">
@@ -109,12 +109,12 @@ function ResetPasswordContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="text-center text-3xl font-bold text-gray-900">
+        <h2 className="text-center text-3xl font-bold text-gray-900 dark:text-white">
           Setează parola nouă
         </h2>
-        <p className="mt-2 text-center text-gray-600">
+        <p className="mt-2 text-center text-gray-600 dark:text-gray-400">
           Introdu noua ta parolă pentru contul {email}
         </p>
       </div>

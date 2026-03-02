@@ -47,3 +47,6 @@ logs/
 # Temporary files
 *.tmp
 *.temp
+
+# Governance session tracking
+.claude-session-base
