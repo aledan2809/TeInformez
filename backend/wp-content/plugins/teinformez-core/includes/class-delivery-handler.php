@@ -368,6 +368,8 @@ class Delivery_Handler {
         }
 
         $news_html = '';
+        $images_used = 0;
+        $max_images = 3;
 
         foreach ($by_category as $cat_slug => $items) {
             if (empty($items)) continue;
@@ -375,8 +377,7 @@ class Delivery_Handler {
             $cat_label = $cat_labels[$cat_slug] ?? ucfirst($cat_slug);
             $total_items = count($items);
 
-            // Adaptive split: balance left articles vs sidebar
-            // ≤4 items: 1 left, rest sidebar | >4 items: 2 left, rest sidebar
+            // Adaptive split: ≤4 items: 1 left, rest sidebar | >4: 2 left, rest sidebar
             $left_count = $total_items > 4 ? 2 : 1;
             $left_items = array_slice($items, 0, $left_count);
             $sidebar_items = array_slice($items, $left_count);
@@ -400,14 +401,15 @@ class Delivery_Handler {
                 $l_source = esc_html($left_item->source_name ?? '');
                 $border_top = $i > 0 ? 'border-top:1px solid #f3f4f6;padding-top:10px;margin-top:10px;' : '';
 
-                // Image block (if available)
+                // Show image only on first left article and if budget allows
                 $image_html = '';
-                if (!empty($l_image)) {
+                if ($i === 0 && !empty($l_image) && $images_used < $max_images) {
                     $image_html = '
                         <a href="' . $l_link . '" style="display:block;margin-bottom:8px;">
                             <img src="' . esc_url($l_image) . '" alt="" width="100%" style="display:block;border-radius:4px;max-height:160px;object-fit:cover;" />
                         </a>
                         <p style="margin:0 0 6px;font-size:9px;color:#9ca3af;">Foto: ' . $l_source . '</p>';
+                    $images_used++;
                 }
 
                 $left_html .= '
@@ -431,6 +433,27 @@ class Delivery_Handler {
                 $sidebar_html .= '<li style="margin-bottom:6px;"><a href="' . $s_link . '" style="color:#2563eb;text-decoration:none;font-size:11px;line-height:1.3;display:block;max-height:2.6em;overflow:hidden;">' . $s_title . '</a></li>';
             }
 
+            // If sidebar is empty and we have image budget, show image in sidebar
+            $sidebar_content = '';
+            if (!empty($sidebar_html)) {
+                $sidebar_content = '
+                    <p style="margin:0 0 8px;font-size:10px;font-weight:bold;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Mai multe:</p>
+                    <ul style="margin:0;padding:0 0 0 12px;list-style:disc;color:#9ca3af;">' . $sidebar_html . '</ul>';
+            } elseif ($images_used < $max_images) {
+                // Empty sidebar — fill with image from first left article
+                $first_image = $left_items[0]->ai_generated_image_url ?? '';
+                $first_source = esc_html($left_items[0]->source_name ?? '');
+                $first_link = esc_url($frontend_url . '/news/' . $left_items[0]->id);
+                if (!empty($first_image)) {
+                    $sidebar_content = '
+                        <a href="' . $first_link . '" style="display:block;">
+                            <img src="' . esc_url($first_image) . '" alt="" width="100%" style="display:block;border-radius:4px;object-fit:cover;" />
+                        </a>
+                        <p style="margin:4px 0 0;font-size:9px;color:#9ca3af;">Foto: ' . $first_source . '</p>';
+                    $images_used++;
+                }
+            }
+
             // Always 2-column card: left (60%) + sidebar right (40%)
             $news_html .= '
             <div style="margin-bottom:16px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;overflow:hidden;">
@@ -439,11 +462,8 @@ class Delivery_Handler {
                         <td width="60%" valign="top" style="padding:16px;">
                             ' . $left_html . '
                         </td>
-                        <td width="40%" valign="top" style="padding:14px 16px;border-left:1px solid #e5e7eb;background:#f9fafb;">' .
-                            (!empty($sidebar_html) ? '
-                            <p style="margin:0 0 8px;font-size:10px;font-weight:bold;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Mai multe:</p>
-                            <ul style="margin:0;padding:0 0 0 12px;list-style:disc;color:#9ca3af;">' . $sidebar_html . '</ul>'
-                            : '') . '
+                        <td width="40%" valign="top" style="padding:14px 16px;border-left:1px solid #e5e7eb;background:#f9fafb;">
+                            ' . $sidebar_content . '
                         </td>
                     </tr>
                 </table>
