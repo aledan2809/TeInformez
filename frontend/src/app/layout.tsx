@@ -10,11 +10,11 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://teinformez.eu';
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'TeInformez.eu - Știri personalizate, livrate când vrei tu',
+    default: 'TeInformez.eu - Știri din Romania și din lume',
     template: '%s | TeInformez.eu',
   },
-  description: 'Platformă de știri personalizate. Alege categoriile tale preferate și primește știri rezumate, traduse în limba dorită, direct pe email.',
-  keywords: ['știri personalizate', 'news', 'România', 'newsletter', 'email digest', 'știri ro'],
+  description: 'Știri din Romania și din lume. Actualitate, politică, internațional, business, tehnologie, sport și multe altele.',
+  keywords: ['știri', 'news', 'România', 'actualitate', 'politică', 'business', 'tehnologie', 'sport', 'știri ro'],
   authors: [{ name: 'TeInformez' }],
   creator: 'TeInformez',
   publisher: 'TeInformez',
@@ -30,8 +30,8 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'TeInformez.eu - Știri personalizate, livrate când vrei tu',
-    description: 'Alege categoriile tale preferate și primește știri rezumate, traduse în limba dorită, direct pe email.',
+    title: 'TeInformez.eu - Știri din Romania și din lume',
+    description: 'Știri din Romania și din lume. Actualitate, politică, internațional, business, tehnologie, sport.',
     type: 'website',
     locale: 'ro_RO',
     url: SITE_URL,

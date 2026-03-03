@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
@@ -299,9 +300,19 @@ export default function OnboardingPage() {
           )}
         </div>
 
-        {/* Skip option */}
+        {/* Skip entire onboarding */}
+        <div className="mt-4 text-center">
+          <Link
+            href="/news"
+            className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 underline"
+          >
+            Sari peste configurare — mergi la știri
+          </Link>
+        </div>
+
+        {/* Skip step option */}
         {currentStep === 2 && (
-          <div className="mt-4 text-center">
+          <div className="mt-2 text-center">
             <button
               onClick={handleNext}
               className="text-sm text-gray-500 hover:text-gray-700 underline"

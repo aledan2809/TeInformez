@@ -114,6 +114,41 @@ class Config {
             'label' => 'Business',
             'icon' => '📊',
             'subcategories' => ['startups', 'corporate', 'entrepreneurship', 'economy']
+        ],
+        'actualitate' => [
+            'label' => 'Actualitate',
+            'icon' => '📰',
+            'subcategories' => ['breaking', 'social', 'educatie', 'cultura', 'romania']
+        ],
+        'international' => [
+            'label' => 'Internațional',
+            'icon' => '🌍',
+            'subcategories' => ['europa', 'sua', 'orientul-mijlociu', 'asia', 'africa']
+        ],
+        'justitie' => [
+            'label' => 'Justiție',
+            'icon' => '⚖️',
+            'subcategories' => ['instante', 'dna', 'legislatie', 'cazuri-penale']
+        ],
+        'sanatate' => [
+            'label' => 'Sănătate',
+            'icon' => '🏥',
+            'subcategories' => ['medicina', 'nutritie', 'fitness', 'mental-health', 'sistem-medical']
+        ],
+        'lifestyle' => [
+            'label' => 'Lifestyle',
+            'icon' => '✨',
+            'subcategories' => ['travel', 'food', 'fashion', 'home', 'parenting']
+        ],
+        'opinii' => [
+            'label' => 'Opinii',
+            'icon' => '💬',
+            'subcategories' => ['editoriale', 'analize', 'comentarii', 'interviuri']
+        ],
+        'juridic' => [
+            'label' => 'Juridic cu Alina',
+            'icon' => '📋',
+            'subcategories' => ['dreptul-muncii', 'dreptul-familiei', 'drept-comercial', 'drept-penal', 'protectia-consumatorului']
         ]
     ];
 

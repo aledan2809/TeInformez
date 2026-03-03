@@ -83,12 +83,22 @@ function teinformez_init() {
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-auth-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-user-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-news-api.php';
+    require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-juridic-api.php';
 
     // Initialize REST API
     new TeInformez\API\REST_API();
     new TeInformez\API\Auth_API();
     new TeInformez\API\User_API();
     new TeInformez\API\News_API();
+    new TeInformez\API\Juridic_API();
+
+    // Auto-merge new categories into stored option
+    $current_cats = get_option('teinformez_categories', []);
+    $default_cats = TeInformez\Config::DEFAULT_CATEGORIES;
+    $merged = array_merge($default_cats, $current_cats);
+    if (count($merged) !== count($current_cats)) {
+        update_option('teinformez_categories', $merged);
+    }
 
     // Load admin if in admin area
     if (is_admin()) {

@@ -294,20 +294,31 @@ class Delivery_Handler {
             }
 
             if ($category_match || $topic_match) {
+                // Store which subscribed category matched (for correct grouping)
+                $item->_matched_cat = '';
+                $item_cats_list = json_decode($item->categories, true) ?? [];
+                foreach ($item_cats_list as $ic) {
+                    if (in_array($ic, $categories)) {
+                        $item->_matched_cat = $ic;
+                        break;
+                    }
+                }
+                if (empty($item->_matched_cat)) {
+                    $item->_matched_cat = $item_cats_list[0] ?? 'other';
+                }
                 $matched[] = $item;
             }
         }
 
-        // Group matched articles by primary category
+        // Group matched articles by the subscribed category that matched
         $by_category = [];
 
         foreach ($matched as $item) {
-            $item_cats = json_decode($item->categories, true) ?? [];
-            $cat = $item_cats[0] ?? 'other';
+            $cat = $item->_matched_cat;
             if (!isset($by_category[$cat])) {
                 $by_category[$cat] = [];
             }
-            // Limit to 10 per category (3 left + up to 7 sidebar)
+            // Limit to 10 per category
             if (count($by_category[$cat]) < 10) {
                 $by_category[$cat][] = $item;
             }
@@ -347,7 +358,7 @@ class Delivery_Handler {
     }
 
     /**
-     * Build HTML email digest.
+     * Build HTML email digest — "Axios meets Morning Brew" single-column layout.
      * $by_category = ['politics' => [$item1, $item2, ...], 'tech' => [...], ...]
      */
     private function build_digest_html($user, $by_category, $frequency) {
@@ -357,128 +368,225 @@ class Delivery_Handler {
 
         // Category label mapping
         $cat_labels = [];
+        $cat_colors = [
+            'tech' => '#7c3aed', 'auto' => '#0891b2', 'finance' => '#059669',
+            'entertainment' => '#d946ef', 'sports' => '#dc2626', 'science' => '#0d9488',
+            'politics' => '#4338ca', 'business' => '#ea580c',
+        ];
         foreach (Config::DEFAULT_CATEGORIES as $slug => $cat) {
             $cat_labels[$slug] = $cat['icon'] . ' ' . $cat['label'];
         }
 
-        // Count total articles
+        // Count total articles + flatten for hero selection
         $total_count = 0;
-        foreach ($by_category as $items) {
+        $all_articles = [];
+        foreach ($by_category as $cat_slug => $items) {
             $total_count += count($items);
+            foreach ($items as $item) {
+                $item->_cat_slug = $cat_slug;
+                $all_articles[] = $item;
+            }
         }
 
-        $news_html = '';
-        $images_used = 0;
-        $max_images = 3;
+        // Pick hero article: first article with an image, or first article overall
+        $hero = null;
+        $hero_cat = '';
+        foreach ($all_articles as $article) {
+            if (!empty($article->ai_generated_image_url)) {
+                $hero = $article;
+                $hero_cat = $article->_cat_slug;
+                break;
+            }
+        }
+        if (!$hero && !empty($all_articles)) {
+            $hero = $all_articles[0];
+            $hero_cat = $all_articles[0]->_cat_slug;
+        }
 
+        // Track used image IDs to avoid duplicates
+        $used_image_ids = [];
+        $thumbnail_budget = 4; // thumbnails in category sections (hero image is separate, total ~5)
+
+        // === HERO SECTION ===
+        $hero_html = '';
+        if ($hero) {
+            $h_title = esc_html($hero->processed_title ?? 'Fără titlu');
+            $h_summary = esc_html($hero->processed_summary ?? '');
+            if (mb_strlen($h_summary) > 200) {
+                $h_summary = mb_substr($h_summary, 0, 197) . '...';
+            }
+            $h_link = esc_url($frontend_url . '/news/' . $hero->id);
+            $h_cat_label = $cat_labels[$hero_cat] ?? '';
+            $h_cat_color = $cat_colors[$hero_cat] ?? '#4338ca';
+            $h_image = $hero->ai_generated_image_url ?? '';
+
+            $hero_image_html = '';
+            if (!empty($h_image)) {
+                $used_image_ids[] = $hero->id;
+                $hero_image_html = '
+                    <a href="' . $h_link . '" style="display:block;">
+                        <img src="' . esc_url($h_image) . '" alt="" width="560" style="display:block;width:100%;border-radius:0;" />
+                    </a>';
+            }
+
+            $hero_html = '
+            <div style="background:#ffffff;overflow:hidden;">
+                ' . $hero_image_html . '
+                <div style="padding:20px 24px 24px;">
+                    <p style="margin:0 0 8px;font-size:11px;font-weight:bold;color:' . $h_cat_color . ';text-transform:uppercase;letter-spacing:0.5px;">' . $h_cat_label . '</p>
+                    <h2 style="margin:0 0 10px;font-size:20px;line-height:1.3;color:#111827;">
+                        <a href="' . $h_link . '" style="color:#111827;text-decoration:none;">' . $h_title . '</a>
+                    </h2>
+                    <p style="margin:0 0 14px;font-size:14px;color:#4b5563;line-height:1.5;">' . $h_summary . '</p>
+                    <a href="' . $h_link . '" style="font-size:13px;font-weight:bold;color:#2563eb;text-decoration:none;">Citește mai mult &rarr;</a>
+                </div>
+            </div>';
+        }
+
+        // === CATEGORY SECTIONS (2-column: lead+image left, headlines right) ===
+        $sections_html = '';
+        $cat_index = 0;
         foreach ($by_category as $cat_slug => $items) {
             if (empty($items)) continue;
 
             $cat_label = $cat_labels[$cat_slug] ?? ucfirst($cat_slug);
-            $total_items = count($items);
+            $cat_color = $cat_colors[$cat_slug] ?? '#4338ca';
 
-            // Adaptive split: ≤4 items: 1 left, rest sidebar | >4: 2 left, rest sidebar
-            $left_count = $total_items > 4 ? 2 : 1;
-            $left_items = array_slice($items, 0, $left_count);
-            $sidebar_items = array_slice($items, $left_count);
+            // Filter out hero article from this category
+            $filtered_items = [];
+            foreach ($items as $item) {
+                if ($hero && $item->id === $hero->id) continue;
+                $filtered_items[] = $item;
+            }
+            if (empty($filtered_items)) continue;
+
+            // Smart lead selection: if budget allows, pick an article WITH image as lead
+            // This ensures images are distributed across categories, not just first ones
+            $lead_idx = 0;
+            if ($thumbnail_budget > 0) {
+                foreach ($filtered_items as $fi => $fitem) {
+                    if (!empty($fitem->ai_generated_image_url) && !in_array($fitem->id, $used_image_ids)) {
+                        $lead_idx = $fi;
+                        break;
+                    }
+                }
+            }
+
+            // Split: lead article (left) + rest as headlines (right)
+            $lead = $filtered_items[$lead_idx];
+            $sidebar_items = [];
+            foreach ($filtered_items as $fi => $fitem) {
+                if ($fi !== $lead_idx) $sidebar_items[] = $fitem;
+            }
+
+            $lead_title = esc_html($lead->processed_title ?? 'Fără titlu');
+            $lead_summary = esc_html($lead->processed_summary ?? '');
+            if (mb_strlen($lead_summary) > 140) {
+                $lead_summary = mb_substr($lead_summary, 0, 137) . '...';
+            }
+            $lead_link = esc_url($frontend_url . '/news/' . $lead->id);
+            $lead_image = $lead->ai_generated_image_url ?? '';
+
+            // Show image if available, not used, within budget
+            $show_img = !empty($lead_image) && !in_array($lead->id, $used_image_ids) && $thumbnail_budget > 0;
+            if ($show_img) {
+                $used_image_ids[] = $lead->id;
+                $thumbnail_budget--;
+            }
 
             // Category header
-            $news_html .= '
-            <div style="margin:20px 0 12px;padding:8px 16px;background:#eef2ff;border-radius:6px;">
-                <span style="font-size:14px;font-weight:bold;color:#4338ca;">' . $cat_label . '</span>
-            </div>';
+            $sections_html .= '
+            <div style="background:#ffffff;border-top:3px solid ' . $cat_color . ';margin-top:16px;">
+                <div style="padding:14px 24px 8px;">
+                    <span style="font-size:13px;font-weight:bold;color:' . $cat_color . ';text-transform:uppercase;letter-spacing:0.5px;">' . $cat_label . '</span>
+                </div>';
 
-            // Decide image placement BEFORE building HTML:
-            // - Sidebar empty + image available → image goes to sidebar ONLY
-            // - Sidebar has links → image goes to left column first article
-            // - Never show same image twice
-            $has_sidebar_links = !empty($sidebar_items);
-            $first_image = $left_items[0]->ai_generated_image_url ?? '';
-            $first_source = esc_html($left_items[0]->source_name ?? '');
-            $first_link = esc_url($frontend_url . '/news/' . $left_items[0]->id);
-            $can_use_image = !empty($first_image) && $images_used < $max_images;
-
-            $image_in_left = $can_use_image && $has_sidebar_links;
-            $image_in_sidebar = $can_use_image && !$has_sidebar_links;
-
-            if ($image_in_left || $image_in_sidebar) {
-                $images_used++;
-            }
-
-            // Build left column HTML
+            // Build LEFT column: image + lead article
             $left_html = '';
-            foreach ($left_items as $i => $left_item) {
-                $l_title = esc_html($left_item->processed_title ?? 'Fără titlu');
-                $l_summary = esc_html($left_item->processed_summary ?? '');
-                if (mb_strlen($l_summary) > 120) {
-                    $l_summary = mb_substr($l_summary, 0, 117) . '...';
-                }
-                $l_link = esc_url($frontend_url . '/news/' . $left_item->id);
-                $l_source = esc_html($left_item->source_name ?? '');
-                $border_top = $i > 0 ? 'border-top:1px solid #f3f4f6;padding-top:10px;margin-top:10px;' : '';
-
-                // Image only on first left article, only when sidebar has links
-                $image_html = '';
-                if ($i === 0 && $image_in_left) {
-                    $image_html = '
-                        <a href="' . $l_link . '" style="display:block;margin-bottom:8px;">
-                            <img src="' . esc_url($first_image) . '" alt="" width="100%" style="display:block;border-radius:4px;" />
-                        </a>
-                        <p style="margin:0 0 6px;font-size:9px;color:#9ca3af;">Foto: ' . $l_source . '</p>';
-                }
-
+            if ($show_img) {
                 $left_html .= '
-                    <div style="' . $border_top . '">
-                        ' . $image_html . '
-                        <h2 style="margin:0 0 4px;font-size:14px;line-height:1.3;color:#111827;">
-                            <a href="' . $l_link . '" style="color:#2563eb;text-decoration:none;">' . $l_title . '</a>
-                        </h2>
-                        <p style="margin:0;font-size:12px;color:#6b7280;line-height:1.4;">' . $l_summary . '</p>
+                    <a href="' . $lead_link . '" style="display:block;margin-bottom:8px;">
+                        <img src="' . esc_url($lead_image) . '" alt="" width="100%" style="display:block;border-radius:4px;" />
+                    </a>';
+            }
+            $left_html .= '
+                <h3 style="margin:0 0 5px;font-size:14px;line-height:1.3;color:#111827;">
+                    <a href="' . $lead_link . '" style="color:#111827;text-decoration:none;">' . $lead_title . '</a>
+                </h3>
+                <p style="margin:0 0 6px;font-size:12px;color:#4b5563;line-height:1.4;">' . $lead_summary . '</p>
+                <a href="' . $lead_link . '" style="font-size:11px;font-weight:bold;color:#2563eb;text-decoration:none;">Citește &rarr;</a>';
+
+            // Build RIGHT column: headline links
+            $right_html = '';
+            if (!empty($sidebar_items)) {
+                $right_html .= '<p style="margin:0 0 8px;font-size:10px;font-weight:bold;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Mai multe:</p>';
+                foreach ($sidebar_items as $si => $side) {
+                    $s_title = esc_html($side->processed_title ?? 'Fără titlu');
+                    if (mb_strlen($s_title) > 75) {
+                        $s_title = mb_substr($s_title, 0, 72) . '...';
+                    }
+                    $s_link = esc_url($frontend_url . '/news/' . $side->id);
+                    $s_border = $si > 0 ? 'border-top:1px solid #f3f4f6;padding-top:6px;' : '';
+                    $right_html .= '
+                    <div style="margin-bottom:6px;' . $s_border . '">
+                        <a href="' . $s_link . '" style="color:#2563eb;text-decoration:none;font-size:11px;line-height:1.3;display:block;max-height:2.6em;overflow:hidden;">' . $s_title . '</a>
                     </div>';
-            }
-
-            // Build sidebar HTML (links list)
-            $sidebar_html = '';
-            foreach ($sidebar_items as $side) {
-                $s_title = esc_html($side->processed_title ?? 'Fără titlu');
-                if (mb_strlen($s_title) > 70) {
-                    $s_title = mb_substr($s_title, 0, 67) . '...';
                 }
-                $s_link = esc_url($frontend_url . '/news/' . $side->id);
-                $sidebar_html .= '<li style="margin-bottom:6px;"><a href="' . $s_link . '" style="color:#2563eb;text-decoration:none;font-size:11px;line-height:1.3;display:block;max-height:2.6em;overflow:hidden;">' . $s_title . '</a></li>';
             }
 
-            // Build sidebar content: links OR image (never both, never duplicate)
-            $sidebar_content = '';
-            if (!empty($sidebar_html)) {
-                $sidebar_content = '
-                    <p style="margin:0 0 8px;font-size:10px;font-weight:bold;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Mai multe:</p>
-                    <ul style="margin:0;padding:0 0 0 12px;list-style:disc;color:#9ca3af;">' . $sidebar_html . '</ul>';
-            } elseif ($image_in_sidebar) {
-                $sidebar_content = '
-                    <a href="' . $first_link . '" style="display:block;">
-                        <img src="' . esc_url($first_image) . '" alt="" width="100%" style="display:block;border-radius:4px;object-fit:cover;" />
-                    </a>
-                    <p style="margin:4px 0 0;font-size:9px;color:#9ca3af;">Foto: ' . $first_source . '</p>';
-            }
+            // 2-column table layout
+            $sections_html .= '
+                <div style="padding:0 16px 16px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                        <tr>
+                            <td width="58%" valign="top" style="padding:8px;">
+                                ' . $left_html . '
+                            </td>
+                            <td width="42%" valign="top" style="padding:8px 8px 8px 12px;border-left:1px solid #e5e7eb;">
+                                ' . $right_html . '
+                            </td>
+                        </tr>
+                    </table>
+                </div>';
 
-            // Always 2-column card: left (60%) + sidebar right (40%)
-            $news_html .= '
-            <div style="margin-bottom:16px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;overflow:hidden;">
-                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-                    <tr>
-                        <td width="60%" valign="top" style="padding:16px;">
-                            ' . $left_html . '
-                        </td>
-                        <td width="40%" valign="top" style="padding:14px 16px;border-left:1px solid #e5e7eb;background:#f9fafb;">
-                            ' . $sidebar_content . '
-                        </td>
-                    </tr>
-                </table>
-            </div>';
+            $sections_html .= '</div>'; // close category card
+            $cat_index++;
+        }
+
+        // Inject mid-email WhatsApp share CTA after 2nd category
+        $share_text = urlencode("Citește știrile zilei pe TeInformez — gratuit și personalizat! 📰 https://teinformez.eu");
+        $wa_share_url = 'whatsapp://send?text=' . $share_text;
+        $tg_share_url = 'https://t.me/share/url?url=' . urlencode('https://teinformez.eu') . '&text=' . urlencode('Citește știrile zilei pe TeInformez — gratuit și personalizat! 📰');
+
+        // Split sections_html to inject mid-email CTA after 2nd category card
+        // Count </div> category closings to find insertion point
+        $mid_cta_html = '
+        <div style="background:#dcfce7;padding:14px 24px;margin-top:16px;text-align:center;border-left:4px solid #22c55e;">
+            <p style="margin:0 0 8px;font-size:13px;color:#166534;font-weight:bold;">Cunoști pe cineva interesat de știri? Trimite-i pe WhatsApp!</p>
+            <a href="' . $wa_share_url . '" style="display:inline-block;background:#25d366;color:#ffffff;padding:8px 20px;text-decoration:none;border-radius:6px;font-size:13px;font-weight:bold;">Trimite pe WhatsApp</a>
+        </div>';
+
+        // Insert mid-CTA after 2nd category section
+        if ($cat_index >= 2) {
+            $pos = 0;
+            $card_closings = 0;
+            $search_pos = 0;
+            while ($card_closings < 2 && ($pos = strpos($sections_html, 'close category card', $search_pos)) !== false) {
+                $card_closings++;
+                $search_pos = $pos + 20;
+            }
+            if ($card_closings === 2) {
+                // Find the </div> after the comment
+                $insert_pos = strpos($sections_html, '</div>', $pos);
+                if ($insert_pos !== false) {
+                    $insert_pos += 6;
+                    $sections_html = substr($sections_html, 0, $insert_pos) . $mid_cta_html . substr($sections_html, $insert_pos);
+                }
+            }
         }
 
         $unsubscribe_link = esc_url($frontend_url . '/dashboard/settings');
+        $today_date = date_i18n('j F Y'); // e.g. "3 martie 2026"
 
         return '<!DOCTYPE html>
 <html lang="ro">
@@ -487,44 +595,72 @@ class Delivery_Handler {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>' . esc_html($this->build_subject($frequency, $total_count)) . '</title>
 </head>
-<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
-    <div style="max-width:600px;margin:0 auto;padding:20px;">
+<body style="margin:0;padding:0;background-color:#f0f1f3;font-family:Arial,Helvetica,sans-serif;">
+    <div style="max-width:600px;margin:0 auto;">
+
         <!-- Header -->
-        <div style="background:#2563eb;color:#ffffff;padding:24px;text-align:center;border-radius:8px 8px 0 0;">
-            <h1 style="margin:0;font-size:24px;font-weight:bold;">TeInformez</h1>
-            <p style="margin:8px 0 0;font-size:14px;opacity:0.9;">Știri personalizate, livrate când vrei tu</p>
+        <div style="background:#1e293b;padding:20px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                    <td>
+                        <h1 style="margin:0;font-size:22px;font-weight:bold;color:#ffffff;">TeInformez</h1>
+                    </td>
+                    <td align="right">
+                        <span style="font-size:12px;color:#94a3b8;">' . esc_html($today_date) . '</span>
+                    </td>
+                </tr>
+            </table>
         </div>
 
-        <!-- Greeting -->
-        <div style="background:#ffffff;padding:24px;border-bottom:1px solid #e5e7eb;">
-            <p style="margin:0;font-size:16px;color:#374151;">' . $greeting . ', <strong>' . esc_html($user_name) . '</strong>!</p>
-            <p style="margin:8px 0 0;font-size:14px;color:#6b7280;">Iată ' . $total_count . ' ' . ($total_count === 1 ? 'articol' : 'articole') . ' selectate pentru tine:</p>
+        <!-- Greeting bar -->
+        <div style="background:#ffffff;padding:16px 24px;border-bottom:1px solid #e5e7eb;">
+            <p style="margin:0;font-size:15px;color:#374151;">' . $greeting . ', <strong>' . esc_html($user_name) . '</strong>! Iată ce e nou astăzi.</p>
         </div>
 
-        <!-- News items -->
-        <div style="padding:20px;background:#f9fafb;">
-            ' . $news_html . '
-        </div>
+        <!-- Hero article -->
+        ' . $hero_html . '
+
+        <!-- Category sections -->
+        ' . $sections_html . '
 
         <!-- YouTube Videos -->
         ' . $this->build_youtube_section($by_category) . '
 
         <!-- CTA -->
-        <div style="background:#ffffff;padding:24px;text-align:center;border-top:1px solid #e5e7eb;">
-            <a href="' . esc_url($frontend_url . '/news') . '" style="display:inline-block;background:#2563eb;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:bold;">Vezi toate știrile</a>
+        <div style="background:#ffffff;padding:24px;text-align:center;margin-top:16px;">
+            <a href="' . esc_url($frontend_url . '/news') . '" style="display:inline-block;background:#2563eb;color:#ffffff;padding:12px 32px;text-decoration:none;border-radius:6px;font-size:14px;font-weight:bold;">Explorează toate știrile</a>
+        </div>
+
+        <!-- Share -->
+        <div style="background:#f8fafc;padding:16px 24px;text-align:center;">
+            <p style="margin:0 0 12px;font-size:13px;color:#64748b;">Ti-a plăcut acest digest? Trimite-l unui prieten!</p>
+            <table cellpadding="0" cellspacing="0" border="0" align="center" style="border-collapse:collapse;">
+                <tr>
+                    <td style="padding:0 4px;">
+                        <a href="' . $wa_share_url . '" style="display:inline-block;background:#25d366;color:#ffffff;padding:8px 14px;text-decoration:none;border-radius:6px;font-size:12px;font-weight:bold;">WhatsApp</a>
+                    </td>
+                    <td style="padding:0 4px;">
+                        <a href="' . $tg_share_url . '" style="display:inline-block;background:#0088cc;color:#ffffff;padding:8px 14px;text-decoration:none;border-radius:6px;font-size:12px;font-weight:bold;">Telegram</a>
+                    </td>
+                    <td style="padding:0 4px;">
+                        <a href="mailto:?subject=TeInformez%20-%20%C8%98tiri%20personalizate&body=Aboneaz%C4%83-te%20gratuit%3A%20https%3A%2F%2Fteinformez.eu" style="display:inline-block;border:1px solid #cbd5e1;color:#475569;padding:7px 14px;text-decoration:none;border-radius:6px;font-size:12px;font-weight:bold;">Email</a>
+                    </td>
+                </tr>
+            </table>
         </div>
 
         <!-- Footer -->
-        <div style="padding:20px;text-align:center;border-radius:0 0 8px 8px;">
+        <div style="padding:20px 24px;text-align:center;">
+            <p style="margin:0 0 6px;font-size:12px;color:#9ca3af;">
+                Primești acest email pentru că ești abonat pe <a href="' . esc_url($frontend_url) . '" style="color:#6b7280;">TeInformez</a>.
+            </p>
             <p style="margin:0 0 8px;font-size:12px;color:#9ca3af;">
-                Primești acest email pentru că ești abonat pe TeInformez.
+                <a href="' . $unsubscribe_link . '" style="color:#6b7280;text-decoration:underline;">Modifică preferințele</a> &nbsp;&middot;&nbsp;
+                <a href="' . $unsubscribe_link . '" style="color:#6b7280;text-decoration:underline;">Dezabonare</a>
             </p>
-            <p style="margin:0;font-size:12px;color:#9ca3af;">
-                <a href="' . $unsubscribe_link . '" style="color:#6b7280;">Modifică preferințele</a> &middot;
-                <a href="' . $unsubscribe_link . '" style="color:#6b7280;">Dezabonare</a>
-            </p>
-            <p style="margin:8px 0 0;font-size:11px;color:#d1d5db;">&copy; ' . date('Y') . ' TeInformez. Toate drepturile rezervate.</p>
+            <p style="margin:0;font-size:11px;color:#d1d5db;">&copy; ' . date('Y') . ' TeInformez. Toate drepturile rezervate.</p>
         </div>
+
     </div>
 </body>
 </html>';

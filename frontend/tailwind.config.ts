@@ -32,6 +32,13 @@ const config: Config = {
           science: '#8B5CF6',
           politics: '#EF4444',
           business: '#F59E0B',
+          actualitate: '#6366F1',
+          international: '#06B6D4',
+          justitie: '#64748B',
+          sanatate: '#14B8A6',
+          lifestyle: '#D946EF',
+          opinii: '#EAB308',
+          juridic: '#78716C',
         },
       },
       fontFamily: {

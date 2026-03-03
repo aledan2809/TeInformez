@@ -274,6 +274,19 @@ class ApiClient {
     await this.client.post(`/news/${id}/view`);
   }
 
+  async getHomepageData(): Promise<any> {
+    const response = await this.client.get<APIResponse<any>>('/news/homepage');
+    return response.data.data;
+  }
+
+  async subscribeNewsletter(email: string, gdprConsent: boolean): Promise<string> {
+    const response = await this.client.post<APIResponse>('/newsletter/subscribe', {
+      email,
+      gdpr_consent: gdprConsent,
+    });
+    return response.data.data?.message || 'Abonat cu succes!';
+  }
+
   async getPersonalizedFeed(params?: { page?: number; per_page?: number }): Promise<any> {
     const response = await this.client.get<APIResponse<{
       news: any[];
@@ -283,6 +296,27 @@ class ApiClient {
       total_pages: number;
       subscriptions_count: number;
     }>>('/news/personalized', { params });
+    return response.data.data;
+  }
+
+  // Juridic endpoints
+  async getJuridicList(params?: { page?: number; per_page?: number; category?: string; search?: string; column_only?: boolean }): Promise<any> {
+    const response = await this.client.get<APIResponse<any>>('/juridic', { params });
+    return response.data.data;
+  }
+
+  async getJuridicItem(id: number): Promise<any> {
+    const response = await this.client.get<APIResponse<any>>(`/juridic/${id}`);
+    return response.data.data;
+  }
+
+  async getJuridicCategories(): Promise<any> {
+    const response = await this.client.get<APIResponse<any>>('/juridic/categories');
+    return response.data.data;
+  }
+
+  async getJuridicColumns(params?: { page?: number }): Promise<any> {
+    const response = await this.client.get<APIResponse<any>>('/juridic/columns', { params });
     return response.data.data;
   }
 }

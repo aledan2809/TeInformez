@@ -48,6 +48,15 @@ class Admin {
             'teinformez-news-queue',
             [$this, 'render_news_queue']
         );
+
+        add_submenu_page(
+            'teinformez',
+            __('Juridic Q&A', 'teinformez'),
+            __('Juridic Q&A', 'teinformez'),
+            'manage_options',
+            'teinformez-juridic',
+            [$this, 'render_juridic_queue']
+        );
     }
 
     /**
@@ -91,6 +100,13 @@ class Admin {
      */
     public function render_news_queue() {
         require_once TEINFORMEZ_PLUGIN_DIR . 'admin/views/news-queue.php';
+    }
+
+    /**
+     * Render Juridic Q&A management page
+     */
+    public function render_juridic_queue() {
+        require_once TEINFORMEZ_PLUGIN_DIR . 'admin/views/juridic-queue.php';
     }
 
     /**

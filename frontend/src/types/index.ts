@@ -138,3 +138,30 @@ export interface DeliveryChannels {
 export interface AvailableLanguages {
   [key: string]: string;
 }
+
+// Juridic Q&A types
+export interface JuridicQA {
+  id: number;
+  question: string;          // anonymized version only
+  answer: string;
+  answer_summary: string | null;
+  category: string;
+  subcategory: string | null;
+  tags: string[];
+  is_weekly_column: boolean;
+  column_title: string | null;
+  column_date: string | null;
+  author_name: string;
+  view_count: number;
+  published_at: string;
+}
+
+export const JURIDIC_CATEGORIES = [
+  { slug: 'dreptul-muncii', label: 'Dreptul muncii' },
+  { slug: 'dreptul-familiei', label: 'Dreptul familiei' },
+  { slug: 'drept-comercial', label: 'Drept comercial' },
+  { slug: 'drept-penal', label: 'Drept penal' },
+  { slug: 'protectia-consumatorului', label: 'Protecția consumatorului' },
+  { slug: 'drept-administrativ', label: 'Drept administrativ' },
+  { slug: 'drept-imobiliar', label: 'Drept imobiliar' },
+] as const;

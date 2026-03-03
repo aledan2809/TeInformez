@@ -110,11 +110,57 @@ class Activator {
             KEY scheduled_for (scheduled_for)
         ) {$charset_collate};";
 
+        // Table: Newsletter Subscribers (lightweight, no WP user needed)
+        $table_newsletter = $wpdb->prefix . 'teinformez_newsletter_subscribers';
+        $sql_newsletter = "CREATE TABLE IF NOT EXISTS {$table_newsletter} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            email VARCHAR(255) NOT NULL,
+            gdpr_consent TINYINT(1) DEFAULT 0,
+            gdpr_consent_date DATETIME DEFAULT NULL,
+            subscribed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            unsubscribed_at DATETIME DEFAULT NULL,
+            status ENUM('active', 'unsubscribed') DEFAULT 'active',
+            PRIMARY KEY (id),
+            UNIQUE KEY email (email)
+        ) {$charset_collate};";
+
+        // Table: Juridic Q&A
+        $table_juridic = $wpdb->prefix . 'teinformez_juridic_qa';
+        $sql_juridic = "CREATE TABLE IF NOT EXISTS {$table_juridic} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            question TEXT NOT NULL,
+            question_anonymized TEXT NOT NULL,
+            answer LONGTEXT NOT NULL,
+            answer_summary TEXT,
+            category VARCHAR(100) NOT NULL,
+            subcategory VARCHAR(100) DEFAULT NULL,
+            tags TEXT,
+            is_weekly_column TINYINT(1) DEFAULT 0,
+            column_title VARCHAR(255) DEFAULT NULL,
+            column_date DATE DEFAULT NULL,
+            author_name VARCHAR(100) DEFAULT 'Alina',
+            fb_teaser TEXT,
+            fb_post_url VARCHAR(500) DEFAULT NULL,
+            status ENUM('draft', 'published', 'archived') DEFAULT 'draft',
+            view_count BIGINT(20) UNSIGNED DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            published_at DATETIME DEFAULT NULL,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY status (status),
+            KEY category (category),
+            KEY is_weekly_column (is_weekly_column),
+            KEY column_date (column_date),
+            KEY published_at (published_at)
+        ) {$charset_collate};";
+
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql_preferences);
         dbDelta($sql_subscriptions);
         dbDelta($sql_news);
         dbDelta($sql_delivery);
+        dbDelta($sql_newsletter);
+        dbDelta($sql_juridic);
 
         // Set default options
         self::set_default_options();

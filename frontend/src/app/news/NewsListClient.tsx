@@ -11,6 +11,7 @@ import {
   Copy, Check,
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { CATEGORIES, CATEGORY_COLORS as SHARED_CATEGORY_COLORS } from '@/lib/categories';
 import { useBookmarkStore } from '@/store/bookmarkStore';
 import { useReadingStore } from '@/store/readingStore';
 import ScrollToTop from '@/components/ScrollToTop';
@@ -28,18 +29,6 @@ interface NewsItem {
   original_url: string;
   language: string;
 }
-
-const CATEGORIES = [
-  { slug: '', label: 'Toate', emoji: '📰' },
-  { slug: 'tech', label: 'Tehnologie', emoji: '💻' },
-  { slug: 'auto', label: 'Auto', emoji: '🚗' },
-  { slug: 'finance', label: 'Finanțe', emoji: '💰' },
-  { slug: 'entertainment', label: 'Divertisment', emoji: '🎬' },
-  { slug: 'sports', label: 'Sport', emoji: '⚽' },
-  { slug: 'science', label: 'Știință', emoji: '🔬' },
-  { slug: 'politics', label: 'Politică', emoji: '🏛️' },
-  { slug: 'business', label: 'Business', emoji: '📊' },
-];
 
 function estimateReadingTime(content: string): number {
   const text = content.replace(/<[^>]*>/g, '');
@@ -678,16 +667,7 @@ function BadgesRow({ item }: { item: NewsItem }) {
 }
 
 /* ── Category Badge ── */
-const CATEGORY_COLORS: Record<string, string> = {
-  tech: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
-  auto: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300',
-  finance: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300',
-  entertainment: 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300',
-  sports: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
-  science: 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300',
-  politics: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',
-  business: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300',
-};
+const CATEGORY_COLORS = SHARED_CATEGORY_COLORS;
 
 /* ── Trending Sidebar ── */
 function TrendingSidebar({ items, onArticleClick }: { items: NewsItem[]; onArticleClick: (item: NewsItem) => void }) {

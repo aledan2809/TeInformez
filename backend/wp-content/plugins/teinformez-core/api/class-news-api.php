@@ -33,10 +33,24 @@ class News_API extends REST_API {
             'permission_callback' => [$this, 'is_authenticated']
         ]);
 
+        // Homepage data (categorized news in single call)
+        register_rest_route($this->namespace, '/news/homepage', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_homepage_data'],
+            'permission_callback' => '__return_true'
+        ]);
+
         // Track news view
         register_rest_route($this->namespace, '/news/(?P<id>\d+)/view', [
             'methods' => 'POST',
             'callback' => [$this, 'track_view'],
+            'permission_callback' => '__return_true'
+        ]);
+
+        // Newsletter subscribe (lightweight, no account needed)
+        register_rest_route($this->namespace, '/newsletter/subscribe', [
+            'methods' => 'POST',
+            'callback' => [$this, 'newsletter_subscribe'],
             'permission_callback' => '__return_true'
         ]);
 
@@ -208,6 +222,79 @@ class News_API extends REST_API {
     }
 
     /**
+     * Get homepage data — hero + categorized sections in one call
+     */
+    public function get_homepage_data($request) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'teinformez_news_queue';
+
+        // Get latest 200 published articles (covers all categories)
+        $items = $wpdb->get_results(
+            "SELECT id, processed_title, original_title, processed_summary,
+                    ai_generated_image_url, source_name, categories, tags,
+                    published_at, original_url, target_language, view_count
+             FROM {$table}
+             WHERE status = 'published'
+             ORDER BY published_at DESC
+             LIMIT 200"
+        );
+
+        // Parse categories JSON for each item
+        foreach ($items as &$item) {
+            $item->categories = json_decode($item->categories, true) ?? [];
+            $item->tags = json_decode($item->tags, true) ?? [];
+        }
+        unset($item);
+
+        // Pick hero: latest article with an image
+        $hero = null;
+        foreach ($items as $item) {
+            if (!empty($item->ai_generated_image_url)) {
+                $hero = $this->format_news_item($item);
+                break;
+            }
+        }
+        // Fallback: first article even without image
+        if (!$hero && !empty($items)) {
+            $hero = $this->format_news_item($items[0]);
+        }
+
+        // Group by primary category (first in the array)
+        $by_category = [];
+        $hero_id = $hero ? $hero['id'] : null;
+
+        foreach ($items as $item) {
+            if ($item->id == $hero_id) continue; // Skip hero article
+
+            $primary_cat = $item->categories[0] ?? 'other';
+            if (!isset($by_category[$primary_cat])) {
+                $by_category[$primary_cat] = [];
+            }
+            if (count($by_category[$primary_cat]) < 4) {
+                $by_category[$primary_cat][] = $this->format_news_item($item);
+            }
+        }
+
+        // Get category labels from config
+        $config_cats = \TeInformez\Config::DEFAULT_CATEGORIES;
+        $sections = [];
+        foreach ($by_category as $slug => $articles) {
+            $sections[] = [
+                'slug' => $slug,
+                'label' => $config_cats[$slug]['label'] ?? ucfirst($slug),
+                'emoji' => $config_cats[$slug]['icon'] ?? '📰',
+                'articles' => $articles,
+            ];
+        }
+
+        return $this->success([
+            'hero' => $hero,
+            'sections' => $sections,
+            'total_articles' => count($items),
+        ]);
+    }
+
+    /**
      * Track a news article view
      */
     public function track_view($request) {
@@ -285,6 +372,53 @@ class News_API extends REST_API {
                 'failed' => $deliveries_failed,
             ],
         ]);
+    }
+
+    /**
+     * Newsletter subscribe (lightweight, no WP account needed)
+     */
+    public function newsletter_subscribe($request) {
+        global $wpdb;
+
+        $email = sanitize_email($request->get_param('email'));
+        $gdpr = (bool) $request->get_param('gdpr_consent');
+
+        if (empty($email) || !is_email($email)) {
+            return $this->error('Adresa de email nu este validă.', 'invalid_email', 400);
+        }
+
+        if (!$gdpr) {
+            return $this->error('Consimțământul GDPR este obligatoriu.', 'gdpr_required', 400);
+        }
+
+        $table = $wpdb->prefix . 'teinformez_newsletter_subscribers';
+
+        // Check if already subscribed
+        $existing = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, status FROM {$table} WHERE email = %s", $email
+        ));
+
+        if ($existing) {
+            if ($existing->status === 'active') {
+                return $this->success(['message' => 'Ești deja abonat!']);
+            }
+            // Re-activate
+            $wpdb->update($table, [
+                'status' => 'active',
+                'gdpr_consent' => 1,
+                'gdpr_consent_date' => current_time('mysql'),
+                'unsubscribed_at' => null,
+            ], ['id' => $existing->id]);
+        } else {
+            $wpdb->insert($table, [
+                'email' => $email,
+                'gdpr_consent' => 1,
+                'gdpr_consent_date' => current_time('mysql'),
+                'status' => 'active',
+            ]);
+        }
+
+        return $this->success(['message' => 'Te-ai abonat cu succes!']);
     }
 
     /**
