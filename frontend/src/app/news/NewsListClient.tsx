@@ -283,7 +283,7 @@ export default function NewsListClient() {
               ref={tabsRef}
               className="flex items-center space-x-1 overflow-x-auto scrollbar-hide py-3 px-6 md:px-0"
             >
-              {CATEGORIES.map((cat) => (
+              {CATEGORIES.filter(c => !c.hidden).map((cat) => (
                 <button
                   key={cat.slug}
                   onClick={() => handleCategoryChange(cat.slug)}

@@ -15,7 +15,7 @@ export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) 
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
-  const navCategories = CATEGORIES.filter(c => c.slug !== '');
+  const navCategories = CATEGORIES.filter(c => c.slug !== '' && !c.hidden);
 
   const updateScrollButtons = () => {
     if (!scrollRef.current) return;

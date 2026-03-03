@@ -149,7 +149,53 @@ class Config {
             'label' => 'Juridic cu Alina',
             'icon' => '📋',
             'subcategories' => ['dreptul-muncii', 'dreptul-familiei', 'drept-comercial', 'drept-penal', 'protectia-consumatorului']
-        ]
+        ],
+        // Legacy slugs used by the AI classifier
+        'news' => [
+            'label' => 'Actualitate',
+            'icon' => '📰',
+            'subcategories' => []
+        ],
+        'world' => [
+            'label' => 'Internațional',
+            'icon' => '🌍',
+            'subcategories' => []
+        ],
+        'health' => [
+            'label' => 'Sănătate',
+            'icon' => '🏥',
+            'subcategories' => []
+        ],
+        'history' => [
+            'label' => 'Istorie',
+            'icon' => '📜',
+            'subcategories' => []
+        ],
+        'local' => [
+            'label' => 'Local',
+            'icon' => '📍',
+            'subcategories' => []
+        ],
+        'culture' => [
+            'label' => 'Cultură',
+            'icon' => '🎭',
+            'subcategories' => []
+        ],
+        'education' => [
+            'label' => 'Educație',
+            'icon' => '🎓',
+            'subcategories' => []
+        ],
+        'media' => [
+            'label' => 'Media',
+            'icon' => '📺',
+            'subcategories' => []
+        ],
+        'military' => [
+            'label' => 'Militar',
+            'icon' => '🎖️',
+            'subcategories' => []
+        ],
     ];
 
     /**
