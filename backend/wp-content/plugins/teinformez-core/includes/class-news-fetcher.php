@@ -243,9 +243,9 @@ class News_Fetcher {
     }
 
     /**
-     * Scrape full article content from source URL
+     * Fetch page HTML from URL
      */
-    private function scrape_full_content($url) {
+    private function fetch_page_html($url) {
         if (empty($url)) {
             return null;
         }
@@ -266,16 +266,54 @@ class News_Fetcher {
 
         $status = wp_remote_retrieve_response_code($response);
         if ($status !== 200) {
-            error_log('TeInformez Scraper: HTTP ' . $status . ' for ' . $url);
             return null;
         }
 
-        $html = wp_remote_retrieve_body($response);
+        return wp_remote_retrieve_body($response);
+    }
+
+    /**
+     * Scrape full article content from source URL
+     */
+    private function scrape_full_content($url) {
+        $html = $this->fetch_page_html($url);
         if (empty($html)) {
             return null;
         }
-
         return $this->extract_article_text($html);
+    }
+
+    /**
+     * Extract og:image from page HTML
+     */
+    private function extract_og_image($html) {
+        if (empty($html)) {
+            return '';
+        }
+
+        // Quick regex extraction — faster than DOM parsing for just meta tags
+        if (preg_match('/<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']/i', $html, $m)) {
+            return $m[1];
+        }
+        // Reverse attribute order (content before property)
+        if (preg_match('/<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']/i', $html, $m)) {
+            return $m[1];
+        }
+        return '';
+    }
+
+    /**
+     * Scrape both content and og:image from URL in one request
+     */
+    private function scrape_article($url) {
+        $html = $this->fetch_page_html($url);
+        if (empty($html)) {
+            return ['content' => null, 'image' => ''];
+        }
+        return [
+            'content' => $this->extract_article_text($html),
+            'image' => $this->extract_og_image($html),
+        ];
     }
 
     /**
@@ -385,13 +423,17 @@ class News_Fetcher {
                 continue;
             }
 
-            // Try to scrape full article if RSS content is short
+            // Scrape full article + og:image in one request
             $content = $item['content'] ?: $item['description'];
-            if (mb_strlen($content) < 500) {
-                $full_content = $this->scrape_full_content($item['url']);
-                if ($full_content) {
-                    $content = $full_content;
-                    error_log('TeInformez Scraper: Got full article for: ' . $item['title'] . ' (' . mb_strlen($full_content) . ' chars)');
+            $image_url = $item['image_url'] ?? '';
+
+            if (mb_strlen($content) < 500 || empty($image_url)) {
+                $scraped = $this->scrape_article($item['url']);
+                if ($scraped['content'] && mb_strlen($content) < 500) {
+                    $content = $scraped['content'];
+                }
+                if (empty($image_url) && !empty($scraped['image'])) {
+                    $image_url = $scraped['image'];
                 }
             }
 
@@ -404,10 +446,11 @@ class News_Fetcher {
                 'source_name' => $item['source_name'],
                 'source_type' => $source['type'],
                 'categories' => json_encode($item['categories']),
+                'ai_generated_image_url' => $image_url,
                 'status' => 'fetched',
                 'fetched_at' => current_time('mysql')
             ], [
-                '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'
+                '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'
             ]);
 
             if ($result) {

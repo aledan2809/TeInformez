@@ -396,9 +396,23 @@ class Delivery_Handler {
                     $l_summary = mb_substr($l_summary, 0, 117) . '...';
                 }
                 $l_link = esc_url($frontend_url . '/news/' . $left_item->id);
+                $l_image = $left_item->ai_generated_image_url ?? '';
+                $l_source = esc_html($left_item->source_name ?? '');
                 $border_top = $i > 0 ? 'border-top:1px solid #f3f4f6;padding-top:10px;margin-top:10px;' : '';
+
+                // Image block (if available)
+                $image_html = '';
+                if (!empty($l_image)) {
+                    $image_html = '
+                        <a href="' . $l_link . '" style="display:block;margin-bottom:8px;">
+                            <img src="' . esc_url($l_image) . '" alt="" width="100%" style="display:block;border-radius:4px;max-height:160px;object-fit:cover;" />
+                        </a>
+                        <p style="margin:0 0 6px;font-size:9px;color:#9ca3af;">Foto: ' . $l_source . '</p>';
+                }
+
                 $left_html .= '
                     <div style="' . $border_top . '">
+                        ' . $image_html . '
                         <h2 style="margin:0 0 4px;font-size:14px;line-height:1.3;color:#111827;">
                             <a href="' . $l_link . '" style="color:#2563eb;text-decoration:none;">' . $l_title . '</a>
                         </h2>
