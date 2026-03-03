@@ -331,7 +331,7 @@ export default function NewsDetailClient() {
             </motion.div>
           )}
 
-          {/* AI Summary */}
+          {/* Summary */}
           {news.summary && (
             <motion.div
               initial={{ opacity: 0, x: -10 }}
@@ -341,7 +341,7 @@ export default function NewsDetailClient() {
             >
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">Rezumat AI</span>
+                <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">Rezumat</span>
               </div>
               <p className="text-base font-medium text-gray-900 dark:text-gray-100 italic">
                 {news.summary}

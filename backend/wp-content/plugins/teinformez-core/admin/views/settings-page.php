@@ -157,6 +157,129 @@ use TeInformez\Config;
             </tr>
         </table>
 
+        <h2><?php _e('Social Media Posting', 'teinformez'); ?></h2>
+        <p class="description"><?php _e('Auto-post published news to your social media accounts.', 'teinformez'); ?></p>
+        <table class="form-table">
+            <tr>
+                <th scope="row">
+                    <label for="social_posting_enabled"><?php _e('Enable Social Posting', 'teinformez'); ?></label>
+                </th>
+                <td>
+                    <label>
+                        <input type="checkbox"
+                               id="social_posting_enabled"
+                               name="social_posting_enabled"
+                               value="1"
+                               <?php checked(Config::get('social_posting_enabled', '0'), '1'); ?>
+                        />
+                        <?php _e('Auto-post to Facebook and Twitter when news is published', 'teinformez'); ?>
+                    </label>
+                </td>
+            </tr>
+
+            <tr>
+                <th scope="row">
+                    <label for="facebook_page_id"><?php _e('Facebook Page ID', 'teinformez'); ?></label>
+                </th>
+                <td>
+                    <input type="text"
+                           id="facebook_page_id"
+                           name="facebook_page_id"
+                           value="<?php echo esc_attr(Config::get('facebook_page_id', '')); ?>"
+                           class="regular-text"
+                    />
+                    <p class="description">
+                        <?php _e('Your Facebook Page numeric ID.', 'teinformez'); ?>
+                        <a href="https://developers.facebook.com/docs/pages-api/" target="_blank"><?php _e('Pages API docs', 'teinformez'); ?></a>
+                    </p>
+                </td>
+            </tr>
+
+            <tr>
+                <th scope="row">
+                    <label for="facebook_access_token"><?php _e('Facebook Page Access Token', 'teinformez'); ?></label>
+                </th>
+                <td>
+                    <input type="password"
+                           id="facebook_access_token"
+                           name="facebook_access_token"
+                           value="<?php echo esc_attr(Config::get('facebook_access_token', '')); ?>"
+                           class="regular-text"
+                    />
+                    <p class="description">
+                        <?php _e('Long-lived Page Access Token (never expires).', 'teinformez'); ?>
+                        <a href="https://developers.facebook.com/tools/explorer/" target="_blank"><?php _e('Graph API Explorer', 'teinformez'); ?></a>
+                    </p>
+                </td>
+            </tr>
+
+            <tr>
+                <th scope="row">
+                    <label for="twitter_api_key"><?php _e('Twitter API Key', 'teinformez'); ?></label>
+                </th>
+                <td>
+                    <input type="password"
+                           id="twitter_api_key"
+                           name="twitter_api_key"
+                           value="<?php echo esc_attr(Config::get('twitter_api_key', '')); ?>"
+                           class="regular-text"
+                    />
+                    <p class="description">
+                        <?php _e('Also called Consumer Key (API Key).', 'teinformez'); ?>
+                    </p>
+                </td>
+            </tr>
+
+            <tr>
+                <th scope="row">
+                    <label for="twitter_api_secret"><?php _e('Twitter API Secret', 'teinformez'); ?></label>
+                </th>
+                <td>
+                    <input type="password"
+                           id="twitter_api_secret"
+                           name="twitter_api_secret"
+                           value="<?php echo esc_attr(Config::get('twitter_api_secret', '')); ?>"
+                           class="regular-text"
+                    />
+                    <p class="description">
+                        <?php _e('Also called Consumer Secret (API Secret).', 'teinformez'); ?>
+                    </p>
+                </td>
+            </tr>
+
+            <tr>
+                <th scope="row">
+                    <label for="twitter_access_token"><?php _e('Twitter Access Token', 'teinformez'); ?></label>
+                </th>
+                <td>
+                    <input type="password"
+                           id="twitter_access_token"
+                           name="twitter_access_token"
+                           value="<?php echo esc_attr(Config::get('twitter_access_token', '')); ?>"
+                           class="regular-text"
+                    />
+                </td>
+            </tr>
+
+            <tr>
+                <th scope="row">
+                    <label for="twitter_access_token_secret"><?php _e('Twitter Access Token Secret', 'teinformez'); ?></label>
+                </th>
+                <td>
+                    <input type="password"
+                           id="twitter_access_token_secret"
+                           name="twitter_access_token_secret"
+                           value="<?php echo esc_attr(Config::get('twitter_access_token_secret', '')); ?>"
+                           class="regular-text"
+                    />
+                    <p class="description">
+                        <?php _e('Get all Twitter keys from', 'teinformez'); ?>
+                        <a href="https://developer.x.com/en/portal/dashboard" target="_blank"><?php _e('X Developer Portal', 'teinformez'); ?></a>
+                    </p>
+                </td>
+            </tr>
+        </table>
+
         <h2><?php _e('Site Configuration', 'teinformez'); ?></h2>
         <table class="form-table">
             <tr>

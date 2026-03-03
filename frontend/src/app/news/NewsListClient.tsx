@@ -664,7 +664,7 @@ function BadgesRow({ item }: { item: NewsItem }) {
       {item.summary && (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
           <Sparkles className="h-3 w-3" />
-          Rezumat AI
+          Rezumat
         </span>
       )}
       {item.language && item.language !== 'ro' && (

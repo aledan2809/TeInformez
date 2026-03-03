@@ -13,8 +13,8 @@ export const metadata: Metadata = {
     default: 'TeInformez.eu - Știri personalizate, livrate când vrei tu',
     template: '%s | TeInformez.eu',
   },
-  description: 'Platformă de știri personalizate cu AI. Alege categoriile tale preferate și primește știri rezumate, traduse în limba dorită, direct pe email.',
-  keywords: ['știri personalizate', 'news', 'AI', 'România', 'newsletter', 'email digest', 'știri ro'],
+  description: 'Platformă de știri personalizate. Alege categoriile tale preferate și primește știri rezumate, traduse în limba dorită, direct pe email.',
+  keywords: ['știri personalizate', 'news', 'România', 'newsletter', 'email digest', 'știri ro'],
   authors: [{ name: 'TeInformez' }],
   creator: 'TeInformez',
   publisher: 'TeInformez',
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'TeInformez.eu - Știri personalizate, livrate când vrei tu',
-    description: 'Alege categoriile tale preferate și primește știri rezumate de AI, traduse în limba dorită, direct pe email.',
+    description: 'Alege categoriile tale preferate și primește știri rezumate, traduse în limba dorită, direct pe email.',
     type: 'website',
     locale: 'ro_RO',
     url: SITE_URL,
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'TeInformez.eu - Știri personalizate',
-    description: 'Știri personalizate cu AI, livrate când vrei tu.',
+    description: 'Știri personalizate, livrate când vrei tu.',
   },
   alternates: {
     canonical: SITE_URL,

@@ -56,7 +56,7 @@ export default function GdprPage() {
             <h3 className="font-semibold">Dreptul la rectificare (Art. 16)</h3>
             <p className="text-slate-700 text-sm">
               Poti corecta orice date personale incorecte sau incomplete. Poti face acest lucru direct
-              din Setarile Contului sau prin contact la gdpr@4pro.io.
+              din Setarile Contului sau prin contact la gdpr@teinformez.eu.
             </p>
           </div>
 
@@ -107,7 +107,7 @@ export default function GdprPage() {
           <p className="text-slate-700 dark:text-slate-300 leading-relaxed">Ai mai multe optiuni:</p>
           <ul className="list-disc list-inside text-slate-700 space-y-1">
             <li><strong>Self-service:</strong> Acceseaza Setarile Contului pentru rectificare, export sau stergere</li>
-            <li><strong>Email:</strong> Trimite cerere la <strong>gdpr@4pro.io</strong></li>
+            <li><strong>Email:</strong> Trimite cerere la <strong>gdpr@teinformez.eu</strong></li>
           </ul>
           <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
             Vom confirma primirea cererii in 48 de ore si vom raspunde in maximum 30 de zile calendaristice.
@@ -140,7 +140,7 @@ export default function GdprPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">7. Procesare automata si profilare</h2>
           <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-            Folosim algoritmi AI pentru personalizarea stirilor (recomandari bazate pe preferinte si
+            Folosim algoritmi pentru personalizarea stirilor (recomandari bazate pe preferinte si
             istoric). Aceasta profilare:
           </p>
           <ul className="list-disc list-inside text-slate-700 space-y-1">
@@ -166,8 +166,8 @@ export default function GdprPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">9. Contact DPO</h2>
           <ul className="list-none text-slate-700 space-y-1">
-            <li><strong>Email DPO:</strong> gdpr@4pro.io</li>
-            <li><strong>Email general:</strong> support@4pro.io</li>
+            <li><strong>Email DPO:</strong> gdpr@teinformez.eu</li>
+            <li><strong>Email general:</strong> contact@teinformez.eu</li>
             <li><strong>Companie:</strong> TechBiz Hub L.L.C-FZ</li>
           </ul>
         </section>

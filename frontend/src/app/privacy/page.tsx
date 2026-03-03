@@ -34,8 +34,8 @@ export default function PrivacyPage() {
           <h2 className="text-xl font-semibold">2. Operator de date</h2>
           <ul className="list-none text-slate-700 space-y-1">
             <li><strong>Companie:</strong> TechBiz Hub L.L.C-FZ</li>
-            <li><strong>Email contact:</strong> support@4pro.io</li>
-            <li><strong>Email DPO:</strong> gdpr@4pro.io</li>
+            <li><strong>Email contact:</strong> contact@teinformez.eu</li>
+            <li><strong>Email DPO:</strong> gdpr@teinformez.eu</li>
           </ul>
         </section>
 
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
             <li>Furnizarea serviciului de stiri personalizate si agregate</li>
             <li>Trimiterea newsletter-ului conform preferintelor dumneavoastra</li>
             <li>Imbunatatirea algoritmilor de recomandare si personalizare</li>
-            <li>Generarea de rezumate AI ale articolelor</li>
+            <li>Generarea de rezumate ale articolelor</li>
             <li>Comunicari privind serviciul (actualizari, alerte importante)</li>
             <li>Analiza statistica si imbunatatirea platformei</li>
             <li>Respectarea obligatiilor legale</li>
@@ -150,8 +150,8 @@ export default function PrivacyPage() {
             Pentru orice intrebari privind protectia datelor sau pentru a va exercita drepturile:
           </p>
           <ul className="list-none text-slate-700 space-y-1">
-            <li><strong>Email general:</strong> support@4pro.io</li>
-            <li><strong>Email DPO:</strong> gdpr@4pro.io</li>
+            <li><strong>Email general:</strong> contact@teinformez.eu</li>
+            <li><strong>Email DPO:</strong> gdpr@teinformez.eu</li>
             <li><strong>Autoritate de supraveghere:</strong> ANSPDCP — <a href="https://www.dataprotection.ro" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">www.dataprotection.ro</a></li>
           </ul>
         </section>

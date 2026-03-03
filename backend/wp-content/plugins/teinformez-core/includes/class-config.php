@@ -59,6 +59,11 @@ class Config {
     const EMAIL_FROM_NAME = 'TeInformez';
     const EMAIL_FROM_ADDRESS = 'noreply@teinformez.eu';
 
+    // === SOCIAL MEDIA CONFIGURATION ===
+    const FACEBOOK_GRAPH_API = 'https://graph.facebook.com/v18.0';
+    const TWITTER_API = 'https://api.twitter.com/2';
+    const SOCIAL_MAX_RETRY = 3;
+
     // === FRONTEND URL ===
     const FRONTEND_URL = 'https://teinformez.eu';
 

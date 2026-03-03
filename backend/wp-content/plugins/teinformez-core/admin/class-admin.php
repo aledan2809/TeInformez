@@ -109,11 +109,24 @@ class Admin {
             'from_name',
             'frontend_url',
             'admin_review_period',
-            'news_fetch_interval'
+            'news_fetch_interval',
+            // Social media (Phase E)
+            'social_posting_enabled',
+            'facebook_page_id',
+            'facebook_access_token',
+            'twitter_api_key',
+            'twitter_api_secret',
+            'twitter_access_token',
+            'twitter_access_token_secret',
         ];
 
+        // Handle checkbox fields (unchecked = not in POST)
+        $checkboxes = ['social_posting_enabled'];
+
         foreach ($fields as $field) {
-            if (isset($_POST[$field])) {
+            if (in_array($field, $checkboxes)) {
+                Config::set($field, isset($_POST[$field]) ? '1' : '0');
+            } elseif (isset($_POST[$field])) {
                 Config::set($field, sanitize_text_field($_POST[$field]));
             }
         }

@@ -9,10 +9,10 @@ const organizationJsonLd = {
   '@type': 'Organization',
   name: 'TeInformez.eu',
   url: SITE_URL,
-  description: 'Platformă de știri personalizate cu AI pentru România',
+  description: 'Platformă de știri personalizate pentru România',
   contactPoint: {
     '@type': 'ContactPoint',
-    email: 'support@4pro.io',
+    email: 'contact@teinformez.eu',
     contactType: 'customer service',
   },
 };
@@ -70,7 +70,7 @@ export default function HomePage() {
               livrate când vrei tu
             </h1>
             <p className="mb-8 text-xl text-gray-600 dark:text-gray-400">
-              Alege categoriile tale preferate și primește știri rezumate de AI,
+              Alege categoriile tale preferate și primește știri rezumate,
               traduse în limba dorită, direct pe email sau social media.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -92,7 +92,7 @@ export default function HomePage() {
           <div className="mx-auto max-w-2xl text-center mb-16">
             <h2 className="mb-4">De ce TeInformez?</h2>
             <p className="text-lg text-gray-600 dark:text-gray-400">
-              Platforma ta de știri personalizate, alimentată de AI
+              Platforma ta de știri personalizate
             </p>
           </div>
 
@@ -114,8 +114,8 @@ export default function HomePage() {
             />
             <FeatureCard
               icon={<Newspaper className="h-10 w-10 text-primary-600" />}
-              title="Rezumate AI"
-              description="Știri concise și clare, procesate de inteligență artificială."
+              title="Rezumate Inteligente"
+              description="Știri concise și clare, procesate automat pentru tine."
             />
           </div>
         </div>
@@ -172,7 +172,7 @@ export default function HomePage() {
                 <span className="font-bold">TeInformez.eu</span>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Știri personalizate, alimentate de AI
+                Știri personalizate, livrate când vrei tu
               </p>
             </div>
 
@@ -188,7 +188,7 @@ export default function HomePage() {
             <div>
               <h4 className="font-semibold mb-4">Contact</h4>
               <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                <li>Email: support@4pro.io</li>
+                <li>Email: contact@teinformez.eu</li>
               </ul>
             </div>
           </div>

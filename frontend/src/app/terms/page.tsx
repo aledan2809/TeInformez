@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export const metadata = {
   title: 'Termeni și Condiții',
-  description: 'Termenii și condițiile de utilizare a platformei TeInformez.eu — serviciu de știri personalizate cu AI.',
+  description: 'Termenii și condițiile de utilizare a platformei TeInformez.eu — serviciu de știri personalizate.',
   alternates: { canonical: '/terms' },
 }
 
@@ -30,13 +30,13 @@ export default function TermsPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">2. Descrierea serviciului</h2>
           <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-            TeInformez este o platforma de agregare a stirilor care utilizeaza inteligenta artificiala pentru
-            a oferi continut personalizat bazat pe interesele dumneavoastra. Serviciul include:
+            TeInformez este o platforma de agregare a stirilor care ofera continut personalizat bazat pe
+            interesele dumneavoastra. Serviciul include:
           </p>
           <ul className="list-disc list-inside text-slate-700 space-y-1">
             <li>Agregarea stirilor din surse multiple verificate</li>
             <li>Personalizarea continutului pe baza preferintelor utilizatorului</li>
-            <li>Rezumate AI ale articolelor</li>
+            <li>Rezumate ale articolelor</li>
             <li>Livrarea prin email si alte canale de comunicare</li>
             <li>Bookmark-uri si istoricul de citire</li>
             <li>Alerte si notificari personalizate</li>
@@ -67,7 +67,7 @@ export default function TermsPage() {
             asupra continutului original al surselor.
           </p>
           <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-            Interfata platformei, algoritmii de personalizare, modelele AI si marca TeInformez sunt
+            Interfata platformei, algoritmii de personalizare si marca TeInformez sunt
             proprietatea TechBiz Hub L.L.C-FZ.
           </p>
         </section>
@@ -112,7 +112,7 @@ export default function TermsPage() {
             <li>Exactitatea stirilor agregate de la terti</li>
             <li>Intreruperi temporare ale serviciului</li>
             <li>Decizii luate pe baza informatiilor din stiri</li>
-            <li>Calitatea rezumatelor generate de AI</li>
+            <li>Calitatea rezumatelor generate automat</li>
             <li>Pierderi indirecte sau consecventiale</li>
           </ul>
           <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
@@ -151,7 +151,7 @@ export default function TermsPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">12. Contact</h2>
           <ul className="list-none text-slate-700 space-y-1">
-            <li><strong>Email:</strong> support@4pro.io</li>
+            <li><strong>Email:</strong> contact@teinformez.eu</li>
             <li><strong>Companie:</strong> TechBiz Hub L.L.C-FZ</li>
           </ul>
         </section>

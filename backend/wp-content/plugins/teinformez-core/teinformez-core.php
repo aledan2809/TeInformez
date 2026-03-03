@@ -75,6 +75,9 @@ function teinformez_init() {
     // Load delivery system (Phase C)
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-delivery-handler.php';
 
+    // Load social media posting (Phase E)
+    require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-social-poster.php';
+
     // Load API endpoints
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-rest-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-auth-api.php';
@@ -114,6 +117,16 @@ add_action('teinformez_process_news', function() {
 add_action('teinformez_check_deliveries', function() {
     $handler = new TeInformez\Delivery_Handler();
     $handler->process_deliveries();
+
+    // Retry failed social media posts
+    $social = new TeInformez\Social_Poster();
+    $social->retry_failed_posts();
+});
+
+// Social media posting: auto-post when news is published (Phase E)
+add_action('teinformez_news_published', function($item) {
+    $social = new TeInformez\Social_Poster();
+    $social->post_on_publish($item);
 });
 
 add_action('teinformez_daily_cleanup', function() {
