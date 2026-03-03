@@ -435,7 +435,7 @@ class Delivery_Handler {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>' . esc_html($this->build_subject($frequency, count($news))) . '</title>
+    <title>' . esc_html($this->build_subject($frequency, $total_count)) . '</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
     <div style="max-width:600px;margin:0 auto;padding:20px;">
