@@ -38,7 +38,9 @@ class Config {
     // Allowed frontend origins (CORS)
     const ALLOWED_ORIGINS = [
         'http://localhost:3000',           // Local development
+        'http://localhost:3002',           // Local development (alt port)
         'https://teinformez.eu',           // Production
+        'https://www.teinformez.eu',       // Production (www)
         'https://teinformez.vercel.app',   // Vercel production
         'https://*.vercel.app',            // Vercel preview deployments
     ];
@@ -166,13 +168,10 @@ class Config {
 
             // Wildcard match (e.g., https://*.vercel.app)
             if (strpos($allowed, '*') !== false) {
-                // Convert wildcard pattern to regex
-                $pattern = str_replace(
-                    ['*', '.'],
-                    ['.*', '\.'],
-                    $allowed
-                );
-                $pattern = '/^' . $pattern . '$/';
+                // Convert wildcard pattern to regex using # delimiter (URLs contain /)
+                $pattern = preg_quote($allowed, '#');
+                $pattern = str_replace('\\*', '.*', $pattern);
+                $pattern = '#^' . $pattern . '$#';
 
                 if (preg_match($pattern, $origin)) {
                     return true;
