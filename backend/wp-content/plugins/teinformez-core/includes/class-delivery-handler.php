@@ -373,10 +373,13 @@ class Delivery_Handler {
             if (empty($items)) continue;
 
             $cat_label = $cat_labels[$cat_slug] ?? ucfirst($cat_slug);
+            $total_items = count($items);
 
-            // Split: 1 featured article left, rest go to sidebar right
-            $featured = $items[0];
-            $sidebar_items = array_slice($items, 1);
+            // Adaptive split: balance left articles vs sidebar
+            // ≤4 items: 1 left, rest sidebar | >4 items: 2 left, rest sidebar
+            $left_count = $total_items > 4 ? 2 : 1;
+            $left_items = array_slice($items, 0, $left_count);
+            $sidebar_items = array_slice($items, $left_count);
 
             // Category header
             $news_html .= '
@@ -384,15 +387,26 @@ class Delivery_Handler {
                 <span style="font-size:14px;font-weight:bold;color:#4338ca;">' . $cat_label . '</span>
             </div>';
 
-            // Featured article (left column)
-            $f_title = esc_html($featured->processed_title ?? 'Fără titlu');
-            $f_summary = esc_html($featured->processed_summary ?? '');
-            if (mb_strlen($f_summary) > 150) {
-                $f_summary = mb_substr($f_summary, 0, 147) . '...';
+            // Build left column HTML
+            $left_html = '';
+            foreach ($left_items as $i => $left_item) {
+                $l_title = esc_html($left_item->processed_title ?? 'Fără titlu');
+                $l_summary = esc_html($left_item->processed_summary ?? '');
+                if (mb_strlen($l_summary) > 120) {
+                    $l_summary = mb_substr($l_summary, 0, 117) . '...';
+                }
+                $l_link = esc_url($frontend_url . '/news/' . $left_item->id);
+                $border_top = $i > 0 ? 'border-top:1px solid #f3f4f6;padding-top:10px;margin-top:10px;' : '';
+                $left_html .= '
+                    <div style="' . $border_top . '">
+                        <h2 style="margin:0 0 4px;font-size:14px;line-height:1.3;color:#111827;">
+                            <a href="' . $l_link . '" style="color:#2563eb;text-decoration:none;">' . $l_title . '</a>
+                        </h2>
+                        <p style="margin:0;font-size:12px;color:#6b7280;line-height:1.4;">' . $l_summary . '</p>
+                    </div>';
             }
-            $f_link = esc_url($frontend_url . '/news/' . $featured->id);
 
-            // Build sidebar HTML (all articles after the first)
+            // Build sidebar HTML
             $sidebar_html = '';
             foreach ($sidebar_items as $side) {
                 $s_title = esc_html($side->processed_title ?? 'Fără titlu');
@@ -403,16 +417,13 @@ class Delivery_Handler {
                 $sidebar_html .= '<li style="margin-bottom:6px;"><a href="' . $s_link . '" style="color:#2563eb;text-decoration:none;font-size:11px;line-height:1.3;display:block;max-height:2.6em;overflow:hidden;">' . $s_title . '</a></li>';
             }
 
-            // Always 2-column card: featured left (60%) + sidebar right (40%)
+            // Always 2-column card: left (60%) + sidebar right (40%)
             $news_html .= '
             <div style="margin-bottom:16px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;overflow:hidden;">
                 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
                     <tr>
                         <td width="60%" valign="top" style="padding:16px;">
-                            <h2 style="margin:0 0 6px;font-size:14px;line-height:1.3;color:#111827;">
-                                <a href="' . $f_link . '" style="color:#2563eb;text-decoration:none;">' . $f_title . '</a>
-                            </h2>
-                            <p style="margin:0;font-size:12px;color:#6b7280;line-height:1.4;">' . $f_summary . '</p>
+                            ' . $left_html . '
                         </td>
                         <td width="40%" valign="top" style="padding:14px 16px;border-left:1px solid #e5e7eb;background:#f9fafb;">' .
                             (!empty($sidebar_html) ? '
