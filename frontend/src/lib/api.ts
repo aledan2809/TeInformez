@@ -254,14 +254,14 @@ class ApiClient {
   }
 
   // News endpoints
-  async getNews(params?: { page?: number; per_page?: number; category?: string; search?: string }): Promise<any> {
+  async getNews(params?: { page?: number; per_page?: number; category?: string; search?: string; archive?: boolean }): Promise<any> {
     const response = await this.client.get<APIResponse<{
       news: any[];
       total: number;
       page: number;
       per_page: number;
       total_pages: number;
-    }>>('/news', { params });
+    }>>('/news', { params: { ...params, archive: params?.archive ? 1 : undefined } });
     return response.data.data;
   }
 

@@ -154,6 +154,45 @@ class Activator {
             KEY published_at (published_at)
         ) {$charset_collate};";
 
+        // Table: News Archive (same schema as news_queue, for articles > 30 days)
+        $table_archive = $wpdb->prefix . 'teinformez_news_archive';
+        $sql_archive = "CREATE TABLE IF NOT EXISTS {$table_archive} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            original_url VARCHAR(500),
+            original_title TEXT,
+            original_content LONGTEXT,
+            original_language VARCHAR(5),
+            source_name VARCHAR(100),
+            source_type ENUM('rss', 'api', 'scraper') DEFAULT 'rss',
+
+            processed_title TEXT,
+            processed_summary TEXT,
+            processed_content TEXT,
+            target_language VARCHAR(5),
+            ai_generated_image_url VARCHAR(500),
+            youtube_embed VARCHAR(500),
+
+            status ENUM('fetched', 'processing', 'pending_review', 'approved', 'rejected', 'published') DEFAULT 'fetched',
+            admin_notes TEXT,
+
+            categories TEXT,
+            tags TEXT,
+
+            view_count BIGINT(20) UNSIGNED DEFAULT 0,
+
+            fetched_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            processed_at DATETIME DEFAULT NULL,
+            reviewed_at DATETIME DEFAULT NULL,
+            published_at DATETIME DEFAULT NULL,
+            archived_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+            PRIMARY KEY (id),
+            KEY status (status),
+            KEY original_url (original_url(191)),
+            KEY published_at (published_at),
+            KEY archived_at (archived_at)
+        ) {$charset_collate};";
+
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql_preferences);
         dbDelta($sql_subscriptions);
@@ -161,6 +200,7 @@ class Activator {
         dbDelta($sql_delivery);
         dbDelta($sql_newsletter);
         dbDelta($sql_juridic);
+        dbDelta($sql_archive);
 
         // Set default options
         self::set_default_options();

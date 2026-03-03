@@ -2,15 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
-import { CATEGORIES, type CategoryDef } from '@/lib/categories';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { CATEGORIES } from '@/lib/categories';
 
 interface CategoryNavBarProps {
   activeSections?: string[];
 }
 
 export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) {
-  const [expanded, setExpanded] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -34,10 +33,6 @@ export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) 
     if (!scrollRef.current) return;
     scrollRef.current.scrollBy({ left: dir === 'left' ? -200 : 200, behavior: 'smooth' });
     setTimeout(updateScrollButtons, 300);
-  };
-
-  const toggleSubcategories = (slug: string) => {
-    setExpanded(expanded === slug ? null : slug);
   };
 
   return (
@@ -69,60 +64,47 @@ export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) 
         >
           {navCategories.map((cat) => {
             const hasArticles = !activeSections || activeSections.includes(cat.slug);
+
+            // Juridic links to its own section
+            if (cat.slug === 'juridic') {
+              return (
+                <Link
+                  key={cat.slug}
+                  href="/juridic"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors bg-gray-100 dark:bg-gray-800 hover:bg-primary-100 dark:hover:bg-primary-900/30 text-gray-700 dark:text-gray-300"
+                >
+                  <span>{cat.emoji}</span>
+                  <span>{cat.label}</span>
+                </Link>
+              );
+            }
+
             return (
               <button
                 key={cat.slug}
                 onClick={() => {
-                  if (cat.subcategories && cat.subcategories.length > 0) {
-                    toggleSubcategories(cat.slug);
+                  const el = document.getElementById(`cat-${cat.slug}`);
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   } else {
-                    const el = document.getElementById(`cat-${cat.slug}`);
-                    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Category not on homepage, go to news filtered
+                    window.location.href = `/news?category=${cat.slug}`;
                   }
                 }}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                   hasArticles
                     ? 'bg-gray-100 dark:bg-gray-800 hover:bg-primary-100 dark:hover:bg-primary-900/30 text-gray-700 dark:text-gray-300'
                     : 'bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-600'
-                } ${expanded === cat.slug ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : ''}`}
+                }`}
               >
                 <span>{cat.emoji}</span>
                 <span>{cat.label}</span>
-                {cat.subcategories && cat.subcategories.length > 0 && (
-                  <ChevronDown className={`h-3 w-3 transition-transform ${expanded === cat.slug ? 'rotate-180' : ''}`} />
-                )}
               </button>
             );
           })}
         </div>
 
-        {/* Expanded subcategories */}
-        {expanded && (
-          <SubcategoryDropdown
-            category={navCategories.find(c => c.slug === expanded)!}
-            onClose={() => setExpanded(null)}
-          />
-        )}
       </div>
-    </div>
-  );
-}
-
-function SubcategoryDropdown({ category, onClose }: { category: CategoryDef; onClose: () => void }) {
-  if (!category.subcategories || category.subcategories.length === 0) return null;
-
-  return (
-    <div className="pb-2 flex flex-wrap gap-1.5">
-      {category.subcategories.map((sub) => (
-        <Link
-          key={sub}
-          href={`/news?category=${category.slug}&sub=${sub.toLowerCase()}`}
-          onClick={onClose}
-          className="px-2.5 py-1 rounded-md text-xs font-medium bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 transition-colors"
-        >
-          {sub}
-        </Link>
-      ))}
     </div>
   );
 }

@@ -110,7 +110,7 @@ export default function NewsListClient() {
     setError(null);
 
     try {
-      const params: any = { page, per_page: 20 };
+      const params: any = { page, per_page: 20, archive: true };
       if (selectedCategory) params.category = selectedCategory;
       if (debouncedQuery.trim()) params.search = debouncedQuery.trim();
 

@@ -63,52 +63,95 @@ class News_API extends REST_API {
     }
 
     /**
-     * Get latest news
+     * Get latest news (searches both active queue and archive)
      */
     public function get_news($request) {
-        // Parse query parameters
-        $page = $request->get_param('page') ?: 1;
-        $per_page = min($request->get_param('per_page') ?: 20, 50); // Max 50 items per page
+        global $wpdb;
+
+        $page = (int) ($request->get_param('page') ?: 1);
+        $per_page = min((int) ($request->get_param('per_page') ?: 20), 50);
         $category = $request->get_param('category');
         $search = $request->get_param('search');
+        $include_archive = (bool) $request->get_param('archive');
 
-        // Get published news from News_Publisher
-        $publisher = new \TeInformez\News_Publisher();
-        $result = $publisher->get_queue([
-            'status' => 'published',
-            'search' => $search,
-            'page' => $page,
-            'per_page' => $per_page,
-            'orderby' => 'published_at',
-            'order' => 'DESC'
-        ]);
+        $queue = $wpdb->prefix . 'teinformez_news_queue';
+        $archive = $wpdb->prefix . 'teinformez_news_archive';
 
-        $items = $result['items'];
+        // Build WHERE clause
+        $where = ["status = 'published'"];
+        $values = [];
 
-        // Filter by category if specified
-        if ($category) {
-            $items = array_filter($items, function($item) use ($category) {
-                return in_array($category, $item->categories);
-            });
+        if ($search) {
+            $where[] = '(processed_title LIKE %s OR original_title LIKE %s)';
+            $like = '%' . $wpdb->esc_like($search) . '%';
+            $values[] = $like;
+            $values[] = $like;
         }
 
-        // Format response
+        if ($category) {
+            $where[] = 'categories LIKE %s';
+            $values[] = '%"' . $wpdb->esc_like($category) . '"%';
+        }
+
+        $where_sql = implode(' AND ', $where);
+
+        // Build query: active queue + optionally archive
+        if ($include_archive) {
+            $count_sql = "SELECT COUNT(*) FROM (
+                SELECT id FROM {$queue} WHERE {$where_sql}
+                UNION ALL
+                SELECT id FROM {$archive} WHERE {$where_sql}
+            ) AS combined";
+
+            $data_sql = "SELECT * FROM (
+                SELECT *, 'active' AS _source FROM {$queue} WHERE {$where_sql}
+                UNION ALL
+                SELECT *, 'archive' AS _source FROM {$archive} WHERE {$where_sql}
+            ) AS combined ORDER BY published_at DESC LIMIT %d OFFSET %d";
+
+            // Values appear twice (once per table in UNION)
+            $count_values = array_merge($values, $values);
+            $data_values = array_merge($values, $values, [$per_page, ($page - 1) * $per_page]);
+        } else {
+            $count_sql = "SELECT COUNT(*) FROM {$queue} WHERE {$where_sql}";
+            $data_sql = "SELECT *, 'active' AS _source FROM {$queue} WHERE {$where_sql} ORDER BY published_at DESC LIMIT %d OFFSET %d";
+
+            $count_values = $values;
+            $data_values = array_merge($values, [$per_page, ($page - 1) * $per_page]);
+        }
+
+        $total = (int) ($count_values
+            ? $wpdb->get_var($wpdb->prepare($count_sql, ...$count_values))
+            : $wpdb->get_var($count_sql));
+
+        $items = $data_values
+            ? $wpdb->get_results($wpdb->prepare($data_sql, ...$data_values))
+            : $wpdb->get_results($data_sql);
+
+        // Decode JSON fields
+        foreach ($items as &$item) {
+            $item->categories = json_decode($item->categories, true) ?? [];
+            $item->tags = json_decode($item->tags, true) ?? [];
+        }
+        unset($item);
+
         $formatted = array_map([$this, 'format_news_item'], $items);
 
         return $this->success([
-            'news' => array_values($formatted), // Re-index array
-            'total' => count($formatted),
+            'news' => array_values($formatted),
+            'total' => $total,
             'page' => $page,
             'per_page' => $per_page,
-            'total_pages' => ceil(count($formatted) / $per_page)
+            'total_pages' => ceil($total / max($per_page, 1))
         ]);
     }
 
     /**
-     * Get single news item
+     * Get single news item (checks queue first, then archive)
      */
     public function get_single_news($request) {
-        $id = $request->get_param('id');
+        global $wpdb;
+        $id = (int) $request->get_param('id');
 
         if (empty($id)) {
             return $this->error(
@@ -118,8 +161,21 @@ class News_API extends REST_API {
             );
         }
 
+        // Try active queue first
         $publisher = new \TeInformez\News_Publisher();
         $item = $publisher->get_item($id);
+
+        // If not found, check archive
+        if (!$item) {
+            $archive = $wpdb->prefix . 'teinformez_news_archive';
+            $item = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$archive} WHERE id = %d", $id
+            ));
+            if ($item) {
+                $item->categories = json_decode($item->categories, true) ?? [];
+                $item->tags = json_decode($item->tags, true) ?? [];
+            }
+        }
 
         if (!$item) {
             return $this->error(
@@ -129,7 +185,6 @@ class News_API extends REST_API {
             );
         }
 
-        // Only return published items to public
         if ($item->status !== 'published') {
             return $this->error(
                 __('News item not available.', 'teinformez'),
@@ -228,15 +283,15 @@ class News_API extends REST_API {
         global $wpdb;
         $table = $wpdb->prefix . 'teinformez_news_queue';
 
-        // Get latest 200 published articles (covers all categories)
+        // Get articles from the last 3 days only (homepage = fresh content)
         $items = $wpdb->get_results(
             "SELECT id, processed_title, original_title, processed_summary,
                     ai_generated_image_url, source_name, categories, tags,
                     published_at, original_url, target_language, view_count
              FROM {$table}
              WHERE status = 'published'
-             ORDER BY published_at DESC
-             LIMIT 200"
+               AND published_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)
+             ORDER BY published_at DESC"
         );
 
         // Parse categories JSON for each item

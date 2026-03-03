@@ -279,26 +279,54 @@ class News_Publisher {
     }
 
     /**
-     * Delete old rejected/published items (cleanup)
+     * Archive old published items (move to archive table) and delete rejected items
      */
     public function cleanup_old_items($days = 30) {
         global $wpdb;
-        $table = $wpdb->prefix . 'teinformez_news_queue';
+        $queue = $wpdb->prefix . 'teinformez_news_queue';
+        $archive = $wpdb->prefix . 'teinformez_news_archive';
 
         $cutoff = date('Y-m-d H:i:s', strtotime("-{$days} days"));
 
+        // Archive published articles older than $days
+        $archived = $wpdb->query($wpdb->prepare(
+            "INSERT INTO {$archive}
+                (original_url, original_title, original_content, original_language,
+                 source_name, source_type, processed_title, processed_summary,
+                 processed_content, target_language, ai_generated_image_url, youtube_embed,
+                 status, admin_notes, categories, tags, view_count,
+                 fetched_at, processed_at, reviewed_at, published_at, archived_at)
+             SELECT
+                original_url, original_title, original_content, original_language,
+                source_name, source_type, processed_title, processed_summary,
+                processed_content, target_language, ai_generated_image_url, youtube_embed,
+                status, admin_notes, categories, tags, view_count,
+                fetched_at, processed_at, reviewed_at, published_at, NOW()
+             FROM {$queue}
+             WHERE status = 'published' AND published_at < %s",
+            $cutoff
+        ));
+
+        // Delete archived items from queue
+        if ($archived > 0) {
+            $wpdb->query($wpdb->prepare(
+                "DELETE FROM {$queue} WHERE status = 'published' AND published_at < %s",
+                $cutoff
+            ));
+            error_log("TeInformez: Archived {$archived} old published articles");
+        }
+
+        // Delete old rejected items (no need to archive)
         $deleted = $wpdb->query($wpdb->prepare(
-            "DELETE FROM {$table}
-             WHERE (status = 'rejected' OR status = 'published')
-             AND fetched_at < %s",
+            "DELETE FROM {$queue} WHERE status = 'rejected' AND fetched_at < %s",
             $cutoff
         ));
 
         if ($deleted > 0) {
-            error_log('TeInformez: Cleaned up ' . $deleted . ' old news items');
+            error_log("TeInformez: Deleted {$deleted} old rejected items");
         }
 
-        return ['deleted' => $deleted];
+        return ['archived' => $archived, 'deleted' => $deleted];
     }
 
     /**
