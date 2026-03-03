@@ -66,6 +66,10 @@ class Config {
     const TWITTER_API = 'https://api.twitter.com/2';
     const SOCIAL_MAX_RETRY = 3;
 
+    // === YOUTUBE CONFIGURATION ===
+    const YOUTUBE_API = 'https://www.googleapis.com/youtube/v3';
+    const YOUTUBE_MAX_PER_EMAIL = 2;
+
     // === FRONTEND URL ===
     const FRONTEND_URL = 'https://teinformez.eu';
 

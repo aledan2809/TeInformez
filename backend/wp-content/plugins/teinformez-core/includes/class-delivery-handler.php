@@ -388,6 +388,23 @@ class Delivery_Handler {
                 <span style="font-size:14px;font-weight:bold;color:#4338ca;">' . $cat_label . '</span>
             </div>';
 
+            // Decide image placement BEFORE building HTML:
+            // - Sidebar empty + image available → image goes to sidebar ONLY
+            // - Sidebar has links → image goes to left column first article
+            // - Never show same image twice
+            $has_sidebar_links = !empty($sidebar_items);
+            $first_image = $left_items[0]->ai_generated_image_url ?? '';
+            $first_source = esc_html($left_items[0]->source_name ?? '');
+            $first_link = esc_url($frontend_url . '/news/' . $left_items[0]->id);
+            $can_use_image = !empty($first_image) && $images_used < $max_images;
+
+            $image_in_left = $can_use_image && $has_sidebar_links;
+            $image_in_sidebar = $can_use_image && !$has_sidebar_links;
+
+            if ($image_in_left || $image_in_sidebar) {
+                $images_used++;
+            }
+
             // Build left column HTML
             $left_html = '';
             foreach ($left_items as $i => $left_item) {
@@ -397,19 +414,17 @@ class Delivery_Handler {
                     $l_summary = mb_substr($l_summary, 0, 117) . '...';
                 }
                 $l_link = esc_url($frontend_url . '/news/' . $left_item->id);
-                $l_image = $left_item->ai_generated_image_url ?? '';
                 $l_source = esc_html($left_item->source_name ?? '');
                 $border_top = $i > 0 ? 'border-top:1px solid #f3f4f6;padding-top:10px;margin-top:10px;' : '';
 
-                // Show image only on first left article and if budget allows
+                // Image only on first left article, only when sidebar has links
                 $image_html = '';
-                if ($i === 0 && !empty($l_image) && $images_used < $max_images) {
+                if ($i === 0 && $image_in_left) {
                     $image_html = '
                         <a href="' . $l_link . '" style="display:block;margin-bottom:8px;">
-                            <img src="' . esc_url($l_image) . '" alt="" width="100%" style="display:block;border-radius:4px;max-height:160px;object-fit:cover;" />
+                            <img src="' . esc_url($first_image) . '" alt="" width="100%" style="display:block;border-radius:4px;max-height:160px;object-fit:cover;" />
                         </a>
                         <p style="margin:0 0 6px;font-size:9px;color:#9ca3af;">Foto: ' . $l_source . '</p>';
-                    $images_used++;
                 }
 
                 $left_html .= '
@@ -422,7 +437,7 @@ class Delivery_Handler {
                     </div>';
             }
 
-            // Build sidebar HTML
+            // Build sidebar HTML (links list)
             $sidebar_html = '';
             foreach ($sidebar_items as $side) {
                 $s_title = esc_html($side->processed_title ?? 'Fără titlu');
@@ -433,25 +448,18 @@ class Delivery_Handler {
                 $sidebar_html .= '<li style="margin-bottom:6px;"><a href="' . $s_link . '" style="color:#2563eb;text-decoration:none;font-size:11px;line-height:1.3;display:block;max-height:2.6em;overflow:hidden;">' . $s_title . '</a></li>';
             }
 
-            // If sidebar is empty and we have image budget, show image in sidebar
+            // Build sidebar content: links OR image (never both, never duplicate)
             $sidebar_content = '';
             if (!empty($sidebar_html)) {
                 $sidebar_content = '
                     <p style="margin:0 0 8px;font-size:10px;font-weight:bold;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Mai multe:</p>
                     <ul style="margin:0;padding:0 0 0 12px;list-style:disc;color:#9ca3af;">' . $sidebar_html . '</ul>';
-            } elseif ($images_used < $max_images) {
-                // Empty sidebar — fill with image from first left article
-                $first_image = $left_items[0]->ai_generated_image_url ?? '';
-                $first_source = esc_html($left_items[0]->source_name ?? '');
-                $first_link = esc_url($frontend_url . '/news/' . $left_items[0]->id);
-                if (!empty($first_image)) {
-                    $sidebar_content = '
-                        <a href="' . $first_link . '" style="display:block;">
-                            <img src="' . esc_url($first_image) . '" alt="" width="100%" style="display:block;border-radius:4px;object-fit:cover;" />
-                        </a>
-                        <p style="margin:4px 0 0;font-size:9px;color:#9ca3af;">Foto: ' . $first_source . '</p>';
-                    $images_used++;
-                }
+            } elseif ($image_in_sidebar) {
+                $sidebar_content = '
+                    <a href="' . $first_link . '" style="display:block;">
+                        <img src="' . esc_url($first_image) . '" alt="" width="100%" style="display:block;border-radius:4px;object-fit:cover;" />
+                    </a>
+                    <p style="margin:4px 0 0;font-size:9px;color:#9ca3af;">Foto: ' . $first_source . '</p>';
             }
 
             // Always 2-column card: left (60%) + sidebar right (40%)
@@ -498,6 +506,9 @@ class Delivery_Handler {
             ' . $news_html . '
         </div>
 
+        <!-- YouTube Videos -->
+        ' . $this->build_youtube_section($by_category) . '
+
         <!-- CTA -->
         <div style="background:#ffffff;padding:24px;text-align:center;border-top:1px solid #e5e7eb;">
             <a href="' . esc_url($frontend_url . '/news') . '" style="display:inline-block;background:#2563eb;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:bold;">Vezi toate știrile</a>
@@ -517,6 +528,132 @@ class Delivery_Handler {
     </div>
 </body>
 </html>';
+    }
+
+    /**
+     * Build YouTube video section for email.
+     * Searches for relevant videos based on top article topics.
+     */
+    private function build_youtube_section($by_category) {
+        $api_key = Config::get_api_key('youtube');
+        if (empty($api_key)) {
+            return '';
+        }
+
+        $max_videos = Config::YOUTUBE_MAX_PER_EMAIL;
+        $frontend_url = Config::get('frontend_url', 'https://teinformez.eu');
+
+        // Pick search queries from top categories' first article titles
+        $search_queries = [];
+        foreach ($by_category as $cat_slug => $items) {
+            if (empty($items)) continue;
+            $title = $items[0]->processed_title ?? '';
+            if (!empty($title)) {
+                // Extract key phrase (first 6 words for focused search)
+                $words = explode(' ', $title);
+                $search_queries[] = implode(' ', array_slice($words, 0, 6));
+            }
+            if (count($search_queries) >= $max_videos) break;
+        }
+
+        if (empty($search_queries)) {
+            return '';
+        }
+
+        $videos = [];
+        foreach ($search_queries as $query) {
+            $video = $this->search_youtube($query, $api_key);
+            if ($video) {
+                $videos[] = $video;
+            }
+            if (count($videos) >= $max_videos) break;
+        }
+
+        if (empty($videos)) {
+            return '';
+        }
+
+        // Build HTML for video cards
+        $html = '
+        <div style="padding:0 20px 20px;background:#f9fafb;">
+            <div style="margin:8px 0 12px;padding:8px 16px;background:#fee2e2;border-radius:6px;">
+                <span style="font-size:14px;font-weight:bold;color:#dc2626;">▶ Video recomandate</span>
+            </div>';
+
+        foreach ($videos as $v) {
+            $thumb = esc_url($v['thumbnail']);
+            $link = esc_url($v['url']);
+            $title = esc_html($v['title']);
+            if (mb_strlen($title) > 80) {
+                $title = mb_substr($title, 0, 77) . '...';
+            }
+            $channel = esc_html($v['channel']);
+
+            $html .= '
+            <div style="margin-bottom:12px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;overflow:hidden;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                    <tr>
+                        <td width="40%" valign="top" style="padding:0;">
+                            <a href="' . $link . '" style="display:block;position:relative;">
+                                <img src="' . $thumb . '" alt="" width="100%" style="display:block;min-height:90px;object-fit:cover;" />
+                            </a>
+                        </td>
+                        <td width="60%" valign="middle" style="padding:12px 16px;">
+                            <h3 style="margin:0 0 4px;font-size:13px;line-height:1.3;color:#111827;">
+                                <a href="' . $link . '" style="color:#dc2626;text-decoration:none;">' . $title . '</a>
+                            </h3>
+                            <p style="margin:0;font-size:10px;color:#9ca3af;">▶ ' . $channel . ' · YouTube</p>
+                        </td>
+                    </tr>
+                </table>
+            </div>';
+        }
+
+        $html .= '</div>';
+        return $html;
+    }
+
+    /**
+     * Search YouTube for a relevant video.
+     */
+    private function search_youtube($query, $api_key) {
+        $url = Config::YOUTUBE_API . '/search?' . http_build_query([
+            'part' => 'snippet',
+            'q' => $query,
+            'type' => 'video',
+            'maxResults' => 1,
+            'order' => 'relevance',
+            'relevanceLanguage' => 'ro',
+            'publishedAfter' => date('Y-m-d\TH:i:s\Z', strtotime('-7 days')),
+            'key' => $api_key,
+        ]);
+
+        $response = wp_remote_get($url, ['timeout' => 10]);
+
+        if (is_wp_error($response)) {
+            error_log('TeInformez YouTube: Search failed: ' . $response->get_error_message());
+            return null;
+        }
+
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+
+        if (empty($body['items'][0])) {
+            return null;
+        }
+
+        $item = $body['items'][0];
+        $video_id = $item['id']['videoId'] ?? '';
+        if (empty($video_id)) {
+            return null;
+        }
+
+        return [
+            'id' => $video_id,
+            'title' => $item['snippet']['title'] ?? '',
+            'channel' => $item['snippet']['channelTitle'] ?? '',
+            'thumbnail' => $item['snippet']['thumbnails']['medium']['url'] ?? $item['snippet']['thumbnails']['default']['url'] ?? '',
+            'url' => 'https://www.youtube.com/watch?v=' . $video_id,
+        ];
     }
 
     /**

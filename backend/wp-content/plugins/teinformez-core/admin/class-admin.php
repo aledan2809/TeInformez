@@ -118,6 +118,8 @@ class Admin {
             'twitter_api_secret',
             'twitter_access_token',
             'twitter_access_token_secret',
+            // YouTube
+            'youtube_api_key',
         ];
 
         // Handle checkbox fields (unchecked = not in POST)
