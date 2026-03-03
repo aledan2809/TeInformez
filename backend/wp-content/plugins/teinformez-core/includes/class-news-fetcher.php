@@ -292,14 +292,14 @@ class News_Fetcher {
         }
 
         // Quick regex extraction — faster than DOM parsing for just meta tags
+        $url = '';
         if (preg_match('/<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']/i', $html, $m)) {
-            return $m[1];
+            $url = $m[1];
+        } elseif (preg_match('/<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']/i', $html, $m)) {
+            $url = $m[1];
         }
-        // Reverse attribute order (content before property)
-        if (preg_match('/<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']/i', $html, $m)) {
-            return $m[1];
-        }
-        return '';
+        // Decode HTML entities (&amp; → &)
+        return html_entity_decode($url, ENT_QUOTES, 'UTF-8');
     }
 
     /**
