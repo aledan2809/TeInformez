@@ -422,7 +422,7 @@ class Delivery_Handler {
                 if ($i === 0 && $image_in_left) {
                     $image_html = '
                         <a href="' . $l_link . '" style="display:block;margin-bottom:8px;">
-                            <img src="' . esc_url($first_image) . '" alt="" width="100%" style="display:block;border-radius:4px;max-height:160px;object-fit:cover;" />
+                            <img src="' . esc_url($first_image) . '" alt="" width="100%" style="display:block;border-radius:4px;" />
                         </a>
                         <p style="margin:0 0 6px;font-size:9px;color:#9ca3af;">Foto: ' . $l_source . '</p>';
                 }
