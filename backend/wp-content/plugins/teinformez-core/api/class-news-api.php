@@ -291,11 +291,19 @@ class News_API extends REST_API {
      * Format news item for API response
      */
     private function format_news_item($item) {
+        $content = $item->processed_content ?: $item->original_content;
+
+        // Wrap plain text paragraphs in <p> tags if not already HTML
+        if ($content && strpos($content, '<p>') === false) {
+            $paragraphs = preg_split('/\n\s*\n/', trim($content));
+            $content = '<p>' . implode('</p><p>', array_map('trim', array_filter($paragraphs))) . '</p>';
+        }
+
         return [
             'id' => (int) $item->id,
             'title' => $item->processed_title ?: $item->original_title,
             'summary' => $item->processed_summary,
-            'content' => $item->processed_content ?: $item->original_content,
+            'content' => $content,
             'image' => $item->ai_generated_image_url,
             'source' => $item->source_name,
             'categories' => $item->categories,

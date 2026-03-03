@@ -287,9 +287,51 @@ class Delivery_Handler {
             }
         }
 
-        // Limit digest size
+        // Diversify by category — round-robin so each category gets representation
         $max_items = ($frequency === 'realtime') ? 5 : 10;
-        return array_slice($matched, 0, $max_items);
+        $by_category = [];
+        $uncategorized = [];
+
+        foreach ($matched as $item) {
+            $item_cats = json_decode($item->categories, true) ?? [];
+            if (empty($item_cats)) {
+                $uncategorized[] = $item;
+            } else {
+                // File under the first category
+                $cat = $item_cats[0];
+                if (!isset($by_category[$cat])) {
+                    $by_category[$cat] = [];
+                }
+                $by_category[$cat][] = $item;
+            }
+        }
+
+        // Round-robin pick: 1 from each category, then repeat
+        $diverse = [];
+        $round = 0;
+        while (count($diverse) < $max_items) {
+            $added_this_round = false;
+            foreach ($by_category as &$cat_items) {
+                if (isset($cat_items[$round])) {
+                    $diverse[] = $cat_items[$round];
+                    $added_this_round = true;
+                    if (count($diverse) >= $max_items) break;
+                }
+            }
+            unset($cat_items);
+
+            // Fill remaining slots with uncategorized
+            if (!$added_this_round) {
+                foreach ($uncategorized as $item) {
+                    if (count($diverse) >= $max_items) break;
+                    $diverse[] = $item;
+                }
+                break;
+            }
+            $round++;
+        }
+
+        return $diverse;
     }
 
     /**
@@ -330,7 +372,15 @@ class Delivery_Handler {
         $user_name = $user->display_name ?: $user->user_email;
         $greeting = $this->get_greeting($frequency);
 
+        // Category label mapping
+        $cat_labels = [];
+        foreach (Config::DEFAULT_CATEGORIES as $slug => $cat) {
+            $cat_labels[$slug] = $cat['icon'] . ' ' . $cat['label'];
+        }
+
         $news_html = '';
+        $last_category = '';
+
         foreach ($news as $item) {
             $title = esc_html($item->processed_title ?? 'Fără titlu');
             $summary = esc_html($item->processed_summary ?? '');
@@ -342,14 +392,26 @@ class Delivery_Handler {
                 $image = '<img src="' . esc_url($item->ai_generated_image_url) . '" alt="" style="width:100%;max-width:560px;height:auto;border-radius:8px;margin-bottom:12px;" />';
             }
 
+            // Show category header when category changes
+            $item_cats = json_decode($item->categories, true) ?? [];
+            $primary_cat = $item_cats[0] ?? '';
+            if ($primary_cat && $primary_cat !== $last_category) {
+                $cat_label = $cat_labels[$primary_cat] ?? ucfirst($primary_cat);
+                $news_html .= '
+                <div style="margin:20px 0 12px;padding:8px 16px;background:#eef2ff;border-radius:6px;">
+                    <span style="font-size:14px;font-weight:bold;color:#4338ca;">' . $cat_label . '</span>
+                </div>';
+                $last_category = $primary_cat;
+            }
+
             $news_html .= '
-            <div style="margin-bottom:24px;padding:20px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;">
+            <div style="margin-bottom:16px;padding:16px 20px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;">
                 ' . $image . '
-                <h2 style="margin:0 0 8px;font-size:18px;color:#111827;">
+                <h2 style="margin:0 0 6px;font-size:16px;color:#111827;">
                     <a href="' . $link . '" style="color:#2563eb;text-decoration:none;">' . $title . '</a>
                 </h2>
-                <p style="margin:0 0 8px;font-size:14px;color:#4b5563;line-height:1.5;">' . $summary . '</p>
-                <p style="margin:0;font-size:12px;color:#9ca3af;">Sursă: ' . $source . '</p>
+                <p style="margin:0 0 6px;font-size:13px;color:#4b5563;line-height:1.5;">' . $summary . '</p>
+                <p style="margin:0;font-size:11px;color:#9ca3af;">Sursă: ' . $source . '</p>
             </div>';
         }
 
