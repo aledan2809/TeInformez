@@ -71,7 +71,7 @@ class AI_Processor {
             // Get AI summary and translation
             $result = $this->call_openai([
                 'title' => $item->original_title,
-                'content' => substr($item->original_content, 0, 4000), // Limit content length
+                'content' => mb_substr($item->original_content, 0, 8000), // Limit content length
                 'source_language' => $item->original_language,
                 'target_language' => $target_language,
                 'categories' => json_decode($item->categories, true) ?? []
@@ -170,15 +170,47 @@ class AI_Processor {
         $target_lang_name = $this->get_language_name($data['target_language']);
         $source_lang_name = $this->get_language_name($data['source_language']);
         $categories_list = implode(', ', array_keys(Config::DEFAULT_CATEGORIES));
+        $same_language = ($data['source_language'] === $data['target_language']);
+        $content_length = mb_strlen($data['content']);
 
-        $prompt = <<<PROMPT
-Process this news article and return a JSON object with the following structure:
+        if ($same_language && $content_length > 500) {
+            // Full article in same language — summarize and condense
+            $prompt = <<<PROMPT
+You are a news editor for TeInformez.eu. Process this {$source_lang_name} article and return a JSON object:
 {
-    "title": "Translated title in {$target_lang_name}",
-    "summary": "A concise 2-3 sentence summary in {$target_lang_name} (max 150 words)",
-    "content": "The full article content rewritten in {$target_lang_name}, maintaining journalistic quality",
-    "categories": ["array", "of", "relevant", "category", "slugs"],
-    "tags": ["array", "of", "relevant", "tags", "in", "{$target_lang_name}"]
+    "title": "A fresh, engaging headline (NOT a copy of the original — rephrase it)",
+    "summary": "2-3 sentence summary capturing the key facts (max 100 words)",
+    "content": "A condensed version of the article (3-5 paragraphs, ~300-500 words). Keep all key facts, quotes, and data points. Write in clear, neutral journalistic {$target_lang_name}. Do NOT copy sentences verbatim — rephrase everything in your own words.",
+    "categories": ["category_slugs"],
+    "tags": ["relevant_tags_in_{$target_lang_name}"]
+}
+
+Available categories: {$categories_list}
+
+Original article:
+Title: {$data['title']}
+
+Content:
+{$data['content']}
+
+CRITICAL RULES:
+1. The title MUST be different from the original — rephrase it while keeping the meaning
+2. Do NOT copy-paste sentences from the original. Rephrase ALL content in your own words
+3. Keep factual accuracy — do not invent information
+4. The content should be 300-500 words, covering the most important points
+5. Select 1-3 categories from the available list
+6. Generate 3-5 tags in {$target_lang_name}
+PROMPT;
+        } else {
+            // Different language or short content — translate and expand
+            $prompt = <<<PROMPT
+You are a news editor and translator for TeInformez.eu. Process this article and return a JSON object:
+{
+    "title": "An engaging headline in {$target_lang_name} (NOT a literal translation — adapt it naturally)",
+    "summary": "2-3 sentence summary in {$target_lang_name} (max 100 words)",
+    "content": "The article rewritten in professional {$target_lang_name} (3-5 paragraphs, ~300-500 words). Translate and rephrase — do not translate word-for-word.",
+    "categories": ["category_slugs"],
+    "tags": ["relevant_tags_in_{$target_lang_name}"]
 }
 
 Available categories: {$categories_list}
@@ -189,14 +221,15 @@ Title: {$data['title']}
 Content:
 {$data['content']}
 
-Instructions:
-1. Translate the content to {$target_lang_name} if not already in that language
-2. Create a concise summary capturing the key points
-3. Rewrite the content in clear, professional {$target_lang_name}
-4. Select 1-3 most relevant categories from the available list
-5. Generate 3-5 relevant tags in {$target_lang_name}
-6. Maintain factual accuracy - do not add information not present in the original
+CRITICAL RULES:
+1. Translate to natural, fluent {$target_lang_name} — avoid literal translations
+2. The title should be adapted for a {$target_lang_name}-speaking audience
+3. Keep factual accuracy — do not invent information
+4. Content should be 300-500 words
+5. Select 1-3 categories from the available list
+6. Generate 3-5 tags in {$target_lang_name}
 PROMPT;
+        }
 
         return $prompt;
     }

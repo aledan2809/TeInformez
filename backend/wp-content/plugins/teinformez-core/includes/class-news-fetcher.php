@@ -243,6 +243,130 @@ class News_Fetcher {
     }
 
     /**
+     * Scrape full article content from source URL
+     */
+    private function scrape_full_content($url) {
+        if (empty($url)) {
+            return null;
+        }
+
+        $response = wp_remote_get($url, [
+            'timeout' => 15,
+            'user-agent' => 'Mozilla/5.0 (compatible; TeInformez/1.0)',
+            'headers' => [
+                'Accept' => 'text/html',
+                'Accept-Language' => 'ro,en;q=0.9',
+            ]
+        ]);
+
+        if (is_wp_error($response)) {
+            error_log('TeInformez Scraper: Failed to fetch ' . $url . ': ' . $response->get_error_message());
+            return null;
+        }
+
+        $status = wp_remote_retrieve_response_code($response);
+        if ($status !== 200) {
+            error_log('TeInformez Scraper: HTTP ' . $status . ' for ' . $url);
+            return null;
+        }
+
+        $html = wp_remote_retrieve_body($response);
+        if (empty($html)) {
+            return null;
+        }
+
+        return $this->extract_article_text($html);
+    }
+
+    /**
+     * Extract article text from HTML using DOMDocument
+     */
+    private function extract_article_text($html) {
+        libxml_use_internal_errors(true);
+
+        $doc = new \DOMDocument();
+        $doc->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NOERROR | LIBXML_NOWARNING);
+        libxml_clear_errors();
+
+        $xpath = new \DOMXPath($doc);
+
+        // Remove script, style, nav, header, footer, aside elements
+        $remove_tags = ['script', 'style', 'nav', 'header', 'footer', 'aside', 'iframe', 'form'];
+        foreach ($remove_tags as $tag) {
+            $nodes = $xpath->query('//' . $tag);
+            foreach ($nodes as $node) {
+                $node->parentNode->removeChild($node);
+            }
+        }
+
+        // Try selectors in order of specificity
+        $selectors = [
+            // Common article body class patterns
+            "//*[contains(@class, 'article-body')]",
+            "//*[contains(@class, 'article-content')]",
+            "//*[contains(@class, 'article__body')]",
+            "//*[contains(@class, 'article__content')]",
+            "//*[contains(@class, 'post-content')]",
+            "//*[contains(@class, 'entry-content')]",
+            "//*[contains(@class, 'story-body')]",
+            "//*[contains(@class, 'content-body')]",
+            "//*[contains(@itemprop, 'articleBody')]",
+            // Generic article tag
+            "//article",
+            // Main content area
+            "//main",
+        ];
+
+        $best_text = '';
+        $best_length = 0;
+
+        foreach ($selectors as $selector) {
+            $nodes = $xpath->query($selector);
+            if ($nodes->length === 0) {
+                continue;
+            }
+
+            foreach ($nodes as $node) {
+                $paragraphs = $xpath->query('.//p', $node);
+                $text_parts = [];
+
+                foreach ($paragraphs as $p) {
+                    $p_text = trim($p->textContent);
+                    // Skip very short paragraphs (likely captions, labels)
+                    if (mb_strlen($p_text) > 30) {
+                        $text_parts[] = $p_text;
+                    }
+                }
+
+                $text = implode("\n\n", $text_parts);
+
+                // Keep the longest extraction (most likely the actual article)
+                if (mb_strlen($text) > $best_length) {
+                    $best_text = $text;
+                    $best_length = mb_strlen($text);
+                }
+            }
+        }
+
+        // Only return if we got meaningful content (at least 200 chars)
+        if ($best_length < 200) {
+            return null;
+        }
+
+        // Limit to ~8000 chars to stay within AI processing limits
+        if (mb_strlen($best_text) > 8000) {
+            $best_text = mb_substr($best_text, 0, 8000);
+            // Cut at last complete sentence
+            $last_period = mb_strrpos($best_text, '.');
+            if ($last_period > 6000) {
+                $best_text = mb_substr($best_text, 0, $last_period + 1);
+            }
+        }
+
+        return $best_text;
+    }
+
+    /**
      * Store fetched items in news queue
      */
     private function store_items($items, $source) {
@@ -261,11 +385,21 @@ class News_Fetcher {
                 continue;
             }
 
+            // Try to scrape full article if RSS content is short
+            $content = $item['content'] ?: $item['description'];
+            if (mb_strlen($content) < 500) {
+                $full_content = $this->scrape_full_content($item['url']);
+                if ($full_content) {
+                    $content = $full_content;
+                    error_log('TeInformez Scraper: Got full article for: ' . $item['title'] . ' (' . mb_strlen($full_content) . ' chars)');
+                }
+            }
+
             // Insert new item
             $result = $wpdb->insert($table, [
                 'original_url' => $item['url'],
                 'original_title' => $item['title'],
-                'original_content' => $item['content'] ?: $item['description'],
+                'original_content' => $content,
                 'original_language' => $item['source_language'],
                 'source_name' => $item['source_name'],
                 'source_type' => $source['type'],
