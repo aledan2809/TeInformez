@@ -390,7 +390,7 @@ class Delivery_Handler {
 
             if (!empty($sidebar_items)) {
                 // 2-column layout: featured left (65%) + sidebar right (35%)
-                // Build sidebar HTML
+                // Using <table> for reliable email client rendering
                 $sidebar_html = '';
                 foreach ($sidebar_items as $side) {
                     $s_title = esc_html($side->processed_title ?? 'Fără titlu');
@@ -400,19 +400,22 @@ class Delivery_Handler {
 
                 $news_html .= '
                 <div style="margin-bottom:16px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;overflow:hidden;">
-                    <!--[if mso]><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td width="65%" valign="top"><![endif]-->
-                    <div style="display:inline-block;vertical-align:top;width:63%;min-width:280px;padding:16px;">
-                        <h2 style="margin:0 0 6px;font-size:15px;line-height:1.3;color:#111827;">
-                            <a href="' . $f_link . '" style="color:#2563eb;text-decoration:none;">' . $f_title . '</a>
-                        </h2>
-                        <p style="margin:0 0 6px;font-size:13px;color:#4b5563;line-height:1.5;">' . $f_summary . '</p>
-                        <p style="margin:0;font-size:11px;color:#9ca3af;">Sursă: ' . $f_source . '</p>
-                    </div>
-                    <!--[if mso]></td><td width="35%" valign="top"><![endif]-->
-                    <div style="display:inline-block;vertical-align:top;width:33%;min-width:140px;padding:16px 16px 16px 0;border-left:1px solid #f3f4f6;">
-                        <p style="margin:0 0 8px;font-size:11px;font-weight:bold;color:#6b7280;text-transform:uppercase;">Mai multe:</p>
-                        <ul style="margin:0;padding:0 0 0 14px;list-style:disc;">' . $sidebar_html . '</ul>
-                    </div>
+                    <!--[if mso]><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td valign="top"><![endif]-->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                        <tr>
+                            <td width="65%" valign="top" style="padding:16px;">
+                                <h2 style="margin:0 0 6px;font-size:15px;line-height:1.3;color:#111827;">
+                                    <a href="' . $f_link . '" style="color:#2563eb;text-decoration:none;">' . $f_title . '</a>
+                                </h2>
+                                <p style="margin:0 0 6px;font-size:13px;color:#4b5563;line-height:1.5;">' . $f_summary . '</p>
+                                <p style="margin:0;font-size:11px;color:#9ca3af;">Sursă: ' . $f_source . '</p>
+                            </td>
+                            <td width="35%" valign="top" style="padding:16px 16px 16px 0;border-left:1px solid #f3f4f6;">
+                                <p style="margin:0 0 8px;font-size:11px;font-weight:bold;color:#6b7280;text-transform:uppercase;">Mai multe:</p>
+                                <ul style="margin:0;padding:0 0 0 14px;list-style:disc;">' . $sidebar_html . '</ul>
+                            </td>
+                        </tr>
+                    </table>
                     <!--[if mso]></td></tr></table><![endif]-->
                 </div>';
             } else {
