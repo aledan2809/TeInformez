@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Calendar, ExternalLink } from 'lucide-react';
-import { CATEGORY_COLORS } from '@/lib/categories';
+import { CATEGORY_COLORS, getCategoryLabel } from '@/lib/categories';
 
 interface ArticleCardProps {
   id: number;
@@ -53,7 +53,7 @@ export default function ArticleCard({
       <div className="p-4">
         {primaryCat && (
           <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium mb-2 ${colorClass}`}>
-            {primaryCat}
+            {getCategoryLabel(primaryCat)}
           </span>
         )}
         <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug">
