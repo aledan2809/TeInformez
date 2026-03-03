@@ -1,5 +1,27 @@
 # Changelog — TeInformez
 
+## [2026-03-03] — Phase E: Social Media Auto-Posting + Content Fixes
+
+### Backend (PHP Plugin)
+- New `Social_Poster` class — auto-posts to Facebook Page (Graph API v18.0) and Twitter/X (API v2 + OAuth 1.0a)
+- Hooks into `teinformez_news_published` action — posts automatically when news is published
+- Retry logic via cron for failed social posts (up to 3 attempts in 24h)
+- Admin settings page: Social Media section with Facebook/Twitter API key inputs + enable toggle
+- Social config constants added to Config class
+
+### Frontend (Next.js)
+- Removed all "AI" mentions from public-facing pages (user-visible text, meta descriptions, keywords)
+- Changed "Rezumat AI" to "Rezumat" on news list and detail pages
+- Fixed contact emails: `support@4pro.io` → `contact@teinformez.eu` (all pages)
+- Fixed GDPR/DPO emails: `gdpr@4pro.io` → `gdpr@teinformez.eu`
+- Updated JSON-LD schema email
+
+### Deployment
+- Backend + frontend deployed to VPS2
+- PHP syntax: all files clean
+- Build: 21 routes, all passing
+- **Phase E-1 (platform-level posting): COMPLETE. Ready for API keys.**
+
 ## [2026-03-03] — Phase D: Analytics, SEO & Full Deployment
 
 ### Backend (PHP Plugin)

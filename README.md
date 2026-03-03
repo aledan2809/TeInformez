@@ -1,10 +1,10 @@
-# TeInformez.eu — AI-Powered News Platform
+# TeInformez.eu — Personalized News Platform
 
-**Status**: Phase A+B+C+D Complete — Platform Live
-**Version**: 1.2.0
+**Status**: Phase A+B+C+D+E Complete — Platform Live
+**Version**: 1.3.0
 **Last Updated**: 3 Martie 2026
 
-Platforma de stiri personalizate bazata pe AI, cu livrare multi-canal.
+Platforma de stiri personalizate cu livrare multi-canal.
 
 ---
 
@@ -32,6 +32,7 @@ PM2 standalone                 Nginx + MariaDB 10.11
 | B — News Aggregation | COMPLETE | RSS feeds, AI processing, admin review, news pages |
 | C — Delivery System | COMPLETE | Email digests, scheduling, timezone-aware delivery |
 | D — Analytics & Launch | COMPLETE | View tracking, admin analytics, SEO, deployed |
+| E — Social Media | COMPLETE | Auto-post to Facebook + Twitter on publish |
 
 ---
 
@@ -87,6 +88,7 @@ backend/wp-content/plugins/teinformez-core/
   includes/class-news-publisher.php  — Approval workflow
   includes/class-delivery-handler.php — Email digest scheduler
   includes/class-email-sender.php    — Brevo API client
+  includes/class-social-poster.php   — Facebook + Twitter auto-posting
   admin/class-admin.php              — WP admin pages
 ```
 
@@ -112,4 +114,5 @@ frontend/src/
 - [x] Phase B — News Aggregation + AI Processing
 - [x] Phase C — Email Delivery System
 - [x] Phase D — Analytics, Performance, Launch
-- [ ] Phase E — Social media posting (future)
+- [x] Phase E — Social media posting (platform-level)
+- [ ] Phase E-2 — User-level OAuth social posting (future)
