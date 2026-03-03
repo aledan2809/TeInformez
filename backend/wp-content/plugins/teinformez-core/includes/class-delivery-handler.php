@@ -171,21 +171,32 @@ class Delivery_Handler {
             return false;
         }
 
-        // Get matching news for this user
-        $news = $this->get_news_for_user($user_id, $frequency);
+        // Get matching news grouped by category
+        $by_category = $this->get_news_for_user($user_id, $frequency);
 
-        if (empty($news)) {
-            // No news to send — skip silently
+        if (empty($by_category)) {
+            return false;
+        }
+
+        // Flatten for counting, logging, and plain-text fallback
+        $all_news = [];
+        foreach ($by_category as $items) {
+            foreach ($items as $item) {
+                $all_news[] = $item;
+            }
+        }
+
+        if (empty($all_news)) {
             return false;
         }
 
         // Build and send email
-        $subject = $this->build_subject($frequency, count($news));
-        $html = $this->build_digest_html($user, $news, $frequency);
-        $text = $this->build_digest_text($user, $news);
+        $subject = $this->build_subject($frequency, count($all_news));
+        $html = $this->build_digest_html($user, $by_category, $frequency);
+        $text = $this->build_digest_text($user, $all_news);
 
         // Log as pending
-        $log_ids = $this->log_delivery($user_id, $news, 'pending');
+        $log_ids = $this->log_delivery($user_id, $all_news, 'pending');
 
         $result = $this->email_sender->send($user->user_email, $subject, $html, $text);
 
@@ -287,51 +298,22 @@ class Delivery_Handler {
             }
         }
 
-        // Diversify by category — round-robin so each category gets representation
-        $max_items = ($frequency === 'realtime') ? 5 : 10;
+        // Group matched articles by primary category
         $by_category = [];
-        $uncategorized = [];
 
         foreach ($matched as $item) {
             $item_cats = json_decode($item->categories, true) ?? [];
-            if (empty($item_cats)) {
-                $uncategorized[] = $item;
-            } else {
-                // File under the first category
-                $cat = $item_cats[0];
-                if (!isset($by_category[$cat])) {
-                    $by_category[$cat] = [];
-                }
+            $cat = $item_cats[0] ?? 'other';
+            if (!isset($by_category[$cat])) {
+                $by_category[$cat] = [];
+            }
+            // Limit to 5 per category (1 featured + 4 sidebar)
+            if (count($by_category[$cat]) < 5) {
                 $by_category[$cat][] = $item;
             }
         }
 
-        // Round-robin pick: 1 from each category, then repeat
-        $diverse = [];
-        $round = 0;
-        while (count($diverse) < $max_items) {
-            $added_this_round = false;
-            foreach ($by_category as &$cat_items) {
-                if (isset($cat_items[$round])) {
-                    $diverse[] = $cat_items[$round];
-                    $added_this_round = true;
-                    if (count($diverse) >= $max_items) break;
-                }
-            }
-            unset($cat_items);
-
-            // Fill remaining slots with uncategorized
-            if (!$added_this_round) {
-                foreach ($uncategorized as $item) {
-                    if (count($diverse) >= $max_items) break;
-                    $diverse[] = $item;
-                }
-                break;
-            }
-            $round++;
-        }
-
-        return $diverse;
+        return $by_category;
     }
 
     /**
@@ -366,8 +348,9 @@ class Delivery_Handler {
 
     /**
      * Build HTML email digest.
+     * $by_category = ['politics' => [$item1, $item2, ...], 'tech' => [...], ...]
      */
-    private function build_digest_html($user, $news, $frequency) {
+    private function build_digest_html($user, $by_category, $frequency) {
         $frontend_url = Config::get('frontend_url', 'https://teinformez.eu');
         $user_name = $user->display_name ?: $user->user_email;
         $greeting = $this->get_greeting($frequency);
@@ -378,41 +361,71 @@ class Delivery_Handler {
             $cat_labels[$slug] = $cat['icon'] . ' ' . $cat['label'];
         }
 
+        // Count total articles
+        $total_count = 0;
+        foreach ($by_category as $items) {
+            $total_count += count($items);
+        }
+
         $news_html = '';
-        $last_category = '';
 
-        foreach ($news as $item) {
-            $title = esc_html($item->processed_title ?? 'Fără titlu');
-            $summary = esc_html($item->processed_summary ?? '');
-            $source = esc_html($item->source_name ?? '');
-            $link = esc_url($frontend_url . '/news/' . $item->id);
-            $image = '';
+        foreach ($by_category as $cat_slug => $items) {
+            if (empty($items)) continue;
 
-            if (!empty($item->ai_generated_image_url)) {
-                $image = '<img src="' . esc_url($item->ai_generated_image_url) . '" alt="" style="width:100%;max-width:560px;height:auto;border-radius:8px;margin-bottom:12px;" />';
-            }
+            $cat_label = $cat_labels[$cat_slug] ?? ucfirst($cat_slug);
+            $featured = $items[0];
+            $sidebar_items = array_slice($items, 1);
 
-            // Show category header when category changes
-            $item_cats = json_decode($item->categories, true) ?? [];
-            $primary_cat = $item_cats[0] ?? '';
-            if ($primary_cat && $primary_cat !== $last_category) {
-                $cat_label = $cat_labels[$primary_cat] ?? ucfirst($primary_cat);
-                $news_html .= '
-                <div style="margin:20px 0 12px;padding:8px 16px;background:#eef2ff;border-radius:6px;">
-                    <span style="font-size:14px;font-weight:bold;color:#4338ca;">' . $cat_label . '</span>
-                </div>';
-                $last_category = $primary_cat;
-            }
-
+            // Category header
             $news_html .= '
-            <div style="margin-bottom:16px;padding:16px 20px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;">
-                ' . $image . '
-                <h2 style="margin:0 0 6px;font-size:16px;color:#111827;">
-                    <a href="' . $link . '" style="color:#2563eb;text-decoration:none;">' . $title . '</a>
-                </h2>
-                <p style="margin:0 0 6px;font-size:13px;color:#4b5563;line-height:1.5;">' . $summary . '</p>
-                <p style="margin:0;font-size:11px;color:#9ca3af;">Sursă: ' . $source . '</p>
+            <div style="margin:20px 0 12px;padding:8px 16px;background:#eef2ff;border-radius:6px;">
+                <span style="font-size:14px;font-weight:bold;color:#4338ca;">' . $cat_label . '</span>
             </div>';
+
+            // Featured article data
+            $f_title = esc_html($featured->processed_title ?? 'Fără titlu');
+            $f_summary = esc_html($featured->processed_summary ?? '');
+            $f_source = esc_html($featured->source_name ?? '');
+            $f_link = esc_url($frontend_url . '/news/' . $featured->id);
+
+            if (!empty($sidebar_items)) {
+                // 2-column layout: featured left (65%) + sidebar right (35%)
+                // Build sidebar HTML
+                $sidebar_html = '';
+                foreach ($sidebar_items as $side) {
+                    $s_title = esc_html($side->processed_title ?? 'Fără titlu');
+                    $s_link = esc_url($frontend_url . '/news/' . $side->id);
+                    $sidebar_html .= '<li style="margin-bottom:8px;"><a href="' . $s_link . '" style="color:#2563eb;text-decoration:none;font-size:12px;line-height:1.4;">' . $s_title . '</a></li>';
+                }
+
+                $news_html .= '
+                <div style="margin-bottom:16px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;overflow:hidden;">
+                    <!--[if mso]><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td width="65%" valign="top"><![endif]-->
+                    <div style="display:inline-block;vertical-align:top;width:63%;min-width:280px;padding:16px;">
+                        <h2 style="margin:0 0 6px;font-size:15px;line-height:1.3;color:#111827;">
+                            <a href="' . $f_link . '" style="color:#2563eb;text-decoration:none;">' . $f_title . '</a>
+                        </h2>
+                        <p style="margin:0 0 6px;font-size:13px;color:#4b5563;line-height:1.5;">' . $f_summary . '</p>
+                        <p style="margin:0;font-size:11px;color:#9ca3af;">Sursă: ' . $f_source . '</p>
+                    </div>
+                    <!--[if mso]></td><td width="35%" valign="top"><![endif]-->
+                    <div style="display:inline-block;vertical-align:top;width:33%;min-width:140px;padding:16px 16px 16px 0;border-left:1px solid #f3f4f6;">
+                        <p style="margin:0 0 8px;font-size:11px;font-weight:bold;color:#6b7280;text-transform:uppercase;">Mai multe:</p>
+                        <ul style="margin:0;padding:0 0 0 14px;list-style:disc;">' . $sidebar_html . '</ul>
+                    </div>
+                    <!--[if mso]></td></tr></table><![endif]-->
+                </div>';
+            } else {
+                // Single article — full width
+                $news_html .= '
+                <div style="margin-bottom:16px;padding:16px 20px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;">
+                    <h2 style="margin:0 0 6px;font-size:15px;line-height:1.3;color:#111827;">
+                        <a href="' . $f_link . '" style="color:#2563eb;text-decoration:none;">' . $f_title . '</a>
+                    </h2>
+                    <p style="margin:0 0 6px;font-size:13px;color:#4b5563;line-height:1.5;">' . $f_summary . '</p>
+                    <p style="margin:0;font-size:11px;color:#9ca3af;">Sursă: ' . $f_source . '</p>
+                </div>';
+            }
         }
 
         $unsubscribe_link = esc_url($frontend_url . '/dashboard/settings');
@@ -435,7 +448,7 @@ class Delivery_Handler {
         <!-- Greeting -->
         <div style="background:#ffffff;padding:24px;border-bottom:1px solid #e5e7eb;">
             <p style="margin:0;font-size:16px;color:#374151;">' . $greeting . ', <strong>' . esc_html($user_name) . '</strong>!</p>
-            <p style="margin:8px 0 0;font-size:14px;color:#6b7280;">Iată ' . count($news) . ' ' . (count($news) === 1 ? 'articol' : 'articole') . ' selectate pentru tine:</p>
+            <p style="margin:8px 0 0;font-size:14px;color:#6b7280;">Iată ' . $total_count . ' ' . ($total_count === 1 ? 'articol' : 'articole') . ' selectate pentru tine:</p>
         </div>
 
         <!-- News items -->
