@@ -389,34 +389,35 @@ class Delivery_Handler {
             $f_link = esc_url($frontend_url . '/news/' . $featured->id);
 
             if (!empty($sidebar_items)) {
-                // 2-column layout: featured left (65%) + sidebar right (35%)
+                // 2-column layout: featured left (60%) + sidebar right (40%)
                 // Using <table> for reliable email client rendering
                 $sidebar_html = '';
                 foreach ($sidebar_items as $side) {
                     $s_title = esc_html($side->processed_title ?? 'Fără titlu');
+                    // Truncate to ~80 chars for max 2 lines in sidebar
+                    if (mb_strlen($s_title) > 80) {
+                        $s_title = mb_substr($s_title, 0, 77) . '...';
+                    }
                     $s_link = esc_url($frontend_url . '/news/' . $side->id);
-                    $sidebar_html .= '<li style="margin-bottom:8px;"><a href="' . $s_link . '" style="color:#2563eb;text-decoration:none;font-size:12px;line-height:1.4;">' . $s_title . '</a></li>';
+                    $sidebar_html .= '<li style="margin-bottom:6px;"><a href="' . $s_link . '" style="color:#2563eb;text-decoration:none;font-size:11px;line-height:1.3;display:block;max-height:2.6em;overflow:hidden;">' . $s_title . '</a></li>';
                 }
 
                 $news_html .= '
                 <div style="margin-bottom:16px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;overflow:hidden;">
-                    <!--[if mso]><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td valign="top"><![endif]-->
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
                         <tr>
-                            <td width="65%" valign="top" style="padding:16px;">
+                            <td width="60%" valign="top" style="padding:16px;">
                                 <h2 style="margin:0 0 6px;font-size:15px;line-height:1.3;color:#111827;">
                                     <a href="' . $f_link . '" style="color:#2563eb;text-decoration:none;">' . $f_title . '</a>
                                 </h2>
-                                <p style="margin:0 0 6px;font-size:13px;color:#4b5563;line-height:1.5;">' . $f_summary . '</p>
-                                <p style="margin:0;font-size:11px;color:#9ca3af;">Sursă: ' . $f_source . '</p>
+                                <p style="margin:0;font-size:13px;color:#4b5563;line-height:1.5;">' . $f_summary . '</p>
                             </td>
-                            <td width="35%" valign="top" style="padding:16px 16px 16px 0;border-left:1px solid #f3f4f6;">
-                                <p style="margin:0 0 8px;font-size:11px;font-weight:bold;color:#6b7280;text-transform:uppercase;">Mai multe:</p>
-                                <ul style="margin:0;padding:0 0 0 14px;list-style:disc;">' . $sidebar_html . '</ul>
+                            <td width="40%" valign="top" style="padding:14px 16px;border-left:1px solid #e5e7eb;background:#f9fafb;">
+                                <p style="margin:0 0 8px;font-size:10px;font-weight:bold;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Mai multe din ' . esc_html(strip_tags($cat_label)) . '</p>
+                                <ul style="margin:0;padding:0 0 0 12px;list-style:disc;color:#9ca3af;">' . $sidebar_html . '</ul>
                             </td>
                         </tr>
                     </table>
-                    <!--[if mso]></td></tr></table><![endif]-->
                 </div>';
             } else {
                 // Single article — full width
@@ -425,8 +426,7 @@ class Delivery_Handler {
                     <h2 style="margin:0 0 6px;font-size:15px;line-height:1.3;color:#111827;">
                         <a href="' . $f_link . '" style="color:#2563eb;text-decoration:none;">' . $f_title . '</a>
                     </h2>
-                    <p style="margin:0 0 6px;font-size:13px;color:#4b5563;line-height:1.5;">' . $f_summary . '</p>
-                    <p style="margin:0;font-size:11px;color:#9ca3af;">Sursă: ' . $f_source . '</p>
+                    <p style="margin:0;font-size:13px;color:#4b5563;line-height:1.5;">' . $f_summary . '</p>
                 </div>';
             }
         }
