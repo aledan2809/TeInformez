@@ -374,9 +374,9 @@ class Delivery_Handler {
 
             $cat_label = $cat_labels[$cat_slug] ?? ucfirst($cat_slug);
 
-            // Split: first 3 articles go left, rest go to sidebar
-            $left_items = array_slice($items, 0, 3);
-            $sidebar_items = array_slice($items, 3);
+            // Split: 1 featured article left, rest go to sidebar right
+            $featured = $items[0];
+            $sidebar_items = array_slice($items, 1);
 
             // Category header
             $news_html .= '
@@ -384,53 +384,42 @@ class Delivery_Handler {
                 <span style="font-size:14px;font-weight:bold;color:#4338ca;">' . $cat_label . '</span>
             </div>';
 
-            // Build left column HTML (up to 3 articles with title + summary)
-            $left_html = '';
-            foreach ($left_items as $i => $left_item) {
-                $l_title = esc_html($left_item->processed_title ?? 'Fără titlu');
-                $l_summary = esc_html($left_item->processed_summary ?? '');
-                // Truncate summary to ~120 chars
-                if (mb_strlen($l_summary) > 120) {
-                    $l_summary = mb_substr($l_summary, 0, 117) . '...';
-                }
-                $l_link = esc_url($frontend_url . '/news/' . $left_item->id);
-                $border_top = $i > 0 ? 'border-top:1px solid #f3f4f6;padding-top:12px;' : '';
-                $margin_bottom = $i < count($left_items) - 1 ? 'margin-bottom:12px;' : '';
-                $left_html .= '
-                    <div style="' . $border_top . $margin_bottom . '">
-                        <h2 style="margin:0 0 4px;font-size:14px;line-height:1.3;color:#111827;">
-                            <a href="' . $l_link . '" style="color:#2563eb;text-decoration:none;">' . $l_title . '</a>
-                        </h2>
-                        <p style="margin:0;font-size:12px;color:#6b7280;line-height:1.4;">' . $l_summary . '</p>
-                    </div>';
+            // Featured article (left column)
+            $f_title = esc_html($featured->processed_title ?? 'Fără titlu');
+            $f_summary = esc_html($featured->processed_summary ?? '');
+            if (mb_strlen($f_summary) > 150) {
+                $f_summary = mb_substr($f_summary, 0, 147) . '...';
             }
+            $f_link = esc_url($frontend_url . '/news/' . $featured->id);
 
-            // Build sidebar HTML from remaining articles (beyond first 3)
+            // Build sidebar HTML (all articles after the first)
             $sidebar_html = '';
-            if (!empty($sidebar_items)) {
-                foreach ($sidebar_items as $side) {
-                    $s_title = esc_html($side->processed_title ?? 'Fără titlu');
-                    if (mb_strlen($s_title) > 70) {
-                        $s_title = mb_substr($s_title, 0, 67) . '...';
-                    }
-                    $s_link = esc_url($frontend_url . '/news/' . $side->id);
-                    $sidebar_html .= '<li style="margin-bottom:6px;"><a href="' . $s_link . '" style="color:#2563eb;text-decoration:none;font-size:11px;line-height:1.3;display:block;max-height:2.6em;overflow:hidden;">' . $s_title . '</a></li>';
+            foreach ($sidebar_items as $side) {
+                $s_title = esc_html($side->processed_title ?? 'Fără titlu');
+                if (mb_strlen($s_title) > 70) {
+                    $s_title = mb_substr($s_title, 0, 67) . '...';
                 }
+                $s_link = esc_url($frontend_url . '/news/' . $side->id);
+                $sidebar_html .= '<li style="margin-bottom:6px;"><a href="' . $s_link . '" style="color:#2563eb;text-decoration:none;font-size:11px;line-height:1.3;display:block;max-height:2.6em;overflow:hidden;">' . $s_title . '</a></li>';
             }
 
-            // Always use same card wrapper — with or without sidebar
+            // Always 2-column card: featured left (60%) + sidebar right (40%)
             $news_html .= '
             <div style="margin-bottom:16px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;overflow:hidden;">
                 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
                     <tr>
-                        <td' . (!empty($sidebar_html) ? ' width="60%"' : '') . ' valign="top" style="padding:16px;">
-                            ' . $left_html . '
-                        </td>' .
-                        (!empty($sidebar_html) ? '
-                        <td width="40%" valign="top" style="padding:14px 16px;border-left:1px solid #e5e7eb;background:#f9fafb;">
+                        <td width="60%" valign="top" style="padding:16px;">
+                            <h2 style="margin:0 0 6px;font-size:14px;line-height:1.3;color:#111827;">
+                                <a href="' . $f_link . '" style="color:#2563eb;text-decoration:none;">' . $f_title . '</a>
+                            </h2>
+                            <p style="margin:0;font-size:12px;color:#6b7280;line-height:1.4;">' . $f_summary . '</p>
+                        </td>
+                        <td width="40%" valign="top" style="padding:14px 16px;border-left:1px solid #e5e7eb;background:#f9fafb;">' .
+                            (!empty($sidebar_html) ? '
                             <p style="margin:0 0 8px;font-size:10px;font-weight:bold;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Mai multe:</p>
-                            <ul style="margin:0;padding:0 0 0 12px;list-style:disc;color:#9ca3af;">' . $sidebar_html . '</ul>
-                        </td>' : '') . '
+                            <ul style="margin:0;padding:0 0 0 12px;list-style:disc;color:#9ca3af;">' . $sidebar_html . '</ul>'
+                            : '') . '
+                        </td>
                     </tr>
                 </table>
             </div>';
