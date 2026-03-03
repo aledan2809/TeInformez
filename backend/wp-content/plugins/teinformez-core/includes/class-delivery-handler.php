@@ -405,9 +405,9 @@ class Delivery_Handler {
                     </div>';
             }
 
+            // Build sidebar HTML from remaining articles (beyond first 3)
+            $sidebar_html = '';
             if (!empty($sidebar_items)) {
-                // 2-column layout: articles left (60%) + sidebar titles right (40%)
-                $sidebar_html = '';
                 foreach ($sidebar_items as $side) {
                     $s_title = esc_html($side->processed_title ?? 'Fără titlu');
                     if (mb_strlen($s_title) > 70) {
@@ -416,28 +416,24 @@ class Delivery_Handler {
                     $s_link = esc_url($frontend_url . '/news/' . $side->id);
                     $sidebar_html .= '<li style="margin-bottom:6px;"><a href="' . $s_link . '" style="color:#2563eb;text-decoration:none;font-size:11px;line-height:1.3;display:block;max-height:2.6em;overflow:hidden;">' . $s_title . '</a></li>';
                 }
-
-                $news_html .= '
-                <div style="margin-bottom:16px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;overflow:hidden;">
-                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-                        <tr>
-                            <td width="60%" valign="top" style="padding:16px;">
-                                ' . $left_html . '
-                            </td>
-                            <td width="40%" valign="top" style="padding:14px 16px;border-left:1px solid #e5e7eb;background:#f9fafb;">
-                                <p style="margin:0 0 8px;font-size:10px;font-weight:bold;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Mai multe:</p>
-                                <ul style="margin:0;padding:0 0 0 12px;list-style:disc;color:#9ca3af;">' . $sidebar_html . '</ul>
-                            </td>
-                        </tr>
-                    </table>
-                </div>';
-            } else {
-                // All articles fit in left column — full width, no sidebar needed
-                $news_html .= '
-                <div style="margin-bottom:16px;padding:16px 20px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;">
-                    ' . $left_html . '
-                </div>';
             }
+
+            // Always use same card wrapper — with or without sidebar
+            $news_html .= '
+            <div style="margin-bottom:16px;background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;overflow:hidden;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                    <tr>
+                        <td' . (!empty($sidebar_html) ? ' width="60%"' : '') . ' valign="top" style="padding:16px;">
+                            ' . $left_html . '
+                        </td>' .
+                        (!empty($sidebar_html) ? '
+                        <td width="40%" valign="top" style="padding:14px 16px;border-left:1px solid #e5e7eb;background:#f9fafb;">
+                            <p style="margin:0 0 8px;font-size:10px;font-weight:bold;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Mai multe:</p>
+                            <ul style="margin:0;padding:0 0 0 12px;list-style:disc;color:#9ca3af;">' . $sidebar_html . '</ul>
+                        </td>' : '') . '
+                    </tr>
+                </table>
+            </div>';
         }
 
         $unsubscribe_link = esc_url($frontend_url . '/dashboard/settings');
