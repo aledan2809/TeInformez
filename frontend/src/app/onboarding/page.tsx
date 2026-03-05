@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
+import type { ApiErrorShape, Categories } from '@/types';
 import CategorySelector from '@/components/onboarding/CategorySelector';
 import TopicInput from '@/components/onboarding/TopicInput';
 import ScheduleSelector from '@/components/onboarding/ScheduleSelector';
@@ -37,7 +38,7 @@ export default function OnboardingPage() {
   const [error, setError] = useState('');
 
   // Categories state
-  const [categories, setCategories] = useState<any>({});
+  const [categories, setCategories] = useState<Categories>({});
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   // Topics state
@@ -153,8 +154,9 @@ export default function OnboardingPage() {
 
       // 3. Redirect to dashboard
       router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'A apărut o eroare. Încearcă din nou.');
+    } catch (err: unknown) {
+      const typedError = err as ApiErrorShape;
+      setError(typedError.response?.data?.message || typedError.message || 'A apărut o eroare. Încearcă din nou.');
     } finally {
       setIsLoading(false);
     }
@@ -168,10 +170,10 @@ export default function OnboardingPage() {
     );
   }
 
-  const categoryLabels = Object.entries(categories).reduce((acc, [slug, cat]: [string, any]) => {
+  const categoryLabels = Object.entries(categories).reduce<Record<string, string>>((acc, [slug, cat]) => {
     acc[slug] = cat.label;
     return acc;
-  }, {} as Record<string, string>);
+  }, {});
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">

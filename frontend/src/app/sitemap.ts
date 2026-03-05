@@ -3,15 +3,26 @@ import type { MetadataRoute } from 'next';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://teinformez.eu';
 const WP_API_URL = process.env.NEXT_PUBLIC_WP_API_URL || 'http://localhost/wp-json';
 
+interface PublishedNewsItem {
+  id: number;
+  published_at: string;
+}
+
+interface PublishedNewsApiResponse {
+  data?: {
+    news?: PublishedNewsItem[];
+  };
+}
+
 async function getPublishedNewsIds(): Promise<{ id: number; published_at: string }[]> {
   try {
     const res = await fetch(`${WP_API_URL}/teinformez/v1/news?per_page=50&page=1`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return [];
-    const json = await res.json();
+    const json = (await res.json()) as PublishedNewsApiResponse;
     const news = json.data?.news || [];
-    return news.map((item: any) => ({
+    return news.map((item) => ({
       id: item.id,
       published_at: item.published_at,
     }));

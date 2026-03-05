@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { Lock, Eye, EyeOff, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api';
+import type { ApiErrorShape } from '@/types';
 
 interface ResetPasswordForm {
   password: string;
@@ -48,8 +49,9 @@ function ResetPasswordContent() {
     try {
       await api.resetPassword(email, token, data.password);
       setIsSuccess(true);
-    } catch (err: any) {
-      const message = err.response?.data?.message || 'A apărut o eroare. Te rugăm să încerci din nou.';
+    } catch (err: unknown) {
+      const typedError = err as ApiErrorShape;
+      const message = typedError.response?.data?.message || typedError.message || 'A apărut o eroare. Te rugăm să încerci din nou.';
       setError(message);
     } finally {
       setIsLoading(false);

@@ -278,6 +278,33 @@ export interface JuridicQA {
   published_at: string;
 }
 
+export interface JuridicCategory {
+  slug: string;
+  label: string;
+}
+
+export interface JuridicListResponse {
+  items: JuridicQA[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+}
+
+export interface JuridicItemResponse {
+  item: JuridicQA;
+}
+
+export interface JuridicCategoriesResponse {
+  categories: JuridicCategory[];
+}
+
+export interface JuridicColumnsResponse {
+  columns: JuridicQA[];
+  total: number;
+  page: number;
+}
+
 export const JURIDIC_CATEGORIES = [
   { slug: 'dreptul-muncii', label: 'Dreptul muncii' },
   { slug: 'dreptul-familiei', label: 'Dreptul familiei' },

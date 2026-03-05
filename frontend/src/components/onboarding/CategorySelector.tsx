@@ -4,7 +4,6 @@ import { CheckCircle2, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Category {
-  slug: string;
   label: string;
   icon: string;
   subcategories: string[];

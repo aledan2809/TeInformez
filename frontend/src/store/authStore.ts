@@ -1,7 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User } from '@/types';
+import type { ApiErrorShape, User } from '@/types';
 import { api } from '@/lib/api';
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  const typedError = error as ApiErrorShape;
+  return typedError.response?.data?.message || typedError.message || fallback;
+};
 
 interface AuthState {
   user: User | null;
@@ -48,9 +53,9 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           });
-        } catch (error: any) {
+        } catch (error: unknown) {
           set({
-            error: error.response?.data?.message || 'Login failed',
+            error: getErrorMessage(error, 'Login failed'),
             isLoading: false,
           });
           throw error;
@@ -66,9 +71,9 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           });
-        } catch (error: any) {
+        } catch (error: unknown) {
           set({
-            error: error.response?.data?.message || 'Registration failed',
+            error: getErrorMessage(error, 'Registration failed'),
             isLoading: false,
           });
           throw error;
@@ -104,12 +109,12 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           });
-        } catch (error: any) {
+        } catch (error: unknown) {
           set({
             user: null,
             isAuthenticated: false,
             isLoading: false,
-            error: error.response?.data?.message || 'Failed to fetch user',
+            error: getErrorMessage(error, 'Failed to fetch user'),
           });
         }
       },
