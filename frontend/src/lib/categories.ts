@@ -8,6 +8,7 @@ export interface CategoryDef {
 
 export const CATEGORIES: CategoryDef[] = [
   { slug: '', label: 'Toate', emoji: '📰' },
+  { slug: 'juridic', label: 'Juridic cu Alina', emoji: '📋', subcategories: ['Dreptul muncii', 'Dreptul familiei', 'Drept comercial', 'Drept penal'] },
   { slug: 'actualitate', label: 'Actualitate', emoji: '📰', subcategories: ['Breaking', 'Social', 'Educație', 'Cultură', 'România'] },
   { slug: 'politics', label: 'Politică', emoji: '🏛️', subcategories: ['România', 'UE', 'SUA', 'Internațional'] },
   { slug: 'international', label: 'Internațional', emoji: '🌍', subcategories: ['Europa', 'SUA', 'Orientul Mijlociu', 'Asia', 'Africa'] },
@@ -22,7 +23,6 @@ export const CATEGORIES: CategoryDef[] = [
   { slug: 'auto', label: 'Auto', emoji: '🚗', subcategories: ['Mașini electrice', 'Clasice', 'Motorsport', 'Recenzii'] },
   { slug: 'lifestyle', label: 'Lifestyle', emoji: '✨', subcategories: ['Travel', 'Food', 'Fashion', 'Home', 'Parenting'] },
   { slug: 'opinii', label: 'Opinii', emoji: '💬', subcategories: ['Editoriale', 'Analize', 'Comentarii', 'Interviuri'] },
-  { slug: 'juridic', label: 'Juridic', emoji: '📋', subcategories: ['Dreptul muncii', 'Dreptul familiei', 'Drept comercial', 'Drept penal'] },
   // Legacy slugs used by the AI classifier (hidden from nav, used for label resolution only)
   { slug: 'news', label: 'Actualitate', emoji: '📰', hidden: true },
   { slug: 'world', label: 'Internațional', emoji: '🌍', hidden: true },

@@ -7,26 +7,16 @@ import { motion } from 'framer-motion';
 import {
   ArrowLeft, Calendar, ExternalLink, Tag, Loader2, Share2,
   Bookmark, BookmarkCheck, Copy, Check, Clock, Sparkles,
+  PlayCircle,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useBookmarkStore } from '@/store/bookmarkStore';
 import { useReadingStore } from '@/store/readingStore';
 import ReadingProgressBar from '@/components/ReadingProgressBar';
 import ScrollToTop from '@/components/ScrollToTop';
+import type { ApiErrorShape, PublicNewsItem } from '@/types';
 
-interface NewsItem {
-  id: number;
-  title: string;
-  summary: string;
-  content: string;
-  image: string | null;
-  source: string;
-  categories: string[];
-  tags: string[];
-  published_at: string;
-  original_url: string;
-  language: string;
-}
+type NewsItem = PublicNewsItem;
 
 function estimateReadingTime(content: string): number {
   const text = content.replace(/<[^>]*>/g, '');
@@ -68,15 +58,14 @@ export default function NewsDetailClient() {
             per_page: 4,
             page: 1,
           });
-          setRelatedArticles(
-            (related.news || []).filter((item: NewsItem) => item.id !== newsId).slice(0, 3)
-          );
+          setRelatedArticles((related.news || []).filter((item) => item.id !== newsId).slice(0, 3));
         } catch {
           // Not critical
         }
       }
-    } catch (err: any) {
-      setError(err.message || 'Eroare la încărcarea știrii');
+    } catch (err) {
+      const typedError = err as ApiErrorShape;
+      setError(typedError.message || 'Eroare la încărcarea știrii');
     } finally {
       setLoading(false);
     }
@@ -101,7 +90,7 @@ export default function NewsDetailClient() {
           text: news.summary,
           url: window.location.href
         });
-      } catch (err) {
+      } catch {
         // User cancelled
       }
     }
@@ -261,8 +250,24 @@ export default function NewsDetailClient() {
               <div>
                 Sursă: <span className="font-medium">{news.source}</span>
               </div>
+              {news.image_source && (
+                <div>
+                  Foto: <span className="font-medium">{news.image_source}</span>
+                </div>
+              )}
             </div>
             <div className="flex items-center space-x-2 flex-wrap gap-1">
+              {news.youtube_url && (
+                <a
+                  href={news.youtube_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary text-sm"
+                >
+                  <PlayCircle className="h-4 w-4 mr-1 text-red-600" />
+                  Video YouTube
+                </a>
+              )}
               {news.original_url && (
                 <a
                   href={news.original_url}
@@ -329,6 +334,20 @@ export default function NewsDetailClient() {
                 className="w-full h-auto"
               />
             </motion.div>
+          )}
+
+          {news.youtube_url && (
+            <div className="mb-6">
+              <a
+                href={news.youtube_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-red-600 hover:text-red-700 font-medium"
+              >
+                <PlayCircle className="h-5 w-5 mr-2" />
+                Vezi clipul YouTube asociat
+              </a>
+            </div>
           )}
 
           {/* Summary */}

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import NewsListClient from './NewsListClient';
 
 export const metadata: Metadata = {
@@ -15,5 +16,9 @@ export const metadata: Metadata = {
 };
 
 export default function NewsPage() {
-  return <NewsListClient />;
+  return (
+    <Suspense fallback={null}>
+      <NewsListClient />
+    </Suspense>
+  );
 }

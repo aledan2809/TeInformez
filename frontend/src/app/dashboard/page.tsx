@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Bell, Calendar, Mail, TrendingUp, Newspaper, ExternalLink, Flame, Bookmark, Sparkles, Clock } from 'lucide-react';
+import { Bell, Calendar, Mail, TrendingUp, Newspaper, ExternalLink, Flame, Bookmark, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import { useReadingStore } from '@/store/readingStore';
 import { useBookmarkStore } from '@/store/bookmarkStore';
 import { useAnimatedCounter } from '@/hooks/useAnimatedCounter';
-import type { SubscriptionStats } from '@/types';
+import type { PublicNewsItem, SubscriptionStats } from '@/types';
 
 const CATEGORY_LABELS: Record<string, string> = {
   tech: 'Tehnologie',
@@ -31,7 +31,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<SubscriptionStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [personalizedNews, setPersonalizedNews] = useState<any[]>([]);
+  const [personalizedNews, setPersonalizedNews] = useState<PublicNewsItem[]>([]);
   const [newsLoading, setNewsLoading] = useState(true);
 
   const { currentStreak, totalRead, recalculateStreak } = useReadingStore();
@@ -124,6 +124,9 @@ export default function DashboardPage() {
                   <span>{item.source}</span>
                   {item.original_url && <ExternalLink className="h-3 w-3" />}
                 </div>
+                {item.image_source && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Foto: {item.image_source}</p>
+                )}
               </div>
             ))}
           </div>

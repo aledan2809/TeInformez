@@ -66,6 +66,20 @@ class Juridic_API extends REST_API {
             'callback' => [$this, 'track_view'],
             'permission_callback' => '__return_true'
         ]);
+
+        // Admin: import juridic case from Facebook or external source
+        register_rest_route($this->namespace, '/juridic/import/facebook', [
+            'methods' => 'POST',
+            'callback' => [$this, 'import_facebook_case'],
+            'permission_callback' => [$this, 'is_authenticated']
+        ]);
+
+        // Admin: publish juridic entry on social platforms
+        register_rest_route($this->namespace, '/juridic/(?P<id>\d+)/publish-social', [
+            'methods' => 'POST',
+            'callback' => [$this, 'publish_social'],
+            'permission_callback' => [$this, 'is_authenticated']
+        ]);
     }
 
     /**
@@ -232,6 +246,13 @@ class Juridic_API extends REST_API {
             return $this->error('Eroare la salvare.', 'db_error', 500);
         }
 
+        if ($data['status'] === 'published') {
+            $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
+            if ($item) {
+                do_action('teinformez_juridic_published', $item);
+            }
+        }
+
         return $this->success(['id' => $id, 'message' => 'Întrebarea a fost salvată.'], '', 201);
     }
 
@@ -280,6 +301,13 @@ class Juridic_API extends REST_API {
             $wpdb->update($table, $data, ['id' => $id]);
         }
 
+        if (isset($data['status']) && $data['status'] === 'published' && $existing->status !== 'published') {
+            $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
+            if ($item) {
+                do_action('teinformez_juridic_published', $item);
+            }
+        }
+
         return $this->success(['message' => 'Întrebarea a fost actualizată.']);
     }
 
@@ -315,6 +343,90 @@ class Juridic_API extends REST_API {
     }
 
     /**
+     * Import juridic case from Facebook or external source
+     */
+    public function import_facebook_case($request) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'teinformez_juridic_qa';
+
+        $raw_question = wp_strip_all_tags((string) $request->get_param('question'));
+        $source_url = esc_url_raw((string) $request->get_param('source_url'));
+        $source_type = sanitize_text_field((string) ($request->get_param('source_type') ?: 'facebook_feed'));
+        $category = sanitize_text_field((string) ($request->get_param('category') ?: 'dreptul-muncii'));
+        $author_name = sanitize_text_field((string) ($request->get_param('author_name') ?: 'Alina'));
+
+        if ($raw_question === '') {
+            return $this->error('Întrebarea este obligatorie.', 'missing_question', 400);
+        }
+
+        $question_anonymized = $this->anonymize_question($raw_question);
+        $inserted = $wpdb->insert($table, [
+            'question' => $raw_question,
+            'question_anonymized' => $question_anonymized,
+            'answer' => '',
+            'answer_summary' => '',
+            'category' => $category,
+            'subcategory' => '',
+            'tags' => wp_json_encode(['imported', 'needs-review', $source_type]),
+            'is_weekly_column' => 0,
+            'column_title' => '',
+            'column_date' => null,
+            'author_name' => $author_name,
+            'fb_teaser' => '',
+            'fb_post_url' => $source_url ?: null,
+            'status' => 'draft',
+            'created_at' => current_time('mysql'),
+        ]);
+
+        if (!$inserted) {
+            return $this->error('Eroare la import.', 'db_error', 500);
+        }
+
+        $id = (int) $wpdb->insert_id;
+
+        return $this->success([
+            'id' => $id,
+            'question_anonymized' => $question_anonymized,
+            'status' => 'draft',
+        ], '', 201);
+    }
+
+    /**
+     * Publish Juridic post to social media
+     */
+    public function publish_social($request) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'teinformez_juridic_qa';
+        $id = (int) $request->get_param('id');
+        $platforms = $request->get_param('platforms');
+
+        $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
+        if (!$item) {
+            return $this->error('Întrebarea nu a fost găsită.', 'not_found', 404);
+        }
+
+        if ($item->status !== 'published') {
+            return $this->error('Doar întrebările publicate pot fi distribuite.', 'not_published', 400);
+        }
+
+        $validated_platforms = ['facebook', 'twitter', 'instagram'];
+        if (!is_array($platforms) || empty($platforms)) {
+            $platforms = ['facebook', 'twitter'];
+        } else {
+            $platforms = array_values(array_intersect($validated_platforms, array_map('sanitize_text_field', $platforms)));
+        }
+
+        $poster = new \TeInformez\Social_Poster();
+        $result = $poster->post_juridic_on_demand($item, $platforms);
+
+        return $this->success([
+            'id' => $id,
+            'platforms' => $platforms,
+            'result' => $result,
+        ]);
+    }
+
+    /**
      * Format Q&A item for response (NEVER expose original question)
      */
     private function format_item($item) {
@@ -333,5 +445,20 @@ class Juridic_API extends REST_API {
             'view_count' => (int) $item->view_count,
             'published_at' => $item->published_at,
         ];
+    }
+
+    private function anonymize_question(string $question): string {
+        $result = trim($question);
+
+        $result = preg_replace('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i', '[email redactat]', $result);
+        $result = preg_replace('/\+?\d[\d\s\-\(\)]{7,}\d/', '[telefon redactat]', $result);
+        $result = preg_replace('/https?:\/\/\S+/i', '[link redactat]', $result);
+        $result = preg_replace('/\b([A-Z][a-z]+)\s+([A-Z][a-z]+)\b/u', '[nume redactat]', $result);
+
+        if (mb_strlen($result) < 30) {
+            $result = 'Un cititor întreabă: ' . $result;
+        }
+
+        return $result;
     }
 }

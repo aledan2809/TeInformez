@@ -22,6 +22,7 @@ class News_Publisher {
             'status' => null,
             'category' => null,
             'source' => null,
+            'requires_media' => false,
             'search' => null,
             'page' => 1,
             'per_page' => 20,
@@ -43,6 +44,13 @@ class News_Publisher {
         if ($args['source']) {
             $where[] = 'source_name = %s';
             $values[] = $args['source'];
+        }
+
+        if (!empty($args['requires_media'])) {
+            $where[] = "(
+                (ai_generated_image_url IS NOT NULL AND ai_generated_image_url <> '')
+                OR (youtube_embed IS NOT NULL AND youtube_embed <> '')
+            )";
         }
 
         if ($args['search']) {

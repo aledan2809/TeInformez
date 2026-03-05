@@ -10,6 +10,8 @@ interface NewsItem {
   summary: string;
   content: string;
   image: string | null;
+  image_source: string | null;
+  youtube_url: string | null;
   source: string;
   categories: string[];
   tags: string[];

@@ -28,7 +28,7 @@ export default function ForgotPasswordPage() {
     try {
       await api.forgotPassword(data.email);
       setIsSuccess(true);
-    } catch (err: any) {
+    } catch {
       // Always show success to prevent email enumeration
       setIsSuccess(true);
     } finally {

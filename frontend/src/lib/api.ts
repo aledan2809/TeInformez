@@ -10,6 +10,16 @@ import type {
   Subscription,
   SubscriptionStats,
   Categories,
+  TelegramConfig,
+  TelegramGroup,
+  TelegramReadReport,
+  TelegramSendReport,
+  PublicNewsItem,
+  PublicNewsListResponse,
+  PublicHomepageResponse,
+  PersonalizedNewsResponse,
+  DeliveryItem,
+  DeliveryStats,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_WP_API_URL || 'http://localhost/wp-json';
@@ -231,14 +241,20 @@ class ApiClient {
   }
 
   // Delivery history
-  async getDeliveries(): Promise<{ deliveries: any[]; stats: { total_delivered: number; sent: number; failed: number; last_delivery: string | null } }> {
-    const response = await this.client.get<APIResponse<{ deliveries: any[]; stats: any }>>('/user/deliveries');
+  async getDeliveries(): Promise<{
+    deliveries: DeliveryItem[];
+    stats: DeliveryStats;
+  }> {
+    const response = await this.client.get<APIResponse<{
+      deliveries: DeliveryItem[];
+      stats: DeliveryStats;
+    }>>('/user/deliveries');
     return response.data.data!;
   }
 
   // GDPR endpoints
-  async exportUserData(): Promise<any> {
-    const response = await this.client.get<APIResponse<{ data: any }>>('/user/export');
+  async exportUserData(): Promise<Record<string, unknown>> {
+    const response = await this.client.get<APIResponse<{ data: Record<string, unknown> }>>('/user/export');
     return response.data.data!.data;
   }
 
@@ -254,19 +270,15 @@ class ApiClient {
   }
 
   // News endpoints
-  async getNews(params?: { page?: number; per_page?: number; category?: string; search?: string; archive?: boolean }): Promise<any> {
-    const response = await this.client.get<APIResponse<{
-      news: any[];
-      total: number;
-      page: number;
-      per_page: number;
-      total_pages: number;
-    }>>('/news', { params: { ...params, archive: params?.archive ? 1 : undefined } });
-    return response.data.data;
+  async getNews(params?: { page?: number; per_page?: number; category?: string; search?: string; archive?: boolean }): Promise<PublicNewsListResponse> {
+    const response = await this.client.get<APIResponse<PublicNewsListResponse>>('/news', {
+      params: { ...params, archive: params?.archive ? 1 : undefined },
+    });
+    return response.data.data!;
   }
 
-  async getNewsItem(id: number): Promise<any> {
-    const response = await this.client.get<APIResponse<{ news: any }>>(`/news/${id}`);
+  async getNewsItem(id: number): Promise<PublicNewsItem> {
+    const response = await this.client.get<APIResponse<{ news: PublicNewsItem }>>(`/news/${id}`);
     return response.data.data!.news;
   }
 
@@ -274,29 +286,22 @@ class ApiClient {
     await this.client.post(`/news/${id}/view`);
   }
 
-  async getHomepageData(): Promise<any> {
-    const response = await this.client.get<APIResponse<any>>('/news/homepage');
-    return response.data.data;
+  async getHomepageData(): Promise<PublicHomepageResponse> {
+    const response = await this.client.get<APIResponse<PublicHomepageResponse>>('/news/homepage');
+    return response.data.data!;
   }
 
   async subscribeNewsletter(email: string, gdprConsent: boolean): Promise<string> {
-    const response = await this.client.post<APIResponse>('/newsletter/subscribe', {
+    const response = await this.client.post<APIResponse<{ message?: string }>>('/newsletter/subscribe', {
       email,
       gdpr_consent: gdprConsent,
     });
     return response.data.data?.message || 'Abonat cu succes!';
   }
 
-  async getPersonalizedFeed(params?: { page?: number; per_page?: number }): Promise<any> {
-    const response = await this.client.get<APIResponse<{
-      news: any[];
-      total: number;
-      page: number;
-      per_page: number;
-      total_pages: number;
-      subscriptions_count: number;
-    }>>('/news/personalized', { params });
-    return response.data.data;
+  async getPersonalizedFeed(params?: { page?: number; per_page?: number }): Promise<PersonalizedNewsResponse> {
+    const response = await this.client.get<APIResponse<PersonalizedNewsResponse>>('/news/personalized', { params });
+    return response.data.data!;
   }
 
   // Juridic endpoints
@@ -318,6 +323,43 @@ class ApiClient {
   async getJuridicColumns(params?: { page?: number }): Promise<any> {
     const response = await this.client.get<APIResponse<any>>('/juridic/columns', { params });
     return response.data.data;
+  }
+
+  // Telegram endpoints
+  async getTelegramConfig(): Promise<TelegramConfig> {
+    const response = await this.client.get<APIResponse<TelegramConfig>>('/telegram/config');
+    return response.data.data!;
+  }
+
+  async saveTelegramConfig(data: { bot_token?: string; groups: TelegramGroup[] }): Promise<TelegramConfig> {
+    const response = await this.client.put<APIResponse<TelegramConfig>>('/telegram/config', data);
+    return response.data.data!;
+  }
+
+  async discoverTelegramGroups(): Promise<{ groups: TelegramGroup[]; discovered_now: number }> {
+    const response = await this.client.post<APIResponse<{ groups: TelegramGroup[]; discovered_now: number }>>(
+      '/telegram/groups/discover'
+    );
+    return response.data.data!;
+  }
+
+  async readTelegramMessages(data: {
+    group_ids: string[];
+    mode: 'sequential' | 'parallel';
+    limit: number;
+  }): Promise<TelegramReadReport> {
+    const response = await this.client.post<APIResponse<{ report: TelegramReadReport }>>('/telegram/messages/read', data);
+    return response.data.data!.report;
+  }
+
+  async sendTelegramMessage(data: {
+    group_ids: string[];
+    mode: 'sequential' | 'parallel';
+    text: string;
+    disable_notification?: boolean;
+  }): Promise<TelegramSendReport> {
+    const response = await this.client.post<APIResponse<{ report: TelegramSendReport }>>('/telegram/messages/send', data);
+    return response.data.data!.report;
   }
 }
 

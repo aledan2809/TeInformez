@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import { BarChart3, Loader2, Tag, Bell, Clock, TrendingUp } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
-import type { SubscriptionStats } from '@/types';
+import type { Subscription, SubscriptionStats } from '@/types';
 
 export default function StatsPage() {
   const { user } = useAuthStore();
   const [stats, setStats] = useState<SubscriptionStats | null>(null);
-  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

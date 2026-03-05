@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import ScheduleSelector from '@/components/onboarding/ScheduleSelector';
 import ChannelSelector from '@/components/onboarding/ChannelSelector';
-import type { DeliverySchedule } from '@/types';
+import type { ApiErrorShape, DeliverySchedule } from '@/types';
 
 export default function SettingsPage() {
   const { user, fetchUser } = useAuthStore();
@@ -61,8 +61,9 @@ export default function SettingsPage() {
 
       setSuccess('Setările au fost salvate cu succes!');
       await fetchUser();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'A apărut o eroare');
+    } catch (err) {
+      const typedError = err as ApiErrorShape;
+      setError(typedError.response?.data?.message || 'A apărut o eroare');
     } finally {
       setIsLoading(false);
     }
@@ -88,8 +89,9 @@ export default function SettingsPage() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Schimbarea parolei a eșuat');
+    } catch (err) {
+      const typedError = err as ApiErrorShape;
+      setError(typedError.response?.data?.message || typedError.message || 'Schimbarea parolei a eșuat');
     } finally {
       setPasswordLoading(false);
     }
@@ -111,8 +113,9 @@ export default function SettingsPage() {
       setNewEmail('');
       setEmailPassword('');
       await fetchUser();
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Schimbarea emailului a eșuat');
+    } catch (err) {
+      const typedError = err as ApiErrorShape;
+      setError(typedError.response?.data?.message || typedError.message || 'Schimbarea emailului a eșuat');
     } finally {
       setEmailLoading(false);
     }

@@ -7,12 +7,13 @@ interface HeroArticleProps {
   title: string;
   summary: string;
   image?: string | null;
+  imageSource?: string | null;
   source: string;
   categories: string[];
   published_at: string;
 }
 
-export default function HeroArticle({ id, title, summary, image, source, categories, published_at }: HeroArticleProps) {
+export default function HeroArticle({ id, title, summary, image, imageSource, source, categories, published_at }: HeroArticleProps) {
   const primaryCat = categories[0] || '';
   const colorClass = CATEGORY_COLORS[primaryCat] || 'bg-gray-100 text-gray-700';
 
@@ -46,6 +47,12 @@ export default function HeroArticle({ id, title, summary, image, source, categor
               <ExternalLink className="h-3 w-3" />
               {source}
             </span>
+            {imageSource && (
+              <>
+                <span>·</span>
+                <span>Foto: {imageSource}</span>
+              </>
+            )}
             <span>·</span>
             <span className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />

@@ -159,6 +159,7 @@ class News_Fetcher {
         } elseif (!empty($item->description)) {
             $content = (string)$item->description;
         }
+        $description = (string)$item->description;
 
         // Get media/image
         $image_url = '';
@@ -172,6 +173,12 @@ class News_Fetcher {
             }
         }
 
+        $youtube_url = $this->extract_youtube_url(
+            (string)$item->link,
+            $content,
+            $description
+        );
+
         // Get publication date
         $pub_date = null;
         if (!empty($item->pubDate)) {
@@ -182,8 +189,9 @@ class News_Fetcher {
             'url' => (string)$item->link,
             'title' => html_entity_decode((string)$item->title, ENT_QUOTES, 'UTF-8'),
             'content' => strip_tags($content),
-            'description' => strip_tags((string)$item->description),
+            'description' => strip_tags($description),
             'image_url' => $image_url,
+            'youtube_embed' => $youtube_url,
             'published_at' => $pub_date,
             'source_name' => $source['name'],
             'source_language' => $source['language'],
@@ -212,6 +220,8 @@ class News_Fetcher {
         } elseif (!empty($entry->summary)) {
             $content = (string)$entry->summary;
         }
+        $summary = (string)$entry->summary;
+        $youtube_url = $this->extract_youtube_url($link, $content, $summary);
 
         // Get published date
         $pub_date = null;
@@ -225,8 +235,9 @@ class News_Fetcher {
             'url' => $link,
             'title' => html_entity_decode((string)$entry->title, ENT_QUOTES, 'UTF-8'),
             'content' => strip_tags($content),
-            'description' => strip_tags((string)$entry->summary),
+            'description' => strip_tags($summary),
             'image_url' => '',
+            'youtube_embed' => $youtube_url,
             'published_at' => $pub_date,
             'source_name' => $source['name'],
             'source_language' => $source['language'],
@@ -308,12 +319,86 @@ class News_Fetcher {
     private function scrape_article($url) {
         $html = $this->fetch_page_html($url);
         if (empty($html)) {
-            return ['content' => null, 'image' => ''];
+            return ['content' => null, 'image' => '', 'youtube' => ''];
         }
         return [
             'content' => $this->extract_article_text($html),
             'image' => $this->extract_og_image($html),
+            'youtube' => $this->extract_youtube_url($html),
         ];
+    }
+
+    /**
+     * Extract first YouTube URL from one or more text inputs
+     */
+    private function extract_youtube_url(...$texts) {
+        $combined = trim(implode("\n", array_filter(array_map(function($text) {
+            return is_string($text) ? $text : '';
+        }, $texts))));
+
+        if ($combined === '') {
+            return '';
+        }
+
+        $patterns = [
+            '/https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([A-Za-z0-9_-]{11})[^\s"\'<]*/i',
+            '/https?:\/\/(?:www\.)?youtube\.com\/shorts\/([A-Za-z0-9_-]{11})[^\s"\'<]*/i',
+            '/https?:\/\/(?:www\.)?youtube\.com\/embed\/([A-Za-z0-9_-]{11})[^\s"\'<]*/i',
+            '/https?:\/\/(?:www\.)?youtu\.be\/([A-Za-z0-9_-]{11})[^\s"\'<]*/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $combined, $match)) {
+                return 'https://www.youtube.com/watch?v=' . $match[1];
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Reuse media from similar already-stored stories when current item has no media.
+     */
+    private function find_related_media($title, $url) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'teinformez_news_queue';
+
+        $terms = preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower((string)$title));
+        if (!$terms) {
+            return ['image' => '', 'youtube' => ''];
+        }
+
+        $terms = array_values(array_unique(array_filter($terms, function($term) {
+            return mb_strlen($term) >= 4;
+        })));
+
+        foreach (array_slice($terms, 0, 5) as $term) {
+            $like = '%' . $wpdb->esc_like($term) . '%';
+            $row = $wpdb->get_row($wpdb->prepare(
+                "SELECT ai_generated_image_url, youtube_embed
+                 FROM {$table}
+                 WHERE original_url <> %s
+                   AND (processed_title LIKE %s OR original_title LIKE %s)
+                   AND (
+                     (ai_generated_image_url IS NOT NULL AND ai_generated_image_url <> '')
+                     OR (youtube_embed IS NOT NULL AND youtube_embed <> '')
+                   )
+                 ORDER BY published_at DESC, fetched_at DESC
+                 LIMIT 1",
+                $url,
+                $like,
+                $like
+            ));
+
+            if ($row) {
+                return [
+                    'image' => (string)($row->ai_generated_image_url ?? ''),
+                    'youtube' => (string)($row->youtube_embed ?? ''),
+                ];
+            }
+        }
+
+        return ['image' => '', 'youtube' => ''];
     }
 
     /**
@@ -426,6 +511,7 @@ class News_Fetcher {
             // Scrape full article + og:image in one request
             $content = $item['content'] ?: $item['description'];
             $image_url = $item['image_url'] ?? '';
+            $youtube_embed = $item['youtube_embed'] ?? '';
 
             if (mb_strlen($content) < 500 || empty($image_url)) {
                 $scraped = $this->scrape_article($item['url']);
@@ -435,6 +521,32 @@ class News_Fetcher {
                 if (empty($image_url) && !empty($scraped['image'])) {
                     $image_url = $scraped['image'];
                 }
+                if (empty($youtube_embed) && !empty($scraped['youtube'])) {
+                    $youtube_embed = $scraped['youtube'];
+                }
+            }
+
+            if (empty($youtube_embed)) {
+                $youtube_embed = $this->extract_youtube_url(
+                    $item['url'] ?? '',
+                    $item['content'] ?? '',
+                    $item['description'] ?? '',
+                    $content
+                );
+            }
+
+            if (empty($image_url) && empty($youtube_embed)) {
+                $related_media = $this->find_related_media($item['title'] ?? '', $item['url'] ?? '');
+                if (empty($image_url) && !empty($related_media['image'])) {
+                    $image_url = $related_media['image'];
+                }
+                if (empty($youtube_embed) && !empty($related_media['youtube'])) {
+                    $youtube_embed = $related_media['youtube'];
+                }
+            }
+
+            if (empty($image_url) && empty($youtube_embed)) {
+                continue;
             }
 
             // Insert new item
@@ -447,10 +559,11 @@ class News_Fetcher {
                 'source_type' => $source['type'],
                 'categories' => json_encode($item['categories']),
                 'ai_generated_image_url' => $image_url,
+                'youtube_embed' => $youtube_embed,
                 'status' => 'fetched',
                 'fetched_at' => current_time('mysql')
             ], [
-                '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'
+                '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'
             ]);
 
             if ($result) {

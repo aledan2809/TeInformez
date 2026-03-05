@@ -7,6 +7,7 @@ interface ArticleCardProps {
   title: string;
   summary?: string;
   image?: string | null;
+  imageSource?: string | null;
   source: string;
   categories: string[];
   published_at: string;
@@ -15,7 +16,7 @@ interface ArticleCardProps {
 }
 
 export default function ArticleCard({
-  id, title, summary, image, source, categories, published_at,
+  id, title, summary, image, imageSource, source, categories, published_at,
   showImage = true, compact = false,
 }: ArticleCardProps) {
   const primaryCat = categories[0] || '';
@@ -71,6 +72,9 @@ export default function ArticleCard({
           <Calendar className="h-3 w-3" />
           <span>{timeAgo}</span>
         </div>
+        {imageSource && (
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Foto: {imageSource}</p>
+        )}
       </div>
     </Link>
   );

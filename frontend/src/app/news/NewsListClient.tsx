@@ -1,33 +1,38 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Newspaper, Calendar, Tag, ExternalLink, Loader2, Clock,
   Sparkles, Languages, ChevronLeft, ChevronRight,
   Search, X, Bookmark, BookmarkCheck, Flame, Trophy,
-  Copy, Check,
+  PlayCircle,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { CATEGORIES, CATEGORY_COLORS as SHARED_CATEGORY_COLORS } from '@/lib/categories';
 import { useBookmarkStore } from '@/store/bookmarkStore';
 import { useReadingStore } from '@/store/readingStore';
 import ScrollToTop from '@/components/ScrollToTop';
+import type { ApiErrorShape, PublicNewsItem } from '@/types';
 
-interface NewsItem {
-  id: number;
-  title: string;
-  summary: string;
-  content: string;
-  image: string | null;
-  source: string;
-  categories: string[];
-  tags: string[];
-  published_at: string;
-  original_url: string;
-  language: string;
+type NewsItem = PublicNewsItem;
+const NEWS_FILTER_CATEGORIES = CATEGORIES
+  .filter((category) => !category.hidden);
+
+const JURIDIC_FIRST_FILTER_CATEGORIES = (() => {
+  const juridicCategory = NEWS_FILTER_CATEGORIES.find((category) => category.slug === 'juridic');
+  if (!juridicCategory) return NEWS_FILTER_CATEGORIES;
+  return [juridicCategory, ...NEWS_FILTER_CATEGORIES.filter((category) => category.slug !== 'juridic')];
+})();
+
+interface NewsQueryParams {
+  page: number;
+  per_page: number;
+  archive: boolean;
+  category?: string;
+  search?: string;
 }
 
 function estimateReadingTime(content: string): number {
@@ -55,6 +60,7 @@ const heroVariants = {
 
 export default function NewsListClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const tabsRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -63,6 +69,8 @@ export default function NewsListClient() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [canScrollTabsLeft, setCanScrollTabsLeft] = useState(false);
+  const [canScrollTabsRight, setCanScrollTabsRight] = useState(false);
 
   // Search state
   const [searchOpen, setSearchOpen] = useState(false);
@@ -102,23 +110,56 @@ export default function NewsListClient() {
   }, [searchQuery]);
 
   useEffect(() => {
+    const initialCategory = searchParams.get('category') || '';
+    const initialSearch = searchParams.get('search') || '';
+    setSelectedCategory(initialCategory);
+    if (initialSearch) {
+      setSearchQuery(initialSearch);
+      setDebouncedQuery(initialSearch);
+      setSearchOpen(true);
+    } else {
+      setSearchQuery('');
+      setDebouncedQuery('');
+      setSearchOpen(false);
+    }
+  }, [searchParams.toString()]);
+
+  useEffect(() => {
     fetchNews();
   }, [page, selectedCategory, debouncedQuery]);
+
+  const updateTabsScrollState = useCallback(() => {
+    if (!tabsRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
+    setCanScrollTabsLeft(scrollLeft > 0);
+    setCanScrollTabsRight(scrollLeft + clientWidth < scrollWidth - 2);
+  }, []);
+
+  useEffect(() => {
+    updateTabsScrollState();
+    window.addEventListener('resize', updateTabsScrollState);
+    return () => window.removeEventListener('resize', updateTabsScrollState);
+  }, [updateTabsScrollState]);
+
+  useEffect(() => {
+    updateTabsScrollState();
+  }, [selectedCategory, updateTabsScrollState]);
 
   const fetchNews = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const params: any = { page, per_page: 20, archive: true };
+      const params: NewsQueryParams = { page, per_page: 20, archive: true };
       if (selectedCategory) params.category = selectedCategory;
       if (debouncedQuery.trim()) params.search = debouncedQuery.trim();
 
       const data = await api.getNews(params);
       setNews(data.news || []);
       setTotalPages(data.total_pages || 1);
-    } catch (err: any) {
-      setError(err.message || 'Eroare la încărcarea știrilor');
+    } catch (err) {
+      const typedError = err as ApiErrorShape;
+      setError(typedError.message || 'Eroare la încărcarea știrilor');
     } finally {
       setLoading(false);
     }
@@ -127,11 +168,20 @@ export default function NewsListClient() {
   const handleCategoryChange = (slug: string) => {
     setSelectedCategory(slug);
     setPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    if (slug) {
+      params.set('category', slug);
+    } else {
+      params.delete('category');
+    }
+    const query = params.toString();
+    router.replace(query ? `/news?${query}` : '/news', { scroll: false });
   };
 
   const scrollTabs = (direction: 'left' | 'right') => {
     if (tabsRef.current) {
       tabsRef.current.scrollBy({ left: direction === 'left' ? -200 : 200, behavior: 'smooth' });
+      setTimeout(updateTabsScrollState, 300);
     }
   };
 
@@ -272,18 +322,29 @@ export default function NewsListClient() {
       <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
         <div className="container mx-auto px-4">
           <div className="relative flex items-center">
-            <button
-              onClick={() => scrollTabs('left')}
-              className="absolute left-0 z-10 p-1 bg-white dark:bg-gray-900 shadow-md rounded-full md:hidden"
-              aria-label="Scroll left"
-            >
-              <ChevronLeft className="h-4 w-4 text-gray-500" />
-            </button>
+            {canScrollTabsLeft && (
+              <button
+                onClick={() => scrollTabs('left')}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1 bg-white dark:bg-gray-900 shadow-md rounded-full"
+                aria-label="Scroll left"
+              >
+                <ChevronLeft className="h-4 w-4 text-gray-500" />
+              </button>
+            )}
             <div
               ref={tabsRef}
-              className="flex items-center space-x-1 overflow-x-auto scrollbar-hide py-3 px-6 md:px-0"
+              onScroll={updateTabsScrollState}
+              onWheel={(event) => {
+                if (!tabsRef.current) return;
+                if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+                  event.preventDefault();
+                  tabsRef.current.scrollBy({ left: event.deltaY, behavior: 'auto' });
+                  updateTabsScrollState();
+                }
+              }}
+              className="flex w-full min-w-0 items-center space-x-1 overflow-x-auto scrollbar-hide py-3 px-2 sm:px-8 touch-pan-x"
             >
-              {CATEGORIES.filter(c => !c.hidden).map((cat) => (
+              {JURIDIC_FIRST_FILTER_CATEGORIES.map((cat) => (
                 <button
                   key={cat.slug}
                   onClick={() => handleCategoryChange(cat.slug)}
@@ -298,13 +359,15 @@ export default function NewsListClient() {
                 </button>
               ))}
             </div>
-            <button
-              onClick={() => scrollTabs('right')}
-              className="absolute right-0 z-10 p-1 bg-white dark:bg-gray-900 shadow-md rounded-full md:hidden"
-              aria-label="Scroll right"
-            >
-              <ChevronRight className="h-4 w-4 text-gray-500" />
-            </button>
+            {canScrollTabsRight && (
+              <button
+                onClick={() => scrollTabs('right')}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1 bg-white dark:bg-gray-900 shadow-md rounded-full"
+                aria-label="Scroll right"
+              >
+                <ChevronRight className="h-4 w-4 text-gray-500" />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -400,6 +463,23 @@ export default function NewsListClient() {
                       </div>
                       <span>Sursă: {heroItem.source}</span>
                     </div>
+                    {(heroItem.image_source || heroItem.youtube_url) && (
+                      <div className="mt-2 flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                        {heroItem.image_source && <span>Foto: {heroItem.image_source}</span>}
+                        {heroItem.youtube_url && (
+                          <a
+                            href={heroItem.youtube_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-red-600 hover:text-red-700"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <PlayCircle className="h-4 w-4 mr-1" />
+                            YouTube
+                          </a>
+                        )}
+                      </div>
+                    )}
                     {heroItem.categories.length > 0 && (
                       <div className="mt-4 flex flex-wrap gap-2">
                         {heroItem.categories.slice(0, 4).map((category) => (
@@ -453,12 +533,22 @@ export default function NewsListClient() {
                         <span className="flex items-center"><Calendar className="h-3.5 w-3.5 mr-1" />{formatDate(item.published_at)}</span>
                         <span className="flex items-center"><Clock className="h-3.5 w-3.5 mr-1" />{estimateReadingTime(item.content)} min</span>
                       </div>
-                      {item.original_url && (
-                        <a href={item.original_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700" onClick={(e) => e.stopPropagation()}>
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {item.youtube_url && (
+                          <a href={item.youtube_url} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-700" onClick={(e) => e.stopPropagation()}>
+                            <PlayCircle className="h-4 w-4" />
+                          </a>
+                        )}
+                        {item.original_url && (
+                          <a href={item.original_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700" onClick={(e) => e.stopPropagation()}>
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        )}
+                      </div>
                     </div>
+                    {item.image_source && (
+                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Foto: {item.image_source}</p>
+                    )}
                     {item.categories.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {item.categories.slice(0, 3).map((category) => (
@@ -512,12 +602,22 @@ export default function NewsListClient() {
                         <span className="flex items-center"><Clock className="h-3 w-3 mr-1" />{estimateReadingTime(item.content)} min</span>
                         <span>· {item.source}</span>
                       </div>
-                      {item.original_url && (
-                        <a href={item.original_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700" onClick={(e) => e.stopPropagation()}>
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {item.youtube_url && (
+                          <a href={item.youtube_url} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-700" onClick={(e) => e.stopPropagation()}>
+                            <PlayCircle className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                        {item.original_url && (
+                          <a href={item.original_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700" onClick={(e) => e.stopPropagation()}>
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                      </div>
                     </div>
+                    {item.image_source && (
+                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Foto: {item.image_source}</p>
+                    )}
                     {item.categories.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {item.categories.slice(0, 2).map((category) => (
@@ -726,7 +826,7 @@ function TrendingUpIcon({ className }: { className?: string }) {
 }
 
 function CategoryBadge({ category, size = 'md' }: { category: string; size?: 'sm' | 'md' }) {
-  const slug = category.toLowerCase().replace(/\s+/g, '-');
+  const slug = normalizeCategorySlug(category.toLowerCase().replace(/\s+/g, '-'));
   const colors = CATEGORY_COLORS[slug] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
   const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs';
 
@@ -736,4 +836,14 @@ function CategoryBadge({ category, size = 'md' }: { category: string; size?: 'sm
       {category}
     </span>
   );
+}
+
+function normalizeCategorySlug(slug: string): string {
+  const aliases: Record<string, string> = {
+    news: 'actualitate',
+    world: 'international',
+    health: 'sanatate',
+  };
+
+  return aliases[slug] || slug;
 }

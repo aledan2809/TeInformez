@@ -36,9 +36,21 @@ if (isset($_POST['juridic_action']) && wp_verify_nonce($_POST['_juridic_nonce'],
                 $data['published_at'] = current_time('mysql');
             }
             $wpdb->update($table, $data, ['id' => $edit_id]);
+            if ($data['status'] === 'published' && $old && $old->status !== 'published') {
+                $published_item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $edit_id));
+                if ($published_item) {
+                    do_action('teinformez_juridic_published', $published_item);
+                }
+            }
             echo '<div class="notice notice-success"><p>Întrebarea a fost actualizată.</p></div>';
         } else {
             $wpdb->insert($table, $data);
+            if ($data['status'] === 'published') {
+                $published_item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", (int) $wpdb->insert_id));
+                if ($published_item) {
+                    do_action('teinformez_juridic_published', $published_item);
+                }
+            }
             echo '<div class="notice notice-success"><p>Întrebarea a fost adăugată.</p></div>';
         }
     }
@@ -49,7 +61,12 @@ if (isset($_POST['juridic_action']) && wp_verify_nonce($_POST['_juridic_nonce'],
     }
 
     if ($action === 'publish' && !empty($_POST['publish_id'])) {
-        $wpdb->update($table, ['status' => 'published', 'published_at' => current_time('mysql')], ['id' => (int) $_POST['publish_id']]);
+        $publish_id = (int) $_POST['publish_id'];
+        $wpdb->update($table, ['status' => 'published', 'published_at' => current_time('mysql')], ['id' => $publish_id]);
+        $published_item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $publish_id));
+        if ($published_item) {
+            do_action('teinformez_juridic_published', $published_item);
+        }
         echo '<div class="notice notice-success"><p>Publicat cu succes.</p></div>';
     }
 }

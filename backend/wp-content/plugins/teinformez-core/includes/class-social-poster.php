@@ -285,4 +285,113 @@ class Social_Poster {
             }
         }
     }
+
+    /**
+     * On-demand social publishing for Juridic entries.
+     */
+    public function post_juridic_on_demand($item, array $platforms = ['facebook', 'twitter', 'instagram']): array {
+        if (!$this->enabled) {
+            return [
+                'success' => false,
+                'results' => [],
+                'error' => 'Social posting disabled',
+            ];
+        }
+
+        $content = $this->build_juridic_social_content($item);
+        $results = [];
+
+        if (in_array('facebook', $platforms, true) && !empty($this->facebook_page_id) && !empty($this->facebook_token)) {
+            $res = $this->post_to_facebook($content['facebook'], $content['url']);
+            $results['facebook'] = $res;
+            $this->log_social_post(
+                (int) $item->id,
+                'facebook_post',
+                $res['success'] ? 'sent' : 'failed',
+                $res['error'] ?? null,
+                $res['data'] ?? null
+            );
+        }
+
+        if (in_array('twitter', $platforms, true) && !empty($this->twitter_api_key) && !empty($this->twitter_access_token)) {
+            $res = $this->post_to_twitter($content['twitter']);
+            $results['twitter'] = $res;
+            $this->log_social_post(
+                (int) $item->id,
+                'twitter_post',
+                $res['success'] ? 'sent' : 'failed',
+                $res['error'] ?? null,
+                $res['data'] ?? null
+            );
+        }
+
+        if (in_array('instagram', $platforms, true)) {
+            $results['instagram'] = [
+                'success' => false,
+                'error' => 'Instagram requires Business API integration and media publishing pipeline.',
+            ];
+            $this->log_social_post(
+                (int) $item->id,
+                'instagram_post',
+                'failed',
+                $results['instagram']['error'],
+                null
+            );
+        }
+
+        $success = false;
+        foreach ($results as $result) {
+            if (!empty($result['success'])) {
+                $success = true;
+                break;
+            }
+        }
+
+        return [
+            'success' => $success,
+            'results' => $results,
+            'url' => $content['url'],
+        ];
+    }
+
+    private function build_juridic_social_content($item): array {
+        $title = !empty($item->column_title)
+            ? $item->column_title
+            : 'Juridic cu Alina: intrebare noua';
+        $question = trim((string) ($item->question_anonymized ?? $item->question ?? ''));
+        $summary = trim((string) ($item->answer_summary ?? ''));
+        $url = Config::FRONTEND_URL . '/juridic/' . (int) $item->id;
+        $category = trim((string) ($item->category ?? 'juridic'));
+        $category_hashtag = '#' . str_replace(['-', '_'], '', $category);
+        $base_tags = '#JuridicCuAlina #TeInformez ' . $category_hashtag;
+
+        $fb = $title;
+        if ($question !== '') {
+            $fb .= "\n\nÎntrebare: " . mb_substr($question, 0, 220);
+        }
+        if ($summary !== '') {
+            $fb .= "\n\nPe scurt: " . mb_substr($summary, 0, 280);
+        }
+        $fb .= "\n\n" . $url . "\n" . $base_tags;
+
+        $tweet = $title . "\n" . $url . "\n" . $base_tags;
+        if (mb_strlen($tweet) > Config::MAX_SOCIAL_SNIPPET_LENGTH) {
+            $tweet = mb_substr($title, 0, 120) . "...\n" . $url . "\n#Juridic";
+        }
+
+        $instagram = $title;
+        if ($summary !== '') {
+            $instagram .= "\n\n" . mb_substr($summary, 0, 420);
+        } elseif ($question !== '') {
+            $instagram .= "\n\n" . mb_substr($question, 0, 420);
+        }
+        $instagram .= "\n\nLink în bio.\n#Juridic #AlinaRaspunde #LegalTips #Romania";
+
+        return [
+            'url' => $url,
+            'facebook' => $fb,
+            'twitter' => $tweet,
+            'instagram' => $instagram,
+        ];
+    }
 }

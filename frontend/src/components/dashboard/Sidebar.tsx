@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Bell, Settings, LogOut, Newspaper, BarChart3, Send, Bookmark, Flame } from 'lucide-react';
+import { Home, Bell, Settings, LogOut, Newspaper, BarChart3, Send, Bookmark, Flame, Bot } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -12,6 +12,7 @@ const MENU_ITEMS = [
   { href: '/news/saved', icon: Bookmark, label: 'Salvate' },
   { href: '/dashboard/subscriptions', icon: Bell, label: 'Abonamente' },
   { href: '/dashboard/deliveries', icon: Send, label: 'Livrări' },
+  { href: '/dashboard/telegram', icon: Bot, label: 'Telegram' },
   { href: '/dashboard/stats', icon: BarChart3, label: 'Statistici' },
   { href: '/dashboard/settings', icon: Settings, label: 'Setări' },
 ];

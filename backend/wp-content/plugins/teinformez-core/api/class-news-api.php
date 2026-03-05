@@ -10,6 +10,29 @@ if (!defined('ABSPATH')) {
  * (Placeholder - will be implemented in Phase B)
  */
 class News_API extends REST_API {
+    private const CATEGORY_ALIASES = [
+        'news' => 'actualitate',
+        'world' => 'international',
+        'health' => 'sanatate',
+    ];
+
+    private const HOMEPAGE_SECTION_ORDER = [
+        'juridic',
+        'actualitate',
+        'politics',
+        'international',
+        'justitie',
+        'business',
+        'finance',
+        'tech',
+        'sanatate',
+        'science',
+        'sports',
+        'entertainment',
+        'auto',
+        'lifestyle',
+        'opinii',
+    ];
 
     public function register_routes() {
         // Get latest news
@@ -78,7 +101,13 @@ class News_API extends REST_API {
         $archive = $wpdb->prefix . 'teinformez_news_archive';
 
         // Build WHERE clause
-        $where = ["status = 'published'"];
+        $where = [
+            "status = 'published'",
+            "(
+                (ai_generated_image_url IS NOT NULL AND ai_generated_image_url <> '')
+                OR (youtube_embed IS NOT NULL AND youtube_embed <> '')
+            )"
+        ];
         $values = [];
 
         if ($search) {
@@ -89,8 +118,13 @@ class News_API extends REST_API {
         }
 
         if ($category) {
-            $where[] = 'categories LIKE %s';
-            $values[] = '%"' . $wpdb->esc_like($category) . '"%';
+            $variants = $this->get_category_filter_variants((string) $category);
+            $parts = [];
+            foreach ($variants as $variant) {
+                $parts[] = 'categories LIKE %s';
+                $values[] = '%"' . $wpdb->esc_like($variant) . '"%';
+            }
+            $where[] = '(' . implode(' OR ', $parts) . ')';
         }
 
         $where_sql = implode(' AND ', $where);
@@ -130,7 +164,7 @@ class News_API extends REST_API {
 
         // Decode JSON fields
         foreach ($items as &$item) {
-            $item->categories = json_decode($item->categories, true) ?? [];
+            $item->categories = $this->normalize_categories_array(json_decode($item->categories, true) ?? []);
             $item->tags = json_decode($item->tags, true) ?? [];
         }
         unset($item);
@@ -193,6 +227,17 @@ class News_API extends REST_API {
             );
         }
 
+        if (
+            (empty($item->ai_generated_image_url) || trim((string)$item->ai_generated_image_url) === '') &&
+            (empty($item->youtube_embed) || trim((string)$item->youtube_embed) === '')
+        ) {
+            return $this->error(
+                __('News item not available.', 'teinformez'),
+                'not_available',
+                404
+            );
+        }
+
         return $this->success([
             'news' => $this->format_news_item($item)
         ]);
@@ -233,6 +278,7 @@ class News_API extends REST_API {
         $publisher = new \TeInformez\News_Publisher();
         $result = $publisher->get_queue([
             'status' => 'published',
+            'requires_media' => true,
             'page' => 1,
             'per_page' => 100, // Get more to filter from
             'orderby' => 'published_at',
@@ -286,17 +332,21 @@ class News_API extends REST_API {
         // Get articles from the last 3 days only (homepage = fresh content)
         $items = $wpdb->get_results(
             "SELECT id, processed_title, original_title, processed_summary,
-                    ai_generated_image_url, source_name, categories, tags,
+                    ai_generated_image_url, youtube_embed, source_name, categories, tags,
                     published_at, original_url, target_language, view_count
              FROM {$table}
              WHERE status = 'published'
+               AND (
+                    (ai_generated_image_url IS NOT NULL AND ai_generated_image_url <> '')
+                    OR (youtube_embed IS NOT NULL AND youtube_embed <> '')
+               )
                AND published_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)
              ORDER BY published_at DESC"
         );
 
         // Parse categories JSON for each item
         foreach ($items as &$item) {
-            $item->categories = json_decode($item->categories, true) ?? [];
+            $item->categories = $this->normalize_categories_array(json_decode($item->categories, true) ?? []);
             $item->tags = json_decode($item->tags, true) ?? [];
         }
         unset($item);
@@ -304,12 +354,12 @@ class News_API extends REST_API {
         // Pick hero: latest article with an image
         $hero = null;
         foreach ($items as $item) {
-            if (!empty($item->ai_generated_image_url)) {
+            if (!empty($item->ai_generated_image_url) || !empty($item->youtube_embed)) {
                 $hero = $this->format_news_item($item);
                 break;
             }
         }
-        // Fallback: first article even without image
+        // Fallback: first available article
         if (!$hero && !empty($items)) {
             $hero = $this->format_news_item($items[0]);
         }
@@ -321,7 +371,7 @@ class News_API extends REST_API {
         foreach ($items as $item) {
             if ($item->id == $hero_id) continue; // Skip hero article
 
-            $primary_cat = $item->categories[0] ?? 'other';
+            $primary_cat = $this->normalize_category_slug((string)($item->categories[0] ?? 'other'));
             if (!isset($by_category[$primary_cat])) {
                 $by_category[$primary_cat] = [];
             }
@@ -333,7 +383,24 @@ class News_API extends REST_API {
         // Get category labels from config
         $config_cats = \TeInformez\Config::DEFAULT_CATEGORIES;
         $sections = [];
+        foreach (self::HOMEPAGE_SECTION_ORDER as $slug) {
+            if (empty($by_category[$slug])) {
+                continue;
+            }
+
+            $sections[] = [
+                'slug' => $slug,
+                'label' => $config_cats[$slug]['label'] ?? ucfirst($slug),
+                'emoji' => $config_cats[$slug]['icon'] ?? '📰',
+                'articles' => $by_category[$slug],
+            ];
+        }
+
         foreach ($by_category as $slug => $articles) {
+            if (in_array($slug, self::HOMEPAGE_SECTION_ORDER, true)) {
+                continue;
+            }
+
             $sections[] = [
                 'slug' => $slug,
                 'label' => $config_cats[$slug]['label'] ?? ucfirst($slug),
@@ -488,19 +555,63 @@ class News_API extends REST_API {
             $content = '<p>' . implode('</p><p>', array_map('trim', array_filter($paragraphs))) . '</p>';
         }
 
+        $image = (string)($item->ai_generated_image_url ?? '');
+        $youtube = (string)($item->youtube_embed ?? '');
+
+        $image_source = null;
+        if ($image) {
+            $fallback_host = parse_url($image, PHP_URL_HOST);
+            $image_source = $item->source_name ?: ($fallback_host ?: null);
+        }
+
         return [
             'id' => (int) $item->id,
             'title' => $item->processed_title ?: $item->original_title,
             'summary' => $item->processed_summary,
             'content' => $content,
-            'image' => $item->ai_generated_image_url,
+            'image' => $image ?: null,
+            'image_source' => $image_source,
+            'youtube_url' => $youtube ?: null,
             'source' => $item->source_name,
-            'categories' => $item->categories,
+            'categories' => $this->normalize_categories_array((array) ($item->categories ?? [])),
             'tags' => $item->tags,
             'published_at' => $item->published_at,
             'original_url' => $item->original_url,
             'language' => $item->target_language ?: \TeInformez\Config::SITE_LANGUAGE,
             'view_count' => (int) ($item->view_count ?? 0),
         ];
+    }
+
+    private function normalize_category_slug(string $slug): string {
+        $slug = sanitize_key(trim($slug));
+        return self::CATEGORY_ALIASES[$slug] ?? $slug;
+    }
+
+    private function normalize_categories_array(array $categories): array {
+        $normalized = [];
+        foreach ($categories as $category) {
+            if (!is_string($category) || $category === '') {
+                continue;
+            }
+
+            $canonical = $this->normalize_category_slug($category);
+            if (!in_array($canonical, $normalized, true)) {
+                $normalized[] = $canonical;
+            }
+        }
+        return $normalized;
+    }
+
+    private function get_category_filter_variants(string $slug): array {
+        $canonical = $this->normalize_category_slug($slug);
+        $variants = [$canonical];
+
+        foreach (self::CATEGORY_ALIASES as $legacy => $mapped) {
+            if ($mapped === $canonical) {
+                $variants[] = $legacy;
+            }
+        }
+
+        return array_values(array_unique($variants));
     }
 }

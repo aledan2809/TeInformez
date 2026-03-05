@@ -84,6 +84,7 @@ function teinformez_init() {
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-user-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-news-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-juridic-api.php';
+    require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-telegram-api.php';
 
     // Initialize REST API
     new TeInformez\API\REST_API();
@@ -91,6 +92,7 @@ function teinformez_init() {
     new TeInformez\API\User_API();
     new TeInformez\API\News_API();
     new TeInformez\API\Juridic_API();
+    new TeInformez\API\Telegram_API();
 
     // Auto-merge new categories into stored option
     $current_cats = get_option('teinformez_categories', []);
@@ -137,6 +139,12 @@ add_action('teinformez_check_deliveries', function() {
 add_action('teinformez_news_published', function($item) {
     $social = new TeInformez\Social_Poster();
     $social->post_on_publish($item);
+});
+
+// Social media posting: auto-post when juridic Q&A is published
+add_action('teinformez_juridic_published', function($item) {
+    $social = new TeInformez\Social_Poster();
+    $social->post_juridic_on_demand($item, ['facebook', 'twitter', 'instagram']);
 });
 
 add_action('teinformez_daily_cleanup', function() {

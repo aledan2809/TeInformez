@@ -12,6 +12,7 @@ interface Article {
   title: string;
   summary: string;
   image: string | null;
+  image_source: string | null;
   source: string;
   categories: string[];
   published_at: string;
@@ -45,6 +46,7 @@ export default function HomeClient({ hero, sections }: HomeClientProps) {
             title={hero.title}
             summary={hero.summary}
             image={hero.image}
+            imageSource={hero.image_source}
             source={hero.source}
             categories={hero.categories}
             published_at={hero.published_at}
