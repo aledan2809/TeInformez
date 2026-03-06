@@ -1,8 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Bell, Settings, LogOut, Newspaper, BarChart3, Send, Bookmark, Flame, Bot, LayoutGrid } from 'lucide-react';
+import { Home, Bell, Settings, LogOut, Newspaper, BarChart3, Send, Bookmark, Bot, LayoutGrid } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -23,7 +24,14 @@ const ADMIN_MENU_ITEMS = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuthStore();
+  const { user, logout, fetchUser } = useAuthStore();
+
+  // Refresh user data to ensure role is up-to-date
+  useEffect(() => {
+    if (user && !user.role) {
+      fetchUser();
+    }
+  }, [user, fetchUser]);
 
   const handleLogout = async () => {
     await logout();

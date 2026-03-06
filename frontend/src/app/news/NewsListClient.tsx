@@ -136,7 +136,7 @@ export default function NewsListClient() {
   }, []);
 
   useEffect(() => {
-    updateTabsScrollState();
+    requestAnimationFrame(() => updateTabsScrollState());
     window.addEventListener('resize', updateTabsScrollState);
     return () => window.removeEventListener('resize', updateTabsScrollState);
   }, [updateTabsScrollState]);
@@ -321,14 +321,14 @@ export default function NewsListClient() {
       {/* Category Tabs */}
       <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
         <div className="container mx-auto px-4">
-          <div className="relative flex items-center">
+          <div className="flex items-center">
             {canScrollTabsLeft && (
               <button
                 onClick={() => scrollTabs('left')}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1 bg-white dark:bg-gray-900 shadow-md rounded-full"
-                aria-label="Scroll left"
+                className="flex-shrink-0 mr-1 p-1.5 bg-white dark:bg-gray-800 shadow border border-gray-200 dark:border-gray-600 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                aria-label="Scroll stânga"
               >
-                <ChevronLeft className="h-4 w-4 text-gray-500" />
+                <ChevronLeft className="h-4 w-4 text-gray-600 dark:text-gray-300" />
               </button>
             )}
             <div
@@ -342,7 +342,7 @@ export default function NewsListClient() {
                   updateTabsScrollState();
                 }
               }}
-              className="flex w-full min-w-0 items-center space-x-1 overflow-x-auto scrollbar-hide py-3 px-2 sm:px-8 touch-pan-x"
+              className="flex-1 flex min-w-0 items-center space-x-1 overflow-x-auto scrollbar-hide py-3 touch-pan-x scroll-smooth"
             >
               {JURIDIC_FIRST_FILTER_CATEGORIES.map((cat) => (
                 <button
@@ -362,10 +362,10 @@ export default function NewsListClient() {
             {canScrollTabsRight && (
               <button
                 onClick={() => scrollTabs('right')}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1 bg-white dark:bg-gray-900 shadow-md rounded-full"
-                aria-label="Scroll right"
+                className="flex-shrink-0 ml-1 p-1.5 bg-white dark:bg-gray-800 shadow border border-gray-200 dark:border-gray-600 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                aria-label="Scroll dreapta"
               >
-                <ChevronRight className="h-4 w-4 text-gray-500" />
+                <ChevronRight className="h-4 w-4 text-gray-600 dark:text-gray-300" />
               </button>
             )}
           </div>
