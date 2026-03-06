@@ -50,3 +50,6 @@ logs/
 
 # Governance session tracking
 .claude-session-base
+
+.vercel
+.env*.local
