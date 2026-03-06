@@ -10,6 +10,7 @@ import {
   PlayCircle,
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { createTimeSpentTracker, trackArticleClick, trackPageView } from '@/lib/visitorAnalytics';
 import { useBookmarkStore } from '@/store/bookmarkStore';
 import { useReadingStore } from '@/store/readingStore';
 import ReadingProgressBar from '@/components/ReadingProgressBar';
@@ -34,6 +35,19 @@ export default function NewsDetailClient() {
 
   const { isBookmarked, toggleBookmark } = useBookmarkStore();
   const { markAsRead } = useReadingStore();
+
+  useEffect(() => {
+    const newsId = Number(params.id);
+    if (!Number.isFinite(newsId)) {
+      return;
+    }
+
+    trackPageView('news', newsId);
+    const flushTimeSpent = createTimeSpentTracker('news', newsId);
+    return () => {
+      flushTimeSpent();
+    };
+  }, [params.id]);
 
   useEffect(() => {
     fetchNews();
@@ -274,6 +288,7 @@ export default function NewsDetailClient() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-secondary text-sm"
+                  onClick={() => trackArticleClick(news.id, { source: 'external_original_url' })}
                 >
                   <ExternalLink className="h-4 w-4 mr-1" />
                   Sursă originală
@@ -393,6 +408,7 @@ export default function NewsDetailClient() {
                   key={article.id}
                   href={`/news/${article.id}`}
                   className="card hover:shadow-lg transition-shadow overflow-hidden group"
+                  onClick={() => trackArticleClick(article.id, { source: 'related_articles' })}
                 >
                   {article.image && (
                     <div className="-mx-6 -mt-6 mb-4">

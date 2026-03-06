@@ -11,6 +11,7 @@ import {
   PlayCircle,
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { createTimeSpentTracker, trackArticleClick, trackPageView } from '@/lib/visitorAnalytics';
 import { CATEGORIES, CategoryDef, CATEGORY_COLORS as SHARED_CATEGORY_COLORS } from '@/lib/categories';
 import { useBookmarkStore } from '@/store/bookmarkStore';
 import { useReadingStore } from '@/store/readingStore';
@@ -148,6 +149,14 @@ export default function NewsListClient() {
     fetchNews();
   }, [page, selectedCategory, debouncedQuery]);
 
+  useEffect(() => {
+    trackPageView('news_list', undefined, { category: selectedCategory || 'all' });
+    const flushTimeSpent = createTimeSpentTracker('news_list');
+    return () => {
+      flushTimeSpent();
+    };
+  }, [selectedCategory]);
+
   const updateTabsScrollState = useCallback(() => {
     if (!tabsRef.current) return;
     const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
@@ -219,6 +228,7 @@ export default function NewsListClient() {
   const handleArticleClick = (item: NewsItem) => {
     markAsRead(item.id);
     setReadToday(getReadToday());
+    trackArticleClick(item.id, { source: 'news_list' });
     router.push(`/news/${item.id}`);
   };
 

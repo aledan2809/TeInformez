@@ -295,6 +295,19 @@ class ApiClient {
     await this.client.post(`/news/${id}/view`);
   }
 
+  async trackAnalyticsEvent(payload: {
+    visitor_id: string;
+    session_id: string;
+    event_type: 'page_view' | 'article_click' | 'time_spent';
+    page_type: 'news' | 'juridic' | 'news_list' | 'juridic_list' | 'home' | 'other';
+    page_id?: number;
+    page_path?: string;
+    duration_seconds?: number;
+    metadata?: Record<string, unknown>;
+  }): Promise<void> {
+    await this.client.post('/analytics/track', payload);
+  }
+
   async getHomepageData(): Promise<PublicHomepageResponse> {
     const response = await this.client.get<APIResponse<PublicHomepageResponse>>('/news/homepage');
     return response.data.data!;

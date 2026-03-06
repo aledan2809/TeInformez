@@ -66,6 +66,15 @@ class Admin {
             'teinformez-category-order',
             [$this, 'render_category_order']
         );
+
+        add_submenu_page(
+            'teinformez',
+            __('Analytics', 'teinformez'),
+            __('Analytics', 'teinformez'),
+            'manage_options',
+            'teinformez-analytics',
+            [$this, 'render_analytics']
+        );
     }
 
     /**
@@ -127,6 +136,13 @@ class Admin {
         }
 
         require_once TEINFORMEZ_PLUGIN_DIR . 'admin/views/category-order.php';
+    }
+
+    /**
+     * Render analytics page
+     */
+    public function render_analytics() {
+        require_once TEINFORMEZ_PLUGIN_DIR . 'admin/views/analytics.php';
     }
 
     /**

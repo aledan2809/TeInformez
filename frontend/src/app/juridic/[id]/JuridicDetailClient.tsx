@@ -1,9 +1,11 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Eye, Share2, Facebook, Mail } from 'lucide-react';
 import SharedHeader from '@/components/SharedHeader';
 import { JURIDIC_CATEGORIES, type JuridicQA } from '@/types';
+import { createTimeSpentTracker, trackPageView } from '@/lib/visitorAnalytics';
 
 const CATEGORY_COLORS: Record<string, string> = {
   'dreptul-muncii': 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
@@ -20,6 +22,18 @@ interface Props {
 }
 
 export default function JuridicDetailClient({ item }: Props) {
+  useEffect(() => {
+    if (!item?.id) {
+      return;
+    }
+
+    trackPageView('juridic', item.id);
+    const flushTimeSpent = createTimeSpentTracker('juridic', item.id);
+    return () => {
+      flushTimeSpent();
+    };
+  }, [item?.id]);
+
   if (!item) {
     return (
       <>

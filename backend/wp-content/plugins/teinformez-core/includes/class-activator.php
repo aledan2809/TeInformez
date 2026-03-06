@@ -193,6 +193,29 @@ class Activator {
             KEY archived_at (archived_at)
         ) {$charset_collate};";
 
+        // Table: Visitor Analytics Events
+        $table_visitor_events = $wpdb->prefix . 'teinformez_visitor_events';
+        $sql_visitor_events = "CREATE TABLE IF NOT EXISTS {$table_visitor_events} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            visitor_hash CHAR(64) NOT NULL,
+            session_id VARCHAR(64) NOT NULL,
+            user_id BIGINT(20) UNSIGNED DEFAULT NULL,
+            event_type VARCHAR(40) NOT NULL,
+            page_type VARCHAR(40) DEFAULT '',
+            page_id BIGINT(20) UNSIGNED DEFAULT NULL,
+            page_path VARCHAR(255) DEFAULT '',
+            duration_seconds INT UNSIGNED DEFAULT 0,
+            metadata LONGTEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY created_at (created_at),
+            KEY event_type (event_type),
+            KEY page_type (page_type),
+            KEY page_id (page_id),
+            KEY visitor_hash (visitor_hash),
+            KEY session_id (session_id)
+        ) {$charset_collate};";
+
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql_preferences);
         dbDelta($sql_subscriptions);
@@ -201,6 +224,7 @@ class Activator {
         dbDelta($sql_newsletter);
         dbDelta($sql_juridic);
         dbDelta($sql_archive);
+        dbDelta($sql_visitor_events);
 
         // Set default options
         self::set_default_options();

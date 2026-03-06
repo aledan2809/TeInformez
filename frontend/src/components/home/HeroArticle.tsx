@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Calendar, ExternalLink } from 'lucide-react';
 import { CATEGORY_COLORS, getCategoryLabel } from '@/lib/categories';
+import { trackArticleClick } from '@/lib/visitorAnalytics';
 
 interface HeroArticleProps {
   id: number;
@@ -18,7 +19,7 @@ export default function HeroArticle({ id, title, summary, image, imageSource, so
   const colorClass = CATEGORY_COLORS[primaryCat] || 'bg-gray-100 text-gray-700';
 
   return (
-    <Link href={`/news/${id}`} className="group block">
+    <Link href={`/news/${id}`} className="group block" onClick={() => trackArticleClick(id, { source: 'hero_article' })}>
       <div className="relative rounded-xl overflow-hidden bg-gray-900">
         {image ? (
           <img

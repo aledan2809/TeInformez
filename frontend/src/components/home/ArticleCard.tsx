@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Calendar, ExternalLink } from 'lucide-react';
 import { CATEGORY_COLORS, getCategoryLabel } from '@/lib/categories';
+import { trackArticleClick } from '@/lib/visitorAnalytics';
 
 interface ArticleCardProps {
   id: number;
@@ -26,7 +27,7 @@ export default function ArticleCard({
 
   if (compact) {
     return (
-      <Link href={`/news/${id}`} className="group block">
+      <Link href={`/news/${id}`} className="group block" onClick={() => trackArticleClick(id, { source: 'article_card_compact' })}>
         <h4 className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug">
           {title}
         </h4>
@@ -40,7 +41,7 @@ export default function ArticleCard({
   }
 
   return (
-    <Link href={`/news/${id}`} className="group block card hover:shadow-md transition-shadow overflow-hidden">
+    <Link href={`/news/${id}`} className="group block card hover:shadow-md transition-shadow overflow-hidden" onClick={() => trackArticleClick(id, { source: 'article_card' })}>
       {showImage && image && (
         <div className="aspect-video overflow-hidden bg-gray-100 dark:bg-gray-800">
           <img
