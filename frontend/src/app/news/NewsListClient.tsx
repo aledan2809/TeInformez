@@ -159,7 +159,7 @@ export default function NewsListClient() {
     requestAnimationFrame(() => updateTabsScrollState());
     window.addEventListener('resize', updateTabsScrollState);
     return () => window.removeEventListener('resize', updateTabsScrollState);
-  }, [updateTabsScrollState]);
+  }, [orderedFilterCategories, updateTabsScrollState]);
 
   useEffect(() => {
     updateTabsScrollState();
