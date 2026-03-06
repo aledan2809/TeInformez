@@ -365,6 +365,17 @@ class ApiClient {
     const response = await this.client.post<APIResponse<{ report: TelegramSendReport }>>('/telegram/messages/send', data);
     return response.data.data!.report;
   }
+
+  // Settings endpoints
+  async getCategoryOrder(): Promise<string[]> {
+    const response = await this.client.get<APIResponse<{ order: string[] }>>('/settings/category-order');
+    return response.data.data!.order;
+  }
+
+  async updateCategoryOrder(order: string[]): Promise<string[]> {
+    const response = await this.client.post<APIResponse<{ order: string[] }>>('/settings/category-order', { order });
+    return response.data.data!.order;
+  }
 }
 
 export const api = new ApiClient();

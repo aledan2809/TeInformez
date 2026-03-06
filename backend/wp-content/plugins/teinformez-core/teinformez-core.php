@@ -85,6 +85,7 @@ function teinformez_init() {
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-news-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-juridic-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-telegram-api.php';
+    require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-settings-api.php';
 
     // Initialize REST API
     new TeInformez\API\REST_API();
@@ -93,6 +94,7 @@ function teinformez_init() {
     new TeInformez\API\News_API();
     new TeInformez\API\Juridic_API();
     new TeInformez\API\Telegram_API();
+    new TeInformez\API\Settings_API();
 
     // Auto-merge new categories into stored option
     $current_cats = get_option('teinformez_categories', []);
