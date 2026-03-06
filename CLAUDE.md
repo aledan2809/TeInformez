@@ -3,20 +3,21 @@
 ## Project Setup
 
 ### Stack
-- **Frontend**: Next.js (TypeScript) on Vercel (`teinformez.vercel.app`)
-- **Backend**: WordPress + `teinformez-core` PHP plugin on VPS2
-- **Database**: MariaDB 10.11 on VPS2 (5 custom tables prefixed `wp_teinformez_`)
+- **Frontend**: Next.js (TypeScript) on VPS (`teinformez.eu`)
+- **Backend**: WordPress + `teinformez-core` PHP plugin on VPS
+- **Database**: MariaDB 10.11 on VPS (5 custom tables prefixed `wp_teinformez_`)
 - **AI**: OpenAI GPT-4 Turbo (summarization, translation, categorization)
 - **Email**: Brevo API (fallback: wp_mail)
 
 ### Paths
 - **Frontend**: `C:\Projects\TeInformez\frontend\`
 - **Backend plugin**: `C:\Projects\TeInformez\backend\wp-content\plugins\teinformez-core\`
-- **VPS2 WordPress**: `/var/www/teinformez/`
-- **VPS2 Git repo**: `/var/www/teinformez-repo/`
+- **VPS WordPress**: `/var/www/teinformez/`
+- **VPS Git repo**: `/var/www/teinformez-repo/`
+- **VPS Frontend build**: `/var/www/teinformez-frontend/`
 
 ### Deployment
-- **Frontend**: Push to master → auto-deploys on Vercel
+- **Frontend**: Push to master → `ssh root@72.62.155.74` → git pull + `npm run build` + `pm2 restart teinformez-frontend`
 - **Backend**: `ssh root@72.62.155.74 "/var/www/deploy.sh teinformez"` (git pull + PHP-FPM restart)
 - **WP Admin**: `https://teinformez.eu/wp-admin/` (user: `teinformez`)
 
@@ -52,8 +53,8 @@ cd frontend && npm install && npm run build
 - Cron jobs: fetch (30min), process (30min), deliveries (15min), cleanup (daily)
 
 ### CORS
-- Allowed origins: `teinformez.vercel.app`, `teinformez.eu`, `localhost:3000`
-- Configured in Nginx server block on VPS2
+- Allowed origins: `teinformez.eu`, `localhost:3000`, `localhost:3002`
+- Configured in Nginx server block on VPS
 
 ---
 
