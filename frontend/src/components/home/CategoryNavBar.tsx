@@ -50,10 +50,10 @@ export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) 
         } catch {}
       }
 
-      // 3. Filter then sort
+      // 3. Filter then sort (always keep "juridic" — it's a standalone page, not a news category)
       let cats = allNavCats;
       if (userCategorySlugs) {
-        cats = allNavCats.filter(c => userCategorySlugs!.has(c.slug));
+        cats = allNavCats.filter(c => c.slug === 'juridic' || userCategorySlugs!.has(c.slug));
       }
       cats = sortByAdminOrder(cats, adminOrder);
 

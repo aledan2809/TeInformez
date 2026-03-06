@@ -115,8 +115,8 @@ export default function NewsListClient() {
 
       let cats = NEWS_FILTER_CATEGORIES;
       if (userSlugs) {
-        // Keep "Toate" (empty slug) always, filter rest by user subscriptions
-        cats = NEWS_FILTER_CATEGORIES.filter(c => c.slug === '' || userSlugs!.has(c.slug));
+        // Keep "Toate" (empty slug) and "juridic" (standalone page) always, filter rest by subscriptions
+        cats = NEWS_FILTER_CATEGORIES.filter(c => c.slug === '' || c.slug === 'juridic' || userSlugs!.has(c.slug));
       }
 
       if (adminOrder.length > 0) {
