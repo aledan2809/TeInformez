@@ -364,20 +364,35 @@ export default function NewsListClient() {
               }}
               className="flex-1 flex min-w-0 items-center space-x-1 overflow-x-auto scrollbar-hide py-3 touch-pan-x scroll-smooth"
             >
-              {orderedFilterCategories.map((cat) => (
-                <button
-                  key={cat.slug}
-                  onClick={() => handleCategoryChange(cat.slug)}
-                  className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                    selectedCategory === cat.slug
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <span>{cat.emoji}</span>
-                  <span>{cat.label}</span>
-                </button>
-              ))}
+              {orderedFilterCategories.map((cat) => {
+                // Juridic links to its own page
+                if (cat.slug === 'juridic') {
+                  return (
+                    <Link
+                      key={cat.slug}
+                      href="/juridic"
+                      className="flex items-center space-x-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    >
+                      <span>{cat.emoji}</span>
+                      <span>{cat.label}</span>
+                    </Link>
+                  );
+                }
+                return (
+                  <button
+                    key={cat.slug}
+                    onClick={() => handleCategoryChange(cat.slug)}
+                    className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                      selectedCategory === cat.slug
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <span>{cat.emoji}</span>
+                    <span>{cat.label}</span>
+                  </button>
+                );
+              })}
             </div>
             {canScrollTabsRight && (
               <button
