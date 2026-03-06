@@ -59,6 +59,13 @@ export function trackEvent(payload: AnalyticsPayload): void {
   }).catch(() => {});
 }
 
+export function getAnalyticsIdentity(): { visitor_id: string; session_id: string } {
+  return {
+    visitor_id: getVisitorId(),
+    session_id: getSessionId(),
+  };
+}
+
 export function trackPageView(pageType: PageType, pageId?: number, metadata?: Record<string, unknown>): void {
   trackEvent({
     event_type: 'page_view',

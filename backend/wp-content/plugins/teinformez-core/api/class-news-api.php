@@ -507,6 +507,8 @@ class News_API extends REST_API {
 
         $email = sanitize_email($request->get_param('email'));
         $gdpr = (bool) $request->get_param('gdpr_consent');
+        $visitor_id = sanitize_text_field((string) $request->get_param('visitor_id'));
+        $session_id = sanitize_text_field((string) $request->get_param('session_id'));
 
         if (empty($email) || !is_email($email)) {
             return $this->error('Adresa de email nu este validă.', 'invalid_email', 400);
@@ -540,6 +542,19 @@ class News_API extends REST_API {
                 'gdpr_consent' => 1,
                 'gdpr_consent_date' => current_time('mysql'),
                 'status' => 'active',
+            ]);
+        }
+
+        if ($visitor_id !== '' && $session_id !== '') {
+            \TeInformez\Visitor_Analytics::track_event([
+                'visitor_id' => $visitor_id,
+                'session_id' => $session_id,
+                'event_type' => 'newsletter_subscribe',
+                'page_type' => 'home',
+                'page_path' => '/newsletter/subscribe',
+                'metadata' => [
+                    'source' => 'newsletter_subscribe_endpoint',
+                ],
             ]);
         }
 

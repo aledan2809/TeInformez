@@ -298,7 +298,7 @@ class ApiClient {
   async trackAnalyticsEvent(payload: {
     visitor_id: string;
     session_id: string;
-    event_type: 'page_view' | 'article_click' | 'time_spent';
+    event_type: 'page_view' | 'article_click' | 'time_spent' | 'newsletter_subscribe';
     page_type: 'news' | 'juridic' | 'news_list' | 'juridic_list' | 'home' | 'other';
     page_id?: number;
     page_path?: string;
@@ -313,10 +313,12 @@ class ApiClient {
     return response.data.data!;
   }
 
-  async subscribeNewsletter(email: string, gdprConsent: boolean): Promise<string> {
+  async subscribeNewsletter(email: string, gdprConsent: boolean, identity?: { visitor_id: string; session_id: string }): Promise<string> {
     const response = await this.client.post<APIResponse<{ message?: string }>>('/newsletter/subscribe', {
       email,
       gdpr_consent: gdprConsent,
+      visitor_id: identity?.visitor_id,
+      session_id: identity?.session_id,
     });
     return response.data.data?.message || 'Abonat cu succes!';
   }

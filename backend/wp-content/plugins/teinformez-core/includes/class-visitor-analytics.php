@@ -62,7 +62,7 @@ class Visitor_Analytics {
         }
 
         $event_type = sanitize_key((string) ($payload['event_type'] ?? 'page_view'));
-        $allowed_events = ['page_view', 'article_click', 'time_spent'];
+        $allowed_events = ['page_view', 'article_click', 'time_spent', 'newsletter_subscribe'];
         if (!in_array($event_type, $allowed_events, true)) {
             $event_type = 'page_view';
         }

@@ -1,11 +1,13 @@
 'use client';
 
+import { useEffect } from 'react';
 import SharedHeader from '@/components/SharedHeader';
 import CategoryNavBar from '@/components/home/CategoryNavBar';
 import HeroArticle from '@/components/home/HeroArticle';
 import CategorySection from '@/components/home/CategorySection';
 import Link from 'next/link';
 import { Newspaper } from 'lucide-react';
+import { createTimeSpentTracker, trackPageView } from '@/lib/visitorAnalytics';
 
 interface Article {
   id: number;
@@ -32,6 +34,14 @@ interface HomeClientProps {
 
 export default function HomeClient({ hero, sections }: HomeClientProps) {
   const activeSlugs = sections.map(s => s.slug);
+
+  useEffect(() => {
+    trackPageView('home');
+    const flushTimeSpent = createTimeSpentTracker('home');
+    return () => {
+      flushTimeSpent();
+    };
+  }, []);
 
   return (
     <>
