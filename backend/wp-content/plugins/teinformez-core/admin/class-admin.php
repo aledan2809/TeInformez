@@ -183,6 +183,9 @@ class Admin {
             'frontend_url',
             'admin_review_period',
             'news_fetch_interval',
+            'ga4_property_id',
+            'ga4_service_account_email',
+            'ga4_private_key',
             // Social media (Phase E)
             'social_posting_enabled',
             'facebook_page_id',
@@ -201,6 +204,10 @@ class Admin {
         foreach ($fields as $field) {
             if (in_array($field, $checkboxes)) {
                 Config::set($field, isset($_POST[$field]) ? '1' : '0');
+            } elseif ($field === 'ga4_private_key' && isset($_POST[$field])) {
+                // Keep line breaks for PEM format keys.
+                $value = trim((string) wp_unslash($_POST[$field]));
+                Config::set($field, $value);
             } elseif (isset($_POST[$field])) {
                 Config::set($field, sanitize_text_field($_POST[$field]));
             }

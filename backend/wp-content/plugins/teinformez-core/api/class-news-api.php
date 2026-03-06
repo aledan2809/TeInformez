@@ -527,6 +527,7 @@ class News_API extends REST_API {
 
         if ($existing) {
             if ($existing->status === 'active') {
+                $this->track_newsletter_analytics_event($visitor_id, $session_id, $email);
                 return $this->success(['message' => 'Ești deja abonat!']);
             }
             // Re-activate
@@ -545,20 +546,34 @@ class News_API extends REST_API {
             ]);
         }
 
-        if ($visitor_id !== '' && $session_id !== '') {
-            \TeInformez\Visitor_Analytics::track_event([
-                'visitor_id' => $visitor_id,
-                'session_id' => $session_id,
-                'event_type' => 'newsletter_subscribe',
-                'page_type' => 'home',
-                'page_path' => '/newsletter/subscribe',
-                'metadata' => [
-                    'source' => 'newsletter_subscribe_endpoint',
-                ],
-            ]);
-        }
+        $this->track_newsletter_analytics_event($visitor_id, $session_id, $email);
 
         return $this->success(['message' => 'Te-ai abonat cu succes!']);
+    }
+
+    private function track_newsletter_analytics_event(string $visitor_id, string $session_id, string $email): void {
+        $used_fallback = false;
+        if ($visitor_id === '') {
+            $visitor_id = 'newsletter_' . hash('sha256', strtolower(trim($email)));
+            $used_fallback = true;
+        }
+        if ($session_id === '') {
+            $session_id = 'newsletter_' . substr((string) wp_generate_uuid4(), 0, 48);
+            $used_fallback = true;
+        }
+
+        \TeInformez\Visitor_Analytics::track_event([
+            'visitor_id' => $visitor_id,
+            'session_id' => $session_id,
+            'event_type' => 'newsletter_subscribe',
+            'page_type' => 'home',
+            'page_path' => '/newsletter/subscribe',
+            'metadata' => [
+                'source' => 'newsletter_subscribe_endpoint',
+                'identity_fallback' => $used_fallback,
+                'email_hash' => hash('sha256', strtolower(trim($email))),
+            ],
+        ]);
     }
 
     /**

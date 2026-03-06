@@ -157,6 +157,59 @@ use TeInformez\Config;
             </tr>
         </table>
 
+        <h2><?php _e('Google Analytics (GA4)', 'teinformez'); ?></h2>
+        <p class="description"><?php _e('Used in admin Analytics page for side-by-side comparison with custom metrics.', 'teinformez'); ?></p>
+        <table class="form-table">
+            <tr>
+                <th scope="row">
+                    <label for="ga4_property_id"><?php _e('GA4 Property ID', 'teinformez'); ?></label>
+                </th>
+                <td>
+                    <input type="text"
+                           id="ga4_property_id"
+                           name="ga4_property_id"
+                           value="<?php echo esc_attr(Config::get('ga4_property_id', Config::get('google_analytics_property_id', ''))); ?>"
+                           class="regular-text"
+                    />
+                    <p class="description">
+                        <?php _e('Numeric Property ID from Google Analytics (example: 123456789).', 'teinformez'); ?>
+                    </p>
+                </td>
+            </tr>
+
+            <tr>
+                <th scope="row">
+                    <label for="ga4_service_account_email"><?php _e('Service Account Email', 'teinformez'); ?></label>
+                </th>
+                <td>
+                    <input type="text"
+                           id="ga4_service_account_email"
+                           name="ga4_service_account_email"
+                           value="<?php echo esc_attr(Config::get('ga4_service_account_email', Config::get('google_client_email', ''))); ?>"
+                           class="regular-text"
+                    />
+                    <p class="description">
+                        <?php _e('Client email from Google service account JSON key.', 'teinformez'); ?>
+                    </p>
+                </td>
+            </tr>
+
+            <tr>
+                <th scope="row">
+                    <label for="ga4_private_key"><?php _e('Service Account Private Key', 'teinformez'); ?></label>
+                </th>
+                <td>
+                    <textarea id="ga4_private_key"
+                              name="ga4_private_key"
+                              rows="8"
+                              class="large-text code"><?php echo esc_textarea(Config::get('ga4_private_key', Config::get('google_private_key', ''))); ?></textarea>
+                    <p class="description">
+                        <?php _e('Paste full private key including BEGIN/END lines.', 'teinformez'); ?>
+                    </p>
+                </td>
+            </tr>
+        </table>
+
         <h2><?php _e('Social Media Posting', 'teinformez'); ?></h2>
         <p class="description"><?php _e('Auto-post published news to your social media accounts.', 'teinformez'); ?></p>
         <table class="form-table">
