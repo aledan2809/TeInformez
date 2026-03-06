@@ -129,6 +129,9 @@ class News_API extends REST_API {
 
         $where_sql = implode(' AND ', $where);
 
+        // Shared column list (archive has extra archived_at, so we must use explicit columns for UNION)
+        $shared_cols = 'id, original_url, original_title, original_content, original_language, source_name, source_type, processed_title, processed_summary, processed_content, target_language, ai_generated_image_url, youtube_embed, status, admin_notes, categories, tags, view_count, fetched_at, processed_at, reviewed_at, published_at';
+
         // Build query: active queue + optionally archive
         if ($include_archive) {
             $count_sql = "SELECT COUNT(*) FROM (
@@ -138,9 +141,9 @@ class News_API extends REST_API {
             ) AS combined";
 
             $data_sql = "SELECT * FROM (
-                SELECT *, 'active' AS _source FROM {$queue} WHERE {$where_sql}
+                SELECT {$shared_cols}, 'active' AS _source FROM {$queue} WHERE {$where_sql}
                 UNION ALL
-                SELECT *, 'archive' AS _source FROM {$archive} WHERE {$where_sql}
+                SELECT {$shared_cols}, 'archive' AS _source FROM {$archive} WHERE {$where_sql}
             ) AS combined ORDER BY published_at DESC LIMIT %d OFFSET %d";
 
             // Values appear twice (once per table in UNION)
@@ -148,7 +151,7 @@ class News_API extends REST_API {
             $data_values = array_merge($values, $values, [$per_page, ($page - 1) * $per_page]);
         } else {
             $count_sql = "SELECT COUNT(*) FROM {$queue} WHERE {$where_sql}";
-            $data_sql = "SELECT *, 'active' AS _source FROM {$queue} WHERE {$where_sql} ORDER BY published_at DESC LIMIT %d OFFSET %d";
+            $data_sql = "SELECT {$shared_cols}, 'active' AS _source FROM {$queue} WHERE {$where_sql} ORDER BY published_at DESC LIMIT %d OFFSET %d";
 
             $count_values = $values;
             $data_values = array_merge($values, [$per_page, ($page - 1) * $per_page]);
