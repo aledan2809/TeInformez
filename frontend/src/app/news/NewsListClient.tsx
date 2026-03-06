@@ -11,21 +11,16 @@ import {
   PlayCircle,
 } from 'lucide-react';
 import { api } from '@/lib/api';
-import { CATEGORIES, CATEGORY_COLORS as SHARED_CATEGORY_COLORS } from '@/lib/categories';
+import { CATEGORIES, CategoryDef, CATEGORY_COLORS as SHARED_CATEGORY_COLORS } from '@/lib/categories';
 import { useBookmarkStore } from '@/store/bookmarkStore';
 import { useReadingStore } from '@/store/readingStore';
+import { useAuthStore } from '@/store/authStore';
 import ScrollToTop from '@/components/ScrollToTop';
 import type { ApiErrorShape, PublicNewsItem } from '@/types';
 
 type NewsItem = PublicNewsItem;
 const NEWS_FILTER_CATEGORIES = CATEGORIES
   .filter((category) => !category.hidden);
-
-const JURIDIC_FIRST_FILTER_CATEGORIES = (() => {
-  const juridicCategory = NEWS_FILTER_CATEGORIES.find((category) => category.slug === 'juridic');
-  if (!juridicCategory) return NEWS_FILTER_CATEGORIES;
-  return [juridicCategory, ...NEWS_FILTER_CATEGORIES.filter((category) => category.slug !== 'juridic')];
-})();
 
 interface NewsQueryParams {
   page: number;
@@ -71,6 +66,8 @@ export default function NewsListClient() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [canScrollTabsLeft, setCanScrollTabsLeft] = useState(false);
   const [canScrollTabsRight, setCanScrollTabsRight] = useState(false);
+  const [orderedFilterCategories, setOrderedFilterCategories] = useState<CategoryDef[]>(NEWS_FILTER_CATEGORIES);
+  const { isAuthenticated } = useAuthStore();
 
   // Search state
   const [searchOpen, setSearchOpen] = useState(false);
@@ -96,6 +93,47 @@ export default function NewsListClient() {
       setTrendingNews(data.news || []);
     }).catch(() => {});
   }, []);
+
+  // Fetch admin order + user subscriptions for category tabs
+  useEffect(() => {
+    const loadCategoryOrder = async () => {
+      let adminOrder: string[] = [];
+      try {
+        adminOrder = await api.getCategoryOrder();
+      } catch {}
+
+      let userSlugs: Set<string> | null = null;
+      if (isAuthenticated) {
+        try {
+          const subs = await api.getSubscriptions();
+          const active = subs.filter(s => s.is_active).map(s => s.category_slug);
+          if (active.length > 0) {
+            userSlugs = new Set(active);
+          }
+        } catch {}
+      }
+
+      let cats = NEWS_FILTER_CATEGORIES;
+      if (userSlugs) {
+        // Keep "Toate" (empty slug) always, filter rest by user subscriptions
+        cats = NEWS_FILTER_CATEGORIES.filter(c => c.slug === '' || userSlugs!.has(c.slug));
+      }
+
+      if (adminOrder.length > 0) {
+        const orderMap = new Map(adminOrder.map((slug, i) => [slug, i]));
+        cats = [...cats].sort((a, b) => {
+          if (a.slug === '') return -1; // "Toate" always first in news page
+          if (b.slug === '') return 1;
+          const ia = orderMap.has(a.slug) ? (orderMap.get(a.slug) as number) : 999;
+          const ib = orderMap.has(b.slug) ? (orderMap.get(b.slug) as number) : 999;
+          return ia - ib;
+        });
+      }
+
+      setOrderedFilterCategories(cats);
+    };
+    loadCategoryOrder();
+  }, [isAuthenticated]);
 
   // Debounce search
   useEffect(() => {
@@ -344,7 +382,7 @@ export default function NewsListClient() {
               }}
               className="flex-1 flex min-w-0 items-center space-x-1 overflow-x-auto scrollbar-hide py-3 touch-pan-x scroll-smooth"
             >
-              {JURIDIC_FIRST_FILTER_CATEGORIES.map((cat) => (
+              {orderedFilterCategories.map((cat) => (
                 <button
                   key={cat.slug}
                   onClick={() => handleCategoryChange(cat.slug)}

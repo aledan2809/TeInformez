@@ -57,6 +57,15 @@ class Admin {
             'teinformez-juridic',
             [$this, 'render_juridic_queue']
         );
+
+        add_submenu_page(
+            'teinformez',
+            __('Ordine Categorii', 'teinformez'),
+            __('Ordine Categorii', 'teinformez'),
+            'manage_options',
+            'teinformez-category-order',
+            [$this, 'render_category_order']
+        );
     }
 
     /**
@@ -107,6 +116,38 @@ class Admin {
      */
     public function render_juridic_queue() {
         require_once TEINFORMEZ_PLUGIN_DIR . 'admin/views/juridic-queue.php';
+    }
+
+    /**
+     * Render category order page
+     */
+    public function render_category_order() {
+        if (isset($_POST['teinformez_catorder_nonce']) && wp_verify_nonce($_POST['teinformez_catorder_nonce'], 'teinformez_save_catorder')) {
+            $this->save_category_order();
+        }
+
+        require_once TEINFORMEZ_PLUGIN_DIR . 'admin/views/category-order.php';
+    }
+
+    /**
+     * Save category order
+     */
+    private function save_category_order() {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        $order_raw = isset($_POST['category_order']) ? sanitize_text_field($_POST['category_order']) : '';
+        $order = array_filter(array_map('trim', explode(',', $order_raw)));
+
+        update_option('teinformez_category_order', $order);
+
+        add_settings_error(
+            'teinformez_messages',
+            'teinformez_message',
+            __('Ordinea categoriilor a fost salvata.', 'teinformez'),
+            'updated'
+        );
     }
 
     /**

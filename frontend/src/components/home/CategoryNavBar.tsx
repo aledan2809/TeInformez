@@ -4,41 +4,64 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { CATEGORIES, CategoryDef } from '@/lib/categories';
+import { useAuthStore } from '@/store/authStore';
+import { api } from '@/lib/api';
 
 interface CategoryNavBarProps {
   activeSections?: string[];
 }
 
-const defaultNavCats = CATEGORIES.filter(c => c.slug !== '' && !c.hidden);
+const allNavCats = CATEGORIES.filter(c => c.slug !== '' && !c.hidden);
+
+function sortByAdminOrder(cats: CategoryDef[], order: string[]): CategoryDef[] {
+  if (!order.length) return cats;
+  const orderMap = new Map(order.map((slug, i) => [slug, i]));
+  return [...cats].sort((a, b) => {
+    const ia = orderMap.has(a.slug) ? (orderMap.get(a.slug) as number) : 999;
+    const ib = orderMap.has(b.slug) ? (orderMap.get(b.slug) as number) : 999;
+    return ia - ib;
+  });
+}
 
 export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [orderedCategories, setOrderedCategories] = useState<CategoryDef[]>(defaultNavCats);
+  const [orderedCategories, setOrderedCategories] = useState<CategoryDef[]>(allNavCats);
+  const { isAuthenticated } = useAuthStore();
 
-  // Fetch custom order from API (non-blocking, enhances default)
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_WP_API_URL || 'http://localhost/wp-json';
-    const secureUrl = typeof window !== 'undefined' && !apiUrl.includes('localhost')
-      ? apiUrl.replace(/^http:/, 'https:')
-      : apiUrl;
+    const loadCategories = async () => {
+      // 1. Fetch admin order
+      let adminOrder: string[] = [];
+      try {
+        adminOrder = await api.getCategoryOrder();
+      } catch {}
 
-    fetch(`${secureUrl}/teinformez/v1/settings/category-order`)
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data?.data?.order && Array.isArray(data.data.order) && data.data.order.length > 0) {
-          const orderMap = new Map(data.data.order.map((slug: string, i: number) => [slug, i]));
-          const sorted = [...defaultNavCats].sort((a, b) => {
-            const ia = orderMap.has(a.slug) ? (orderMap.get(a.slug) as number) : 999;
-            const ib = orderMap.has(b.slug) ? (orderMap.get(b.slug) as number) : 999;
-            return ia - ib;
-          });
-          setOrderedCategories(sorted);
-        }
-      })
-      .catch(() => {});
-  }, []);
+      // 2. For logged users, fetch their subscribed categories
+      let userCategorySlugs: Set<string> | null = null;
+      if (isAuthenticated) {
+        try {
+          const subs = await api.getSubscriptions();
+          const activeSlugs = subs.filter(s => s.is_active).map(s => s.category_slug);
+          if (activeSlugs.length > 0) {
+            userCategorySlugs = new Set(activeSlugs);
+          }
+        } catch {}
+      }
+
+      // 3. Filter then sort
+      let cats = allNavCats;
+      if (userCategorySlugs) {
+        cats = allNavCats.filter(c => userCategorySlugs!.has(c.slug));
+      }
+      cats = sortByAdminOrder(cats, adminOrder);
+
+      setOrderedCategories(cats);
+    };
+
+    loadCategories();
+  }, [isAuthenticated]);
 
   const updateScrollButtons = useCallback(() => {
     const el = scrollRef.current;
@@ -47,12 +70,8 @@ export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) 
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
   }, []);
 
-  // Re-check scroll after render and on resize
   useEffect(() => {
-    // Wait for DOM paint
-    requestAnimationFrame(() => {
-      updateScrollButtons();
-    });
+    requestAnimationFrame(() => updateScrollButtons());
     window.addEventListener('resize', updateScrollButtons);
     return () => window.removeEventListener('resize', updateScrollButtons);
   }, [orderedCategories, updateScrollButtons]);
@@ -66,7 +85,6 @@ export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) 
   return (
     <div className="bg-white dark:bg-gray-900 border-b sticky top-14 z-40">
       <div className="container-custom relative flex items-center">
-        {/* Left scroll button */}
         {canScrollLeft && (
           <button
             onClick={() => scroll('left')}
@@ -77,7 +95,6 @@ export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) 
           </button>
         )}
 
-        {/* Scrollable pills */}
         <div
           ref={scrollRef}
           onScroll={updateScrollButtons}
@@ -123,7 +140,6 @@ export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) 
           })}
         </div>
 
-        {/* Right scroll button */}
         {canScrollRight && (
           <button
             onClick={() => scroll('right')}

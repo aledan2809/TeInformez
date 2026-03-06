@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Bell, Settings, LogOut, Newspaper, BarChart3, Send, Bookmark, Bot, LayoutGrid } from 'lucide-react';
+import { Home, Bell, Settings, LogOut, Newspaper, BarChart3, Send, Bookmark, Bot } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -18,20 +17,9 @@ const MENU_ITEMS = [
   { href: '/dashboard/settings', icon: Settings, label: 'Setări' },
 ];
 
-const ADMIN_MENU_ITEMS = [
-  { href: '/dashboard/categories', icon: LayoutGrid, label: 'Ordine categorii' },
-];
-
 export default function Sidebar() {
   const pathname = usePathname();
-  const { user, logout, fetchUser } = useAuthStore();
-
-  // Refresh user data to ensure role is up-to-date
-  useEffect(() => {
-    if (user && !user.role) {
-      fetchUser();
-    }
-  }, [user, fetchUser]);
+  const { user, logout } = useAuthStore();
 
   const handleLogout = async () => {
     await logout();
@@ -87,34 +75,6 @@ export default function Sidebar() {
             </Link>
           );
         })}
-
-        {/* Admin section */}
-        {user?.role === 'administrator' && (
-          <>
-            <div className="pt-3 pb-1 px-4">
-              <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Admin</span>
-            </div>
-            {ADMIN_MENU_ITEMS.map((item) => {
-              const isActive = pathname === item.href;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    'flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors',
-                    isActive
-                      ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 font-medium'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-                  )}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span className="text-sm">{item.label}</span>
-                </Link>
-              );
-            })}
-          </>
-        )}
       </nav>
 
       {/* Theme toggle + Logout */}
