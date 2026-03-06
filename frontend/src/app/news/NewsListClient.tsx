@@ -14,7 +14,6 @@ import { api } from '@/lib/api';
 import { CATEGORIES, CategoryDef, CATEGORY_COLORS as SHARED_CATEGORY_COLORS } from '@/lib/categories';
 import { useBookmarkStore } from '@/store/bookmarkStore';
 import { useReadingStore } from '@/store/readingStore';
-import { useAuthStore } from '@/store/authStore';
 import ScrollToTop from '@/components/ScrollToTop';
 import type { ApiErrorShape, PublicNewsItem } from '@/types';
 
@@ -67,8 +66,6 @@ export default function NewsListClient() {
   const [canScrollTabsLeft, setCanScrollTabsLeft] = useState(false);
   const [canScrollTabsRight, setCanScrollTabsRight] = useState(false);
   const [orderedFilterCategories, setOrderedFilterCategories] = useState<CategoryDef[]>(NEWS_FILTER_CATEGORIES);
-  const { isAuthenticated } = useAuthStore();
-
   // Search state
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -94,7 +91,7 @@ export default function NewsListClient() {
     }).catch(() => {});
   }, []);
 
-  // Fetch admin order + user subscriptions for category tabs
+  // Fetch admin order for category tabs (show ALL categories for all users on /news)
   useEffect(() => {
     const loadCategoryOrder = async () => {
       let adminOrder: string[] = [];
@@ -102,22 +99,7 @@ export default function NewsListClient() {
         adminOrder = await api.getCategoryOrder();
       } catch {}
 
-      let userSlugs: Set<string> | null = null;
-      if (isAuthenticated) {
-        try {
-          const subs = await api.getSubscriptions();
-          const active = subs.filter(s => s.is_active).map(s => s.category_slug);
-          if (active.length > 0) {
-            userSlugs = new Set(active);
-          }
-        } catch {}
-      }
-
       let cats = NEWS_FILTER_CATEGORIES;
-      if (userSlugs) {
-        // Keep "Toate" (empty slug) and "juridic" (standalone page) always, filter rest by subscriptions
-        cats = NEWS_FILTER_CATEGORIES.filter(c => c.slug === '' || c.slug === 'juridic' || userSlugs!.has(c.slug));
-      }
 
       if (adminOrder.length > 0) {
         const orderMap = new Map(adminOrder.map((slug, i) => [slug, i]));
@@ -133,7 +115,7 @@ export default function NewsListClient() {
       setOrderedFilterCategories(cats);
     };
     loadCategoryOrder();
-  }, [isAuthenticated]);
+  }, []);
 
   // Debounce search
   useEffect(() => {
