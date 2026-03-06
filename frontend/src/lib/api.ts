@@ -82,10 +82,15 @@ class ApiClient {
         // Handle specific HTTP status codes
         switch (status) {
           case 401:
-            // Unauthorized - clear token and redirect to login
+            // Unauthorized - clear token
             Cookies.remove('teinformez_token');
-            if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-              window.location.href = '/login';
+            // Only redirect to login from protected pages (dashboard, onboarding)
+            if (typeof window !== 'undefined') {
+              const path = window.location.pathname;
+              const isProtectedPage = path.startsWith('/dashboard') || path.startsWith('/onboarding');
+              if (isProtectedPage) {
+                window.location.href = '/login';
+              }
             }
             error.message = message || 'Sesiune expirată. Te rugăm să te autentifici din nou.';
             break;
