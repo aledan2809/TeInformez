@@ -30,7 +30,7 @@ class Google_Analytics_Service {
             ['name' => 'screenPageViews'],
             ['name' => 'averageSessionDuration'],
             ['name' => 'eventCount'],
-            ['name' => 'pagesPerSession'],
+            ['name' => 'screenPageViewsPerSession'],
             ['name' => 'bounceRate'],
             ['name' => 'engagementRate'],
             ['name' => 'engagedSessions'],
