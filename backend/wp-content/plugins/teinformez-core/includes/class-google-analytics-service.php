@@ -145,7 +145,7 @@ class Google_Analytics_Service {
 
     private function run_report(string $start_date, string $end_date, array $metrics, array $dimensions = [], int $limit = 1) {
         if (!$this->is_configured()) {
-            return new \WP_Error('ga4_not_configured', 'Google Analytics nu este configurat.');
+            return new \WP_Error('ga4_not_configured', 'Google Analytics is not configured.');
         }
 
         $token = $this->get_access_token();
@@ -244,7 +244,7 @@ class Google_Analytics_Service {
         $signature = '';
         $ok = openssl_sign($signing_input, $signature, $this->private_key, OPENSSL_ALGO_SHA256);
         if (!$ok) {
-            return new \WP_Error('ga4_jwt_sign_failed', 'Nu am putut semna token-ul JWT pentru Google Analytics.');
+            return new \WP_Error('ga4_jwt_sign_failed', 'Failed to sign JWT token for Google Analytics.');
         }
 
         $segments[] = $this->base64_url_encode($signature);
