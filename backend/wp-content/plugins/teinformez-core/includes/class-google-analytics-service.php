@@ -30,6 +30,11 @@ class Google_Analytics_Service {
             ['name' => 'screenPageViews'],
             ['name' => 'averageSessionDuration'],
             ['name' => 'eventCount'],
+            ['name' => 'pagesPerSession'],
+            ['name' => 'bounceRate'],
+            ['name' => 'engagementRate'],
+            ['name' => 'engagedSessions'],
+            ['name' => 'eventCountPerSession'],
         ]);
 
         if (is_wp_error($response)) {
@@ -43,6 +48,11 @@ class Google_Analytics_Service {
         $page_views = isset($values[3]['value']) ? (int) $values[3]['value'] : 0;
         $avg_session_duration = isset($values[4]['value']) ? (float) $values[4]['value'] : 0.0;
         $events = isset($values[5]['value']) ? (int) $values[5]['value'] : 0;
+        $pages_per_session = isset($values[6]['value']) ? (float) $values[6]['value'] : 0.0;
+        $bounce_rate = isset($values[7]['value']) ? (float) $values[7]['value'] : 0.0;
+        $engagement_rate = isset($values[8]['value']) ? (float) $values[8]['value'] : 0.0;
+        $engaged_sessions = isset($values[9]['value']) ? (int) $values[9]['value'] : 0;
+        $events_per_session = isset($values[10]['value']) ? (float) $values[10]['value'] : 0.0;
 
         return [
             'sessions' => $sessions,
@@ -52,6 +62,11 @@ class Google_Analytics_Service {
             'page_views' => $page_views,
             'avg_session_duration' => (int) round($avg_session_duration),
             'event_count' => $events,
+            'pages_per_session' => round($pages_per_session, 2),
+            'bounce_rate' => round($bounce_rate * 100, 1),
+            'engagement_rate' => round($engagement_rate * 100, 1),
+            'engaged_sessions' => $engaged_sessions,
+            'events_per_session' => round($events_per_session, 2),
         ];
     }
 
