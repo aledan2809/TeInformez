@@ -33,7 +33,6 @@ class Google_Analytics_Service {
             ['name' => 'screenPageViewsPerSession'],
             ['name' => 'bounceRate'],
             ['name' => 'engagementRate'],
-            ['name' => 'engagedSessions'],
             ['name' => 'eventsPerSession'],
         ]);
 
@@ -51,8 +50,7 @@ class Google_Analytics_Service {
         $pages_per_session = isset($values[6]['value']) ? (float) $values[6]['value'] : 0.0;
         $bounce_rate = isset($values[7]['value']) ? (float) $values[7]['value'] : 0.0;
         $engagement_rate = isset($values[8]['value']) ? (float) $values[8]['value'] : 0.0;
-        $engaged_sessions = isset($values[9]['value']) ? (int) $values[9]['value'] : 0;
-        $events_per_session = isset($values[10]['value']) ? (float) $values[10]['value'] : 0.0;
+        $events_per_session = isset($values[9]['value']) ? (float) $values[9]['value'] : 0.0;
 
         return [
             'sessions' => $sessions,
@@ -65,7 +63,7 @@ class Google_Analytics_Service {
             'pages_per_session' => round($pages_per_session, 2),
             'bounce_rate' => round($bounce_rate * 100, 1),
             'engagement_rate' => round($engagement_rate * 100, 1),
-            'engaged_sessions' => $engaged_sessions,
+            'engaged_sessions' => $sessions > 0 ? (int) round($engagement_rate * $sessions) : 0,
             'events_per_session' => round($events_per_session, 2),
         ];
     }
