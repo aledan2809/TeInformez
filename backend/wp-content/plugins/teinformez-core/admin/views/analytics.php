@@ -233,10 +233,10 @@ if ($detail === 'newsletter_active_total' && $has_newsletter) {
     $rows = $wpdb->get_results($wpdb->prepare("SELECT created_at,user_id,news_id,status,channel FROM {$delivery_table} WHERE created_at BETWEEN %s AND %s AND status=%s ORDER BY created_at DESC LIMIT 200", $start_mysql, $end_mysql, $status_filter));
     foreach ($rows as $row) { $detail_rows[] = [(string) $row->created_at, (int) $row->user_id, (int) $row->news_id, (string) $row->status, (string) $row->channel]; }
 } elseif ($detail === 'active_subscriptions' && $has_subs) {
-    $detail_title = 'Active Personalization Subscriptions Details';
-    $detail_cols = ['ID', 'User ID', 'Category', 'Topic', 'Country'];
-    $rows = $wpdb->get_results("SELECT id,user_id,category_slug,topic_keyword,country_filter FROM {$subs_table} WHERE is_active=1 ORDER BY created_at DESC LIMIT 500");
-    foreach ($rows as $row) { $detail_rows[] = [(int) $row->id, (int) $row->user_id, (string) $row->category_slug, (string) $row->topic_keyword, (string) $row->country_filter]; }
+    $detail_title = 'Active Personalization Subscribers';
+    $detail_cols = ['User ID', 'Name', 'Email', 'Subscriptions', 'Categories', 'Since'];
+    $rows = $wpdb->get_results("SELECT s.user_id, u.display_name, u.user_email, COUNT(*) sub_count, GROUP_CONCAT(DISTINCT s.category_slug ORDER BY s.category_slug SEPARATOR ', ') categories, MIN(s.created_at) first_sub FROM {$subs_table} s LEFT JOIN {$wpdb->users} u ON u.ID = s.user_id WHERE s.is_active=1 GROUP BY s.user_id, u.display_name, u.user_email ORDER BY sub_count DESC, first_sub DESC LIMIT 200");
+    foreach ($rows as $row) { $detail_rows[] = [(int) $row->user_id, (string) ($row->display_name ?: '—'), (string) ($row->user_email ?: '—'), (int) $row->sub_count, (string) $row->categories, (string) $row->first_sub]; }
 }
 
 $return_rate = $stats['unique_visitors'] > 0 ? round(($stats['returning_visitors'] / $stats['unique_visitors']) * 100, 1) : 0;
