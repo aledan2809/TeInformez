@@ -34,7 +34,7 @@ class Google_Analytics_Service {
             ['name' => 'bounceRate'],
             ['name' => 'engagementRate'],
             ['name' => 'engagedSessions'],
-            ['name' => 'eventCountPerSession'],
+            ['name' => 'eventsPerSession'],
         ]);
 
         if (is_wp_error($response)) {
