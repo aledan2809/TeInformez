@@ -324,6 +324,15 @@ $ga_metric_values = [
 ];
 
 $metric_definitions = [
+    // --- Personalization Users (red) ---
+    ['key' => 'active_subscriptions', 'label' => 'Personalization Users', 'format' => 'int', 'detail' => 'active_subscriptions', 'border' => '#d63638',
+        'info' => 'Users who set up personalized topic/category filters for their news feed.|Count of active subscription records|29 users have active topic filters'],
+    // --- Email Subscribers (blue) ---
+    ['key' => 'newsletter_active_total', 'label' => 'Email Subscribers (Total)', 'format' => 'int', 'detail' => 'newsletter_active_total', 'new_tab' => true, 'border' => '#2271b1',
+        'info' => 'Total active newsletter subscribers right now, regardless of date range.|Count where status=active in subscriber table|450 total active subscribers (all-time, not filtered by date)'],
+    ['key' => 'newsletter_new', 'label' => 'New Email Subscribers', 'format' => 'int', 'detail' => 'newsletter_new', 'new_tab' => true, 'border' => '#2271b1',
+        'info' => 'People who subscribed to your newsletter during this period.|Count from subscriber table where subscribed_at is in date range|12 new signups this week = 12'],
+    // --- Traffic & Engagement ---
     ['key' => 'sessions', 'label' => 'Sessions', 'format' => 'int', 'detail' => $tab === 'google' ? 'ga_top_pages' : 'unique_visits',
         'info' => 'How many visits your site received. One person opening the site twice counts as 2 sessions.|Count of distinct session IDs|If 6 different browsing sessions happened today, Sessions = 6'],
     ['key' => 'active_users', 'label' => 'Active Users', 'format' => 'int', 'detail' => $tab === 'google' ? 'ga_top_pages' : 'unique_visitors',
@@ -356,8 +365,6 @@ $metric_definitions = [
         'info' => 'Average actions per person. Shows how actively each visitor interacts.|Event Count / Active Users|32 events / 6 users = 5.33'],
     ['key' => 'article_ctr', 'label' => 'Article CTR', 'format' => 'percent', 'detail' => 'article_clicks',
         'info' => 'Click-through rate: how often a viewed article gets clicked for full read.|(Article Clicks / Page Views) * 100|2 clicks on 14 viewed articles = 14.3%'],
-    ['key' => 'newsletter_new', 'label' => 'New Subscribers', 'format' => 'int', 'detail' => 'newsletter_new', 'new_tab' => true,
-        'info' => 'People who subscribed to your newsletter during this period.|Count from subscriber table where subscribed_at is in date range|12 new signups this week = 12'],
     ['key' => 'newsletter_tracked', 'label' => 'Subscriber Track Events', 'format' => 'int', 'detail' => 'newsletter_tracked',
         'info' => 'Subscribe button clicks tracked. Can be higher than actual subscribers if someone clicks multiple times.|Count of newsletter_subscribe events|1 person clicking subscribe 3 times = 3 events but 1 subscriber'],
     ['key' => 'delivery_sent', 'label' => 'Delivery Sent', 'format' => 'int', 'detail' => 'delivery_sent',
@@ -366,10 +373,6 @@ $metric_definitions = [
         'info' => 'How many recipients opened the email. Tracked via invisible pixel.|Count of delivery records with status=opened|567 sent, 142 opened = 142 (25% open rate)'],
     ['key' => 'delivery_clicked', 'label' => 'Delivery Clicked', 'format' => 'int', 'detail' => 'delivery_clicked',
         'info' => 'How many recipients clicked a link inside the email.|Count of delivery records with status=clicked|142 opened, 35 clicked a link = 35'],
-    ['key' => 'active_subscriptions', 'label' => 'Active Personalization Subscriptions', 'format' => 'int', 'detail' => 'active_subscriptions',
-        'info' => 'Users who set up personalized topic/category filters for their news feed.|Count of active subscription records|29 users have active topic filters'],
-    ['key' => 'newsletter_active_total', 'label' => 'Active Subscribers (Total)', 'format' => 'int', 'detail' => 'newsletter_active_total', 'new_tab' => true,
-        'info' => 'Total active newsletter subscribers right now, regardless of date range.|Count where status=active in subscriber table|450 total active subscribers (all-time, not filtered by date)'],
 ];
 
 $format_metric_value = static function($value, string $format): string {
@@ -425,7 +428,13 @@ $format_metric_value = static function($value, string $format): string {
             $card_url = $detail_key ? $build_url(['detail' => $detail_key]) : '#';
             $new_tab = !empty($metric['new_tab']);
             $has_detail = (bool) $detail_key;
-            $card_style = 'text-decoration:none;color:inherit;background:#fff;border:1px solid #dcdcde;border-radius:6px;padding:14px;display:block;position:relative;';
+            $border_color = $metric['border'] ?? '';
+            $card_style = 'text-decoration:none;color:inherit;background:#fff;border-radius:6px;padding:14px;display:block;position:relative;';
+            if ($border_color !== '') {
+                $card_style .= 'border:3px solid ' . $border_color . ';';
+            } else {
+                $card_style .= 'border:1px solid #dcdcde;';
+            }
             if (!$has_detail) $card_style .= 'pointer-events:none;';
             $info_parts = isset($metric['info']) ? explode('|', $metric['info']) : [];
         ?>
