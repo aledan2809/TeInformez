@@ -150,8 +150,12 @@ if ($has_newsletter) {
 }
 
 if ($has_subs) {
-    $stats['active_subscriptions'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$subs_table} WHERE is_active=1");
+    $stats['active_subscriptions'] = (int) $wpdb->get_var("SELECT COUNT(DISTINCT user_id) FROM {$subs_table} WHERE is_active=1");
+    $stats['active_subscription_count'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$subs_table} WHERE is_active=1");
 }
+
+// WordPress subscribers (users with 'subscriber' role) - the real user count
+$stats['wp_subscribers'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->users} u INNER JOIN {$wpdb->usermeta} m ON m.user_id = u.ID WHERE m.meta_key = '{$wpdb->prefix}capabilities' AND m.meta_value LIKE '%subscriber%'");
 
 $top_articles = [];
 if ($has_events && $has_news) {
@@ -237,6 +241,11 @@ if ($detail === 'newsletter_active_total' && $has_newsletter) {
     $detail_cols = ['User ID', 'Name', 'Email', 'Subscriptions', 'Categories', 'Since'];
     $rows = $wpdb->get_results("SELECT s.user_id, u.display_name, u.user_email, COUNT(*) sub_count, GROUP_CONCAT(DISTINCT s.category_slug ORDER BY s.category_slug SEPARATOR ', ') categories, MIN(s.created_at) first_sub FROM {$subs_table} s LEFT JOIN {$wpdb->users} u ON u.ID = s.user_id WHERE s.is_active=1 GROUP BY s.user_id, u.display_name, u.user_email ORDER BY sub_count DESC, first_sub DESC LIMIT 200");
     foreach ($rows as $row) { $detail_rows[] = [(int) $row->user_id, (string) ($row->display_name ?: '—'), (string) ($row->user_email ?: '—'), (int) $row->sub_count, (string) $row->categories, (string) $row->first_sub]; }
+} elseif ($detail === 'wp_subscribers') {
+    $detail_title = 'WordPress Subscribers (Registered Users)';
+    $detail_cols = ['User ID', 'Name', 'Email', 'Registered'];
+    $rows = $wpdb->get_results("SELECT u.ID, u.display_name, u.user_email, u.user_registered FROM {$wpdb->users} u INNER JOIN {$wpdb->usermeta} m ON m.user_id = u.ID WHERE m.meta_key = '{$wpdb->prefix}capabilities' AND m.meta_value LIKE '%subscriber%' ORDER BY u.user_registered DESC LIMIT 200");
+    foreach ($rows as $row) { $detail_rows[] = [(int) $row->ID, (string) ($row->display_name ?: '—'), (string) $row->user_email, (string) $row->user_registered]; }
 }
 
 $return_rate = $stats['unique_visitors'] > 0 ? round(($stats['returning_visitors'] / $stats['unique_visitors']) * 100, 1) : 0;
@@ -294,7 +303,9 @@ $custom_metric_values = [
     'delivery_opened' => $stats['delivery_opened'],
     'delivery_clicked' => $stats['delivery_clicked'],
     'active_subscriptions' => $stats['active_subscriptions'],
+    'active_subscription_count' => $stats['active_subscription_count'] ?? 0,
     'newsletter_active_total' => $stats['newsletter_active_total'],
+    'wp_subscribers' => $stats['wp_subscribers'],
 ];
 
 $ga_metric_values = [
@@ -320,13 +331,17 @@ $ga_metric_values = [
     'delivery_opened' => $stats['delivery_opened'],
     'delivery_clicked' => $stats['delivery_clicked'],
     'active_subscriptions' => $stats['active_subscriptions'],
+    'active_subscription_count' => $stats['active_subscription_count'] ?? 0,
     'newsletter_active_total' => $stats['newsletter_active_total'],
+    'wp_subscribers' => $stats['wp_subscribers'],
 ];
 
 $metric_definitions = [
     // --- Personalization Users (red) ---
     ['key' => 'active_subscriptions', 'label' => 'Personalization Users', 'format' => 'int', 'detail' => 'active_subscriptions', 'border' => '#d63638',
-        'info' => 'Users who set up personalized topic/category filters for their news feed.|Count of active subscription records|29 users have active topic filters'],
+        'info' => 'Unique users who set up personalized topic/category filters.|COUNT(DISTINCT user_id) from subscriptions where active|3 users with 29 total subscriptions = 3 unique users'],
+    ['key' => 'wp_subscribers', 'label' => 'WordPress Subscribers', 'format' => 'int', 'detail' => 'wp_subscribers', 'border' => '#d63638',
+        'info' => 'WordPress users with the Subscriber role (registered accounts).|COUNT from wp_users with subscriber capability|Shows users registered on the site with subscriber role'],
     // --- Email Subscribers (blue) ---
     ['key' => 'newsletter_active_total', 'label' => 'Email Subscribers (Total)', 'format' => 'int', 'detail' => 'newsletter_active_total', 'new_tab' => true, 'border' => '#2271b1',
         'info' => 'Total active newsletter subscribers right now, regardless of date range.|Count where status=active in subscriber table|450 total active subscribers (all-time, not filtered by date)'],
