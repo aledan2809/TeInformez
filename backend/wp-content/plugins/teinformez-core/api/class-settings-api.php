@@ -40,7 +40,8 @@ class Settings_API extends REST_API {
 
     public function get_category_order($request) {
         $order = get_option('teinformez_category_order', []);
-        return $this->success(['order' => $order]);
+        $hidden = get_option('teinformez_hidden_categories', []);
+        return $this->success(['order' => $order, 'hidden' => $hidden]);
     }
 
     public function get_delivery_health($request) {
@@ -61,7 +62,15 @@ class Settings_API extends REST_API {
         // Sanitize slugs
         $order = array_map('sanitize_title', $order);
 
+        // Handle hidden categories (optional field)
+        if (isset($body['hidden']) && is_array($body['hidden'])) {
+            $hidden = array_map('sanitize_title', $body['hidden']);
+            update_option('teinformez_hidden_categories', $hidden);
+        }
+
         update_option('teinformez_category_order', $order);
-        return $this->success(['order' => $order], 'Category order updated');
+
+        $hidden = get_option('teinformez_hidden_categories', []);
+        return $this->success(['order' => $order, 'hidden' => $hidden], 'Category settings updated');
     }
 }

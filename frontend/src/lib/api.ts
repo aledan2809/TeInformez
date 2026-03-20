@@ -444,14 +444,14 @@ class ApiClient {
   }
 
   // Settings endpoints
-  async getCategoryOrder(): Promise<string[]> {
-    const response = await this.client.get<APIResponse<{ order: string[] }>>('/settings/category-order');
-    return response.data.data!.order;
+  async getCategoryOrder(): Promise<{ order: string[]; hidden: string[] }> {
+    const response = await this.client.get<APIResponse<{ order: string[]; hidden: string[] }>>('/settings/category-order');
+    return response.data.data!;
   }
 
-  async updateCategoryOrder(order: string[]): Promise<string[]> {
-    const response = await this.client.post<APIResponse<{ order: string[] }>>('/settings/category-order', { order });
-    return response.data.data!.order;
+  async updateCategoryOrder(order: string[], hidden?: string[]): Promise<{ order: string[]; hidden: string[] }> {
+    const response = await this.client.post<APIResponse<{ order: string[]; hidden: string[] }>>('/settings/category-order', { order, hidden });
+    return response.data.data!;
   }
 }
 

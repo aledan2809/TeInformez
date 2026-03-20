@@ -96,11 +96,16 @@ export default function NewsListClient() {
   useEffect(() => {
     const loadCategoryOrder = async () => {
       let adminOrder: string[] = [];
+      let hiddenCategories: string[] = [];
       try {
-        adminOrder = await api.getCategoryOrder();
+        const settings = await api.getCategoryOrder();
+        adminOrder = settings.order;
+        hiddenCategories = settings.hidden || [];
       } catch {}
 
-      let cats = NEWS_FILTER_CATEGORIES;
+      // Filter out hidden categories (keep "Toate" which has slug '')
+      const hiddenSet = new Set(hiddenCategories);
+      let cats = NEWS_FILTER_CATEGORIES.filter(c => c.slug === '' || !hiddenSet.has(c.slug));
 
       if (adminOrder.length > 0) {
         const orderMap = new Map(adminOrder.map((slug, i) => [slug, i]));

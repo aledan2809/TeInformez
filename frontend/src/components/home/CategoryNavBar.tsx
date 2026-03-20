@@ -34,8 +34,11 @@ export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) 
     const loadCategories = async () => {
       // 1. Fetch admin order
       let adminOrder: string[] = [];
+      let hiddenCategories: string[] = [];
       try {
-        adminOrder = await api.getCategoryOrder();
+        const settings = await api.getCategoryOrder();
+        adminOrder = settings.order;
+        hiddenCategories = settings.hidden || [];
       } catch {}
 
       // 2. For logged users, fetch their subscribed categories
@@ -50,10 +53,11 @@ export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) 
         } catch {}
       }
 
-      // 3. Filter then sort (always keep "juridic" — it's a standalone page, not a news category)
-      let cats = allNavCats;
+      // 3. Filter hidden categories, then user subs, then sort
+      const hiddenSet = new Set(hiddenCategories);
+      let cats = allNavCats.filter(c => !hiddenSet.has(c.slug));
       if (userCategorySlugs) {
-        cats = allNavCats.filter(c => c.slug === 'juridic' || userCategorySlugs!.has(c.slug));
+        cats = cats.filter(c => c.slug === 'juridic' || userCategorySlugs!.has(c.slug));
       }
       cats = sortByAdminOrder(cats, adminOrder);
 
