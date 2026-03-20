@@ -2,6 +2,7 @@
 if (!defined('ABSPATH')) exit;
 
 $saved_order = get_option('teinformez_category_order', []);
+$hidden_categories = get_option('teinformez_hidden_categories', []);
 
 // Default categories (same as frontend)
 $all_categories = [
@@ -35,7 +36,7 @@ if (!empty($saved_order)) {
 ?>
 <div class="wrap">
     <h1>Ordine Categorii</h1>
-    <p>Trage categoriile pentru a schimba ordinea in care apar pe site pentru toti vizitatorii.</p>
+    <p>Trage categoriile pentru a schimba ordinea. Debifează <strong>Vizibil</strong> pentru a ascunde o categorie de pe site.</p>
 
     <?php settings_errors('teinformez_messages'); ?>
 
@@ -43,32 +44,48 @@ if (!empty($saved_order)) {
         <?php wp_nonce_field('teinformez_save_catorder', 'teinformez_catorder_nonce'); ?>
         <input type="hidden" name="category_order" id="category_order_input" value="<?php echo esc_attr(implode(',', array_column($all_categories, 'slug'))); ?>">
 
-        <table class="wp-list-table widefat fixed striped" style="max-width: 600px;">
+        <table class="wp-list-table widefat fixed striped" style="max-width: 700px;">
             <thead>
                 <tr>
                     <th style="width: 40px;">#</th>
                     <th style="width: 40px;"></th>
                     <th>Categorie</th>
                     <th style="width: 100px;">Slug</th>
+                    <th style="width: 80px; text-align: center;">Vizibil</th>
                 </tr>
             </thead>
             <tbody id="sortable-categories">
-                <?php foreach ($all_categories as $i => $cat): ?>
-                <tr data-slug="<?php echo esc_attr($cat['slug']); ?>" style="cursor: grab;">
+                <?php foreach ($all_categories as $i => $cat):
+                    $is_hidden = in_array($cat['slug'], $hidden_categories);
+                ?>
+                <tr data-slug="<?php echo esc_attr($cat['slug']); ?>" style="cursor: grab;<?php echo $is_hidden ? ' opacity: 0.5;' : ''; ?>">
                     <td class="row-number" style="color: #999; font-weight: bold;"><?php echo $i + 1; ?></td>
                     <td style="cursor: grab; text-align: center; font-size: 16px;">&#x2630;</td>
                     <td>
                         <span style="font-size: 18px; margin-right: 6px;"><?php echo $cat['emoji']; ?></span>
-                        <strong><?php echo $cat['label']; ?></strong>
+                        <strong class="cat-label"><?php echo $cat['label']; ?></strong>
                     </td>
                     <td><code style="font-size: 12px;"><?php echo esc_html($cat['slug']); ?></code></td>
+                    <td style="text-align: center;">
+                        <input
+                            type="checkbox"
+                            name="visible_categories[]"
+                            value="<?php echo esc_attr($cat['slug']); ?>"
+                            class="visibility-toggle"
+                            <?php echo !$is_hidden ? 'checked' : ''; ?>
+                            style="width: 18px; height: 18px; cursor: pointer;"
+                        >
+                    </td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
 
+        <!-- Hidden inputs for hidden categories (populated by JS) -->
+        <div id="hidden-categories-container"></div>
+
         <p class="submit">
-            <input type="submit" name="submit" class="button button-primary" value="Salveaz&#259; ordinea">
+            <input type="submit" name="submit" class="button button-primary" value="Salveaz&#259;">
         </p>
     </form>
 </div>
@@ -76,7 +93,8 @@ if (!empty($saved_order)) {
 <script>
 (function() {
     var tbody = document.getElementById('sortable-categories');
-    var input = document.getElementById('category_order_input');
+    var orderInput = document.getElementById('category_order_input');
+    var hiddenContainer = document.getElementById('hidden-categories-container');
     var dragRow = null;
 
     function updateOrder() {
@@ -86,9 +104,36 @@ if (!empty($saved_order)) {
             slugs.push(row.getAttribute('data-slug'));
             row.querySelector('.row-number').textContent = (i + 1);
         });
-        input.value = slugs.join(',');
+        orderInput.value = slugs.join(',');
     }
 
+    function updateHiddenInputs() {
+        hiddenContainer.innerHTML = '';
+        var checkboxes = tbody.querySelectorAll('.visibility-toggle');
+        checkboxes.forEach(function(cb) {
+            if (!cb.checked) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'hidden_categories[]';
+                input.value = cb.value;
+                hiddenContainer.appendChild(input);
+            }
+        });
+    }
+
+    // Toggle row opacity on checkbox change
+    tbody.addEventListener('change', function(e) {
+        if (e.target.classList.contains('visibility-toggle')) {
+            var row = e.target.closest('tr');
+            row.style.opacity = e.target.checked ? '1' : '0.5';
+            updateHiddenInputs();
+        }
+    });
+
+    // Initialize hidden inputs
+    updateHiddenInputs();
+
+    // Drag and drop
     tbody.addEventListener('dragstart', function(e) {
         dragRow = e.target.closest('tr');
         if (dragRow) {
@@ -114,7 +159,9 @@ if (!empty($saved_order)) {
 
     tbody.addEventListener('dragend', function(e) {
         if (dragRow) {
-            dragRow.style.opacity = '1';
+            // Restore opacity based on visibility checkbox
+            var cb = dragRow.querySelector('.visibility-toggle');
+            dragRow.style.opacity = cb && cb.checked ? '1' : '0.5';
             dragRow = null;
             updateOrder();
         }
@@ -134,5 +181,8 @@ if (!empty($saved_order)) {
 }
 #sortable-categories tr[draggable] {
     user-select: none;
+}
+#sortable-categories .visibility-toggle {
+    accent-color: #2271b1;
 }
 </style>

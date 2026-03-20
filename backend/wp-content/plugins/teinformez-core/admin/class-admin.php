@@ -156,12 +156,16 @@ class Admin {
         $order_raw = isset($_POST['category_order']) ? sanitize_text_field($_POST['category_order']) : '';
         $order = array_filter(array_map('trim', explode(',', $order_raw)));
 
+        // Save hidden categories
+        $hidden = isset($_POST['hidden_categories']) ? array_map('sanitize_text_field', $_POST['hidden_categories']) : [];
+        update_option('teinformez_hidden_categories', $hidden);
+
         update_option('teinformez_category_order', $order);
 
         add_settings_error(
             'teinformez_messages',
             'teinformez_message',
-            __('Ordinea categoriilor a fost salvata.', 'teinformez'),
+            __('Setarile categoriilor au fost salvate.', 'teinformez'),
             'updated'
         );
     }
