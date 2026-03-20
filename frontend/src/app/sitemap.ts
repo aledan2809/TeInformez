@@ -2,44 +2,68 @@ import type { MetadataRoute } from 'next';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://teinformez.eu';
 const WP_API_URL = process.env.NEXT_PUBLIC_WP_API_URL || 'http://localhost/wp-json';
+const API_BASE = `${WP_API_URL}/teinformez/v1`;
 
-interface PublishedNewsItem {
+interface NewsApiItem {
   id: number;
   published_at: string;
 }
 
-interface PublishedNewsApiResponse {
+interface NewsApiResponse {
   data?: {
-    news?: PublishedNewsItem[];
+    news?: NewsApiItem[];
   };
 }
 
-async function getPublishedNewsIds(): Promise<{ id: number; published_at: string }[]> {
+interface JuridicApiItem {
+  id: number;
+  published_at: string;
+}
+
+interface JuridicApiResponse {
+  data?: {
+    items?: JuridicApiItem[];
+  };
+}
+
+async function fetchPublishedNews(): Promise<NewsApiItem[]> {
   try {
-    const res = await fetch(`${WP_API_URL}/teinformez/v1/news?per_page=50&page=1`, {
+    const res = await fetch(`${API_BASE}/news?per_page=50&page=1`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return [];
-    const json = (await res.json()) as PublishedNewsApiResponse;
-    const news = json.data?.news || [];
-    return news.map((item) => ({
-      id: item.id,
-      published_at: item.published_at,
-    }));
+    const json = (await res.json()) as NewsApiResponse;
+    return json.data?.news ?? [];
+  } catch {
+    return [];
+  }
+}
+
+async function fetchJuridicItems(): Promise<JuridicApiItem[]> {
+  try {
+    const res = await fetch(`${API_BASE}/juridic?per_page=50&page=1`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as JuridicApiResponse;
+    return json.data?.items ?? [];
   } catch {
     return [];
   }
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const newsItems = await getPublishedNewsIds();
+  const [newsItems, juridicItems] = await Promise.all([
+    fetchPublishedNews(),
+    fetchJuridicItems(),
+  ]);
 
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: SITE_URL,
       lastModified: new Date(),
       changeFrequency: 'daily',
-      priority: 1,
+      priority: 1.0,
     },
     {
       url: `${SITE_URL}/news`,
@@ -48,10 +72,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
+      url: `${SITE_URL}/juridic`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.8,
+    },
+    {
       url: `${SITE_URL}/register`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
-      priority: 0.7,
+      priority: 0.5,
     },
     {
       url: `${SITE_URL}/login`,
@@ -62,19 +92,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: `${SITE_URL}/privacy`,
       lastModified: new Date(),
-      changeFrequency: 'yearly',
+      changeFrequency: 'monthly',
       priority: 0.3,
     },
     {
       url: `${SITE_URL}/terms`,
       lastModified: new Date(),
-      changeFrequency: 'yearly',
+      changeFrequency: 'monthly',
       priority: 0.3,
     },
     {
       url: `${SITE_URL}/gdpr`,
       lastModified: new Date(),
-      changeFrequency: 'yearly',
+      changeFrequency: 'monthly',
       priority: 0.3,
     },
   ];
@@ -83,8 +113,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${SITE_URL}/news/${item.id}`,
     lastModified: new Date(item.published_at),
     changeFrequency: 'weekly' as const,
-    priority: 0.8,
+    priority: 0.7,
   }));
 
-  return [...staticPages, ...newsPages];
+  const juridicPages: MetadataRoute.Sitemap = juridicItems.map((item) => ({
+    url: `${SITE_URL}/juridic/${item.id}`,
+    lastModified: new Date(item.published_at),
+    changeFrequency: 'weekly' as const,
+    priority: 0.6,
+  }));
+
+  return [...staticPages, ...newsPages, ...juridicPages];
 }

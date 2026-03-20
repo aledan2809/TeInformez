@@ -1,5 +1,5 @@
 # Strategy — TeInformez
-Last Updated: 2026-02-28
+Last Updated: 2026-03-20
 
 ## Vision
 AI-powered personalized news platform for the Romanian market. Aggregates news from RSS feeds, processes with OpenAI (translate, summarize, categorize), delivers personalized digests to users via email and social channels.
@@ -20,17 +20,17 @@ Cloneable architecture: configurable language/country/sources for replication to
 
 ### Out of Scope (for now)
 - Mobile app (future)
-- Social media posting to FB/Twitter (Phase C+ future)
 - Web scraping (only RSS for now)
 - Paid subscriptions / monetization
 - Referral system
 - Multi-language frontend UI (backend supports it, UI is Romanian only)
 
 ## Key Goals
-- [x] Phase A: User registration, onboarding, dashboard
-- [x] Phase B: News aggregation, AI processing, admin review, news pages
-- [ ] Phase C: Email delivery system (scheduled digests)
-- [ ] Phase D: Analytics, optimization, launch
+- [x] Phase A: User registration, onboarding, dashboard — COMPLETE
+- [x] Phase B: News aggregation, AI processing, admin review, news pages — COMPLETE
+- [x] Phase C: Email delivery system (scheduled digests, Brevo + wp_mail fallback) — COMPLETE
+- [~] Phase D: Analytics done (view tracking, admin analytics, SEO), optimization pending — PARTIAL
+- [x] Phase E: Juridic section, Telegram integration, social posting — COMPLETE
 
 ## Constraints
 - **Technical**: WordPress backend (PHP 8.3 + MariaDB), Next.js frontend (Vercel)
@@ -42,6 +42,6 @@ Cloneable architecture: configurable language/country/sources for replication to
 ## Architecture
 - **Frontend**: Next.js on Vercel (`teinformez.vercel.app`)
 - **Backend**: WordPress + `teinformez-core` plugin on VPS2
-- **DB**: MariaDB on VPS2 (5 custom tables)
-- **API**: 23 REST endpoints under `/wp-json/teinformez/v1/`
+- **DB**: MariaDB on VPS2 (9 custom tables)
+- **API**: 53 REST endpoints under `/wp-json/teinformez/v1/`
 - **Deploy**: `deploy.sh teinformez` on VPS2 (git pull + PHP-FPM restart)

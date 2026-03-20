@@ -70,10 +70,24 @@ class News_API extends REST_API {
             'permission_callback' => '__return_true'
         ]);
 
-        // Newsletter subscribe (lightweight, no account needed)
+        // Newsletter subscribe (double opt-in, no account needed)
         register_rest_route($this->namespace, '/newsletter/subscribe', [
             'methods' => 'POST',
             'callback' => [$this, 'newsletter_subscribe'],
+            'permission_callback' => '__return_true'
+        ]);
+
+        // Newsletter confirm (double opt-in step 2)
+        register_rest_route($this->namespace, '/newsletter/confirm', [
+            'methods' => 'GET',
+            'callback' => [$this, 'newsletter_confirm'],
+            'permission_callback' => '__return_true'
+        ]);
+
+        // Newsletter unsubscribe
+        register_rest_route($this->namespace, '/newsletter/unsubscribe', [
+            'methods' => 'GET',
+            'callback' => [$this, 'newsletter_unsubscribe'],
             'permission_callback' => '__return_true'
         ]);
 
@@ -500,7 +514,10 @@ class News_API extends REST_API {
     }
 
     /**
-     * Newsletter subscribe (lightweight, no WP account needed)
+     * Newsletter subscribe (double opt-in)
+     *
+     * Step 1: Store email + token with confirmed=0, send confirmation email.
+     * Step 2: User clicks link -> /newsletter/confirm?token=XXX
      */
     public function newsletter_subscribe($request) {
         global $wpdb;
@@ -509,6 +526,7 @@ class News_API extends REST_API {
         $gdpr = (bool) $request->get_param('gdpr_consent');
         $visitor_id = sanitize_text_field((string) $request->get_param('visitor_id'));
         $session_id = sanitize_text_field((string) $request->get_param('session_id'));
+        $ip_address = $request->get_header('x-forwarded-for') ?: ($_SERVER['REMOTE_ADDR'] ?? '');
 
         if (empty($email) || !is_email($email)) {
             return $this->error('Adresa de email nu este validă.', 'invalid_email', 400);
@@ -518,37 +536,117 @@ class News_API extends REST_API {
             return $this->error('Consimțământul GDPR este obligatoriu.', 'gdpr_required', 400);
         }
 
-        $table = $wpdb->prefix . 'teinformez_newsletter_subscribers';
+        $table = $wpdb->prefix . 'teinformez_newsletter';
 
-        // Check if already subscribed
+        // Check if already exists
         $existing = $wpdb->get_row($wpdb->prepare(
-            "SELECT id, status FROM {$table} WHERE email = %s", $email
+            "SELECT id, confirmed, unsubscribed_at, token FROM {$table} WHERE email = %s", $email
         ));
 
         if ($existing) {
-            if ($existing->status === 'active') {
+            // Already confirmed and active
+            if ($existing->confirmed && empty($existing->unsubscribed_at)) {
                 $this->track_newsletter_analytics_event($visitor_id, $session_id, $email);
                 return $this->success(['message' => 'Ești deja abonat!']);
             }
-            // Re-activate
+
+            // Re-subscribe: generate new token, reset confirmation
+            $token = bin2hex(random_bytes(32));
             $wpdb->update($table, [
-                'status' => 'active',
-                'gdpr_consent' => 1,
-                'gdpr_consent_date' => current_time('mysql'),
+                'token' => $token,
+                'confirmed' => 0,
+                'confirmed_at' => null,
                 'unsubscribed_at' => null,
+                'subscribed_at' => current_time('mysql'),
+                'ip_address' => sanitize_text_field($ip_address),
             ], ['id' => $existing->id]);
         } else {
+            // New subscriber
+            $token = bin2hex(random_bytes(32));
             $wpdb->insert($table, [
                 'email' => $email,
-                'gdpr_consent' => 1,
-                'gdpr_consent_date' => current_time('mysql'),
-                'status' => 'active',
+                'token' => $token,
+                'confirmed' => 0,
+                'subscribed_at' => current_time('mysql'),
+                'ip_address' => sanitize_text_field($ip_address),
             ]);
         }
 
+        // Send confirmation email
+        $email_sender = new \TeInformez\Email_Sender();
+        $confirm_link = \TeInformez\Config::FRONTEND_URL . '/newsletter/confirm?token=' . urlencode($token);
+        $email_sender->send_newsletter_confirmation($email, $confirm_link);
+
         $this->track_newsletter_analytics_event($visitor_id, $session_id, $email);
 
-        return $this->success(['message' => 'Te-ai abonat cu succes!']);
+        return $this->success(['message' => 'Verifică email-ul pentru confirmare.']);
+    }
+
+    /**
+     * Newsletter confirm (double opt-in step 2)
+     */
+    public function newsletter_confirm($request) {
+        global $wpdb;
+
+        $token = sanitize_text_field($request->get_param('token'));
+
+        if (empty($token)) {
+            return $this->error('Token-ul de confirmare lipsește.', 'missing_token', 400);
+        }
+
+        $table = $wpdb->prefix . 'teinformez_newsletter';
+
+        $subscriber = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, email, confirmed FROM {$table} WHERE token = %s", $token
+        ));
+
+        if (!$subscriber) {
+            return $this->error('Link-ul de confirmare nu este valid.', 'invalid_token', 400);
+        }
+
+        if ($subscriber->confirmed) {
+            return $this->success(['message' => 'Abonamentul tău este deja confirmat!']);
+        }
+
+        $wpdb->update($table, [
+            'confirmed' => 1,
+            'confirmed_at' => current_time('mysql'),
+        ], ['id' => $subscriber->id]);
+
+        return $this->success(['message' => 'Abonamentul tău a fost confirmat cu succes! Mulțumim!']);
+    }
+
+    /**
+     * Newsletter unsubscribe
+     */
+    public function newsletter_unsubscribe($request) {
+        global $wpdb;
+
+        $token = sanitize_text_field($request->get_param('token'));
+
+        if (empty($token)) {
+            return $this->error('Token-ul de dezabonare lipsește.', 'missing_token', 400);
+        }
+
+        $table = $wpdb->prefix . 'teinformez_newsletter';
+
+        $subscriber = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, email, unsubscribed_at FROM {$table} WHERE token = %s", $token
+        ));
+
+        if (!$subscriber) {
+            return $this->error('Link-ul de dezabonare nu este valid.', 'invalid_token', 400);
+        }
+
+        if (!empty($subscriber->unsubscribed_at)) {
+            return $this->success(['message' => 'Te-ai dezabonat deja.']);
+        }
+
+        $wpdb->update($table, [
+            'unsubscribed_at' => current_time('mysql'),
+        ], ['id' => $subscriber->id]);
+
+        return $this->success(['message' => 'Te-ai dezabonat cu succes. Ne pare rău să te vedem plecând!']);
     }
 
     private function track_newsletter_analytics_event(string $visitor_id, string $session_id, string $email): void {

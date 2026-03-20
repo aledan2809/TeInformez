@@ -21,6 +21,13 @@ class Settings_API extends REST_API {
             'callback' => [$this, 'update_category_order'],
             'permission_callback' => [$this, 'is_admin_user'],
         ]);
+
+        // Delivery health stats (admin only)
+        register_rest_route($this->namespace, '/admin/delivery-health', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_delivery_health'],
+            'permission_callback' => [$this, 'is_admin_user'],
+        ]);
     }
 
     public function is_admin_user($request) {
@@ -34,6 +41,13 @@ class Settings_API extends REST_API {
     public function get_category_order($request) {
         $order = get_option('teinformez_category_order', []);
         return $this->success(['order' => $order]);
+    }
+
+    public function get_delivery_health($request) {
+        $handler = new \TeInformez\Delivery_Handler();
+        $stats = $handler->get_delivery_stats();
+
+        return $this->success($stats);
     }
 
     public function update_category_order($request) {

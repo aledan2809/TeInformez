@@ -189,11 +189,14 @@ npm install
 
 ### 2. Backend Deploy (15 min)
 
-**Via FTP/SFTP sau cPanel**:
-1. Upload `backend/wp-content/plugins/teinformez-core/` pe Hostico
-2. Activate în WordPress Admin
-3. Configurare OpenAI API Key (din Master_API_Key)
-4. Skip SendGrid pentru moment
+**Via SSH to VPS2**:
+```bash
+ssh root@72.62.155.74 "/var/www/deploy.sh teinformez"
+```
+This runs `git pull` + PHP-FPM restart on the VPS2 server.
+1. Plugin is symlinked from the git repo on VPS2
+2. Activate in WordPress Admin if first deploy
+3. Configure OpenAI + Brevo API keys in WP Admin > Settings
 
 ### 3. Frontend Deploy (10 min)
 

@@ -28,7 +28,10 @@ class Database {
             'user_preferences',
             'subscriptions',
             'news_queue',
-            'delivery_log'
+            'delivery_log',
+            'newsletter',
+            'reading_history',
+            'bookmarks'
         ];
 
         foreach ($tables as $table) {

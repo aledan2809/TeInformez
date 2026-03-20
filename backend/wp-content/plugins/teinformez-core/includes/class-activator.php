@@ -27,6 +27,7 @@ class Activator {
             gdpr_consent TINYINT(1) DEFAULT 0,
             gdpr_consent_date DATETIME DEFAULT NULL,
             gdpr_ip_address VARCHAR(45) DEFAULT NULL,
+            gdpr_consent_policy_version VARCHAR(10) DEFAULT '1.0',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -111,8 +112,26 @@ class Activator {
         ) {$charset_collate};";
 
         // Table: Newsletter Subscribers (lightweight, no WP user needed)
-        $table_newsletter = $wpdb->prefix . 'teinformez_newsletter_subscribers';
+        // Double opt-in: confirmed=0 until user clicks confirmation link
+        $table_newsletter = $wpdb->prefix . 'teinformez_newsletter';
         $sql_newsletter = "CREATE TABLE IF NOT EXISTS {$table_newsletter} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            email VARCHAR(255) NOT NULL,
+            token VARCHAR(64) NOT NULL,
+            confirmed TINYINT(1) DEFAULT 0,
+            confirmed_at DATETIME DEFAULT NULL,
+            subscribed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            unsubscribed_at DATETIME DEFAULT NULL,
+            ip_address VARCHAR(45) DEFAULT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY email (email),
+            KEY token (token),
+            KEY confirmed (confirmed)
+        ) {$charset_collate};";
+
+        // Legacy table kept for backwards compatibility during migration
+        $table_newsletter_legacy = $wpdb->prefix . 'teinformez_newsletter_subscribers';
+        $sql_newsletter_legacy = "CREATE TABLE IF NOT EXISTS {$table_newsletter_legacy} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             email VARCHAR(255) NOT NULL,
             gdpr_consent TINYINT(1) DEFAULT 0,
@@ -193,6 +212,34 @@ class Activator {
             KEY archived_at (archived_at)
         ) {$charset_collate};";
 
+        // Table: Reading History
+        $table_reading_history = $wpdb->prefix . 'teinformez_reading_history';
+        $sql_reading_history = "CREATE TABLE IF NOT EXISTS {$table_reading_history} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id BIGINT(20) UNSIGNED NOT NULL,
+            news_id BIGINT(20) UNSIGNED NOT NULL,
+            read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            time_spent INT UNSIGNED DEFAULT 0,
+            PRIMARY KEY (id),
+            UNIQUE KEY unique_reading (user_id, news_id),
+            KEY user_id (user_id),
+            KEY news_id (news_id),
+            KEY read_at (read_at)
+        ) {$charset_collate};";
+
+        // Table: Bookmarks
+        $table_bookmarks = $wpdb->prefix . 'teinformez_bookmarks';
+        $sql_bookmarks = "CREATE TABLE IF NOT EXISTS {$table_bookmarks} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id BIGINT(20) UNSIGNED NOT NULL,
+            news_id BIGINT(20) UNSIGNED NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY unique_bookmark (user_id, news_id),
+            KEY user_id (user_id),
+            KEY news_id (news_id)
+        ) {$charset_collate};";
+
         // Table: Visitor Analytics Events
         $table_visitor_events = $wpdb->prefix . 'teinformez_visitor_events';
         $sql_visitor_events = "CREATE TABLE IF NOT EXISTS {$table_visitor_events} (
@@ -222,9 +269,15 @@ class Activator {
         dbDelta($sql_news);
         dbDelta($sql_delivery);
         dbDelta($sql_newsletter);
+        dbDelta($sql_newsletter_legacy);
         dbDelta($sql_juridic);
         dbDelta($sql_archive);
+        dbDelta($sql_reading_history);
+        dbDelta($sql_bookmarks);
         dbDelta($sql_visitor_events);
+
+        // Run migrations for existing installations
+        self::run_migrations();
 
         // Set default options
         self::set_default_options();
@@ -267,6 +320,28 @@ class Activator {
     }
 
     /**
+     * Run database migrations for existing installations
+     */
+    private static function run_migrations() {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'teinformez_user_preferences';
+
+        // Add gdpr_consent_policy_version column if it does not exist
+        $column_exists = $wpdb->get_results($wpdb->prepare(
+            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s",
+            DB_NAME,
+            $table,
+            'gdpr_consent_policy_version'
+        ));
+
+        if (empty($column_exists)) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            $wpdb->query("ALTER TABLE {$table} ADD COLUMN gdpr_consent_policy_version VARCHAR(10) DEFAULT '1.0' AFTER gdpr_ip_address");
+        }
+    }
+
+    /**
      * Schedule WordPress cron jobs
      */
     private static function schedule_cron_jobs() {
@@ -283,6 +358,11 @@ class Activator {
         // Check delivery queue every 15 minutes
         if (!wp_next_scheduled('teinformez_check_deliveries')) {
             wp_schedule_event(time(), 'every_15_minutes', 'teinformez_check_deliveries');
+        }
+
+        // Check delivery health every 15 minutes
+        if (!wp_next_scheduled('teinformez_check_delivery_health')) {
+            wp_schedule_event(time(), 'every_15_minutes', 'teinformez_check_delivery_health');
         }
 
         // Daily cleanup of old data

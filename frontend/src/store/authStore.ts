@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ApiErrorShape, User } from '@/types';
 import { api } from '@/lib/api';
+import { useBookmarkStore } from '@/store/bookmarkStore';
+import { useReadingStore } from '@/store/readingStore';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   const typedError = error as ApiErrorShape;
@@ -53,6 +55,10 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           });
+
+          // Sync reading data and bookmarks with backend after login
+          useBookmarkStore.getState().syncWithBackend();
+          useReadingStore.getState().syncWithBackend();
         } catch (error: unknown) {
           set({
             error: getErrorMessage(error, 'Login failed'),
@@ -71,6 +77,10 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           });
+
+          // Sync reading data and bookmarks with backend after registration
+          useBookmarkStore.getState().syncWithBackend();
+          useReadingStore.getState().syncWithBackend();
         } catch (error: unknown) {
           set({
             error: getErrorMessage(error, 'Registration failed'),
@@ -109,6 +119,10 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           });
+
+          // Sync reading data and bookmarks with backend
+          useBookmarkStore.getState().syncWithBackend();
+          useReadingStore.getState().syncWithBackend();
         } catch (error: unknown) {
           set({
             user: null,

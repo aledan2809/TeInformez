@@ -7,16 +7,20 @@ import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import type { ApiErrorShape, Categories } from '@/types';
+import LanguageSelector from '@/components/onboarding/LanguageSelector';
 import CategorySelector from '@/components/onboarding/CategorySelector';
 import TopicInput from '@/components/onboarding/TopicInput';
+import CountrySelector from '@/components/onboarding/CountrySelector';
 import ScheduleSelector from '@/components/onboarding/ScheduleSelector';
 import ChannelSelector from '@/components/onboarding/ChannelSelector';
 
 const STEPS = [
-  { id: 1, title: 'Categorii', description: 'Alege ce te interesează' },
-  { id: 2, title: 'Topicuri', description: 'Personalizează și mai mult' },
-  { id: 3, title: 'Frecvență', description: 'Când vrei să primești știri' },
-  { id: 4, title: 'Canale', description: 'Unde vrei să primești știri' },
+  { id: 1, title: 'Limbă', description: 'Alege limba conținutului' },
+  { id: 2, title: 'Categorii', description: 'Alege ce te interesează' },
+  { id: 3, title: 'Topicuri', description: 'Personalizează și mai mult' },
+  { id: 4, title: 'Țări', description: 'Piețe de interes' },
+  { id: 5, title: 'Frecvență', description: 'Când vrei să primești știri' },
+  { id: 6, title: 'Canale', description: 'Unde vrei să primești știri' },
 ];
 
 interface Topic {
@@ -37,21 +41,27 @@ export default function OnboardingPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Categories state
+  // Language state (NEW - Step 1)
+  const [selectedLanguage, setSelectedLanguage] = useState('ro');
+
+  // Categories state (Step 2)
   const [categories, setCategories] = useState<Categories>({});
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
-  // Topics state
+  // Topics state (Step 3)
   const [topics, setTopics] = useState<Topic[]>([]);
 
-  // Schedule state
+  // Countries state (NEW - Step 4)
+  const [selectedCountries, setSelectedCountries] = useState<string[]>(['romania']);
+
+  // Schedule state (Step 5)
   const [schedule, setSchedule] = useState<DeliverySchedule>({
     frequency: 'daily',
     time: '14:00',
     timezone: 'Europe/Bucharest',
   });
 
-  // Channels state
+  // Channels state (Step 6)
   const [selectedChannels, setSelectedChannels] = useState<string[]>(['email']);
 
   // Fetch categories on mount
@@ -88,6 +98,12 @@ export default function OnboardingPage() {
     setTopics((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleToggleCountry = (code: string) => {
+    setSelectedCountries((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
+    );
+  };
+
   const handleToggleChannel = (channelId: string) => {
     setSelectedChannels((prev) =>
       prev.includes(channelId) ? prev.filter((c) => c !== channelId) : [...prev, channelId]
@@ -97,12 +113,16 @@ export default function OnboardingPage() {
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        return selectedCategories.length > 0;
+        return selectedLanguage.length > 0; // Language always has default
       case 2:
-        return true; // Topics are optional
+        return selectedCategories.length > 0;
       case 3:
-        return true; // Schedule always has default
+        return true; // Topics are optional
       case 4:
+        return selectedCountries.length > 0;
+      case 5:
+        return true; // Schedule always has default
+      case 6:
         return selectedChannels.length > 0;
       default:
         return false;
@@ -126,25 +146,29 @@ export default function OnboardingPage() {
     setError('');
 
     try {
-      // 1. Update user preferences (schedule + channels)
+      // 1. Update user preferences (language + schedule + channels)
       await api.updatePreferences({
+        preferred_language: selectedLanguage,
         delivery_schedule: schedule,
         delivery_channels: selectedChannels,
       });
 
-      // 2. Create subscriptions (bulk)
+      // 2. Build country_filter value from selected countries
+      const countryFilter = selectedCountries.length > 0 ? selectedCountries.join(',') : 'all';
+
+      // 3. Create subscriptions (bulk)
       const subscriptions = [
         // Category subscriptions
         ...selectedCategories.map((categorySlug) => ({
           category_slug: categorySlug,
           topic_keyword: '',
-          country_filter: 'all',
+          country_filter: countryFilter,
         })),
         // Topic subscriptions
         ...topics.map((topic) => ({
           category_slug: topic.category,
           topic_keyword: topic.keyword,
-          country_filter: 'all',
+          country_filter: countryFilter,
         })),
       ];
 
@@ -152,7 +176,7 @@ export default function OnboardingPage() {
         await api.bulkAddSubscriptions(subscriptions);
       }
 
-      // 3. Redirect to dashboard
+      // 4. Redirect to dashboard
       router.push('/dashboard');
     } catch (err: unknown) {
       const typedError = err as ApiErrorShape;
@@ -236,6 +260,13 @@ export default function OnboardingPage() {
         {/* Step content */}
         <div className="card mb-8">
           {currentStep === 1 && (
+            <LanguageSelector
+              selectedLanguage={selectedLanguage}
+              onSelectLanguage={setSelectedLanguage}
+            />
+          )}
+
+          {currentStep === 2 && (
             <CategorySelector
               categories={categories}
               selectedCategories={selectedCategories}
@@ -243,7 +274,7 @@ export default function OnboardingPage() {
             />
           )}
 
-          {currentStep === 2 && (
+          {currentStep === 3 && (
             <TopicInput
               selectedCategories={selectedCategories}
               categoryLabels={categoryLabels}
@@ -253,11 +284,18 @@ export default function OnboardingPage() {
             />
           )}
 
-          {currentStep === 3 && (
+          {currentStep === 4 && (
+            <CountrySelector
+              selectedCountries={selectedCountries}
+              onToggleCountry={handleToggleCountry}
+            />
+          )}
+
+          {currentStep === 5 && (
             <ScheduleSelector schedule={schedule} onScheduleChange={setSchedule} />
           )}
 
-          {currentStep === 4 && (
+          {currentStep === 6 && (
             <ChannelSelector
               selectedChannels={selectedChannels}
               onToggleChannel={handleToggleChannel}
@@ -313,7 +351,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Skip step option */}
-        {currentStep === 2 && (
+        {currentStep === 3 && (
           <div className="mt-2 text-center">
             <button
               onClick={handleNext}

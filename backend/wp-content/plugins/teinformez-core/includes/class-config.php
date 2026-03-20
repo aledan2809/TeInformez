@@ -17,6 +17,9 @@ if (!defined('ABSPATH')) {
  */
 class Config {
 
+    // === GDPR / PRIVACY ===
+    const PRIVACY_POLICY_VERSION = '1.0';
+
     // === CLONE CONFIGURATION ===
     // Change these values when deploying to new country/domain
     const SITE_LANGUAGE = 'ro';                    // Primary site UI language
@@ -265,6 +268,31 @@ class Config {
         }
 
         return false;
+    }
+
+    /**
+     * Get client IP address considering proxies
+     *
+     * Checks X-Forwarded-For first (for reverse proxies / load balancers),
+     * then falls back to REMOTE_ADDR.
+     *
+     * @return string Sanitized IP address
+     */
+    public static function get_client_ip() {
+        $ip = '';
+
+        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            // X-Forwarded-For can contain multiple IPs; the first is the client
+            $forwarded_ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+            $ip = trim($forwarded_ips[0]);
+        } elseif (!empty($_SERVER['REMOTE_ADDR'])) {
+            $ip = $_SERVER['REMOTE_ADDR'];
+        }
+
+        // Validate and sanitize
+        $ip = filter_var($ip, FILTER_VALIDATE_IP);
+
+        return $ip ? $ip : '';
     }
 
     /**

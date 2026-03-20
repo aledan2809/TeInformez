@@ -879,6 +879,93 @@ class Delivery_Handler {
     }
 
     /**
+     * Check delivery health and alert admin if thresholds are exceeded.
+     * Called by cron every 15 minutes.
+     */
+    public function check_delivery_health() {
+        $stats = $this->get_delivery_stats();
+
+        $failed_threshold = 5;
+        $stale_pending_threshold = 10;
+
+        if ($stats['failed_24h'] > $failed_threshold || $stats['stale_pending'] > $stale_pending_threshold) {
+            $subject = 'TeInformez — Delivery Health Alert';
+
+            $lines = [];
+            $lines[] = 'Delivery health check detected issues:';
+            $lines[] = '';
+            $lines[] = "Failed deliveries (last 24h): {$stats['failed_24h']}";
+            $lines[] = "Stale pending deliveries (>2h old): {$stats['stale_pending']}";
+            $lines[] = "Sent deliveries (last 24h): {$stats['sent_24h']}";
+            $lines[] = "Total pending: {$stats['pending_24h']}";
+            $lines[] = '';
+
+            if ($stats['failed_24h'] > $failed_threshold) {
+                $lines[] = "WARNING: Failed deliveries ({$stats['failed_24h']}) exceed threshold ({$failed_threshold}).";
+            }
+            if ($stats['stale_pending'] > $stale_pending_threshold) {
+                $lines[] = "WARNING: Stale pending deliveries ({$stats['stale_pending']}) exceed threshold ({$stale_pending_threshold}).";
+            }
+
+            $lines[] = '';
+            $lines[] = 'Please check the delivery system.';
+
+            $message = implode("\n", $lines);
+
+            $this->email_sender->send_admin_alert($subject, $message);
+
+            error_log("TeInformez Delivery Health: ALERT sent — failed={$stats['failed_24h']}, stale_pending={$stats['stale_pending']}");
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Get delivery metrics for the last 24 hours.
+     */
+    public function get_delivery_stats() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'teinformez_delivery_log';
+
+        $sent_24h = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$table}
+             WHERE status = 'sent'
+             AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)"
+        );
+
+        $failed_24h = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$table}
+             WHERE status = 'failed'
+             AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)"
+        );
+
+        $pending_24h = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$table}
+             WHERE status = 'pending'
+             AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)"
+        );
+
+        $stale_pending = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$table}
+             WHERE status = 'pending'
+             AND created_at < DATE_SUB(NOW(), INTERVAL 2 HOUR)"
+        );
+
+        $last_sent = $wpdb->get_var(
+            "SELECT MAX(sent_at) FROM {$table} WHERE status = 'sent'"
+        );
+
+        return [
+            'sent_24h'      => $sent_24h,
+            'failed_24h'    => $failed_24h,
+            'pending_24h'   => $pending_24h,
+            'stale_pending' => $stale_pending,
+            'last_sent_at'  => $last_sent,
+            'checked_at'    => current_time('mysql'),
+        ];
+    }
+
+    /**
      * Get delivery stats for a user (used by API).
      */
     public function get_user_delivery_stats($user_id) {

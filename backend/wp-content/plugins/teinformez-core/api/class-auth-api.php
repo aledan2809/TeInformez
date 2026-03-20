@@ -161,13 +161,14 @@ class Auth_API extends REST_API {
             ]);
         }
 
-        // Record GDPR consent
-        $gdpr_handler = new GDPR_Handler();
-        $gdpr_handler->record_consent($user_id, $request->get_header('x-forwarded-for') ?: $_SERVER['REMOTE_ADDR']);
-
-        // Create default user preferences
+        // Create default user preferences FIRST (INSERT row)
         $user_manager = new User_Manager();
         $user_manager->create_default_preferences($user_id, $params['preferred_language'] ?? 'ro');
+
+        // Record GDPR consent with IP and policy version (UPDATE existing row)
+        $gdpr_handler = new GDPR_Handler();
+        $client_ip = Config::get_client_ip();
+        $gdpr_handler->record_consent($user_id, $client_ip, Config::PRIVACY_POLICY_VERSION);
 
         // Auto-login
         wp_set_current_user($user_id);

@@ -10,14 +10,14 @@ Arhitectură clonabilă pentru orice țară/limbă.
 
 | Aspect | Decizie |
 |--------|---------|
-| CMS | WordPress (existent pe Hostico) |
-| Email Provider | SendGrid (de configurat) |
+| CMS | WordPress (pe VPS2) |
+| Email Provider | Brevo (configurat) |
 | Surse știri | RSS + API-uri gratuite + Web scraping |
 | AI Processing | OpenAI API (refinare/sinteză/traducere + imagini DALL-E) |
 | Social Media | Email + postări publice (Meta API - later) |
 | Limbi | RO/EN inițial, arhitectură multilingvă |
 | GDPR | Formular consent obligatoriu |
-| Hosting | Hostico (portabil spre VPS dacă e nevoie) |
+| Hosting | VPS2 (72.62.155.74) + Vercel frontend |
 
 ---
 
@@ -44,7 +44,7 @@ Arhitectură clonabilă pentru orice țară/limbă.
 │  │ - AVAILABLE_LANGUAGES: ['ro', 'en', 'de', 'fr', ...]     │   │
 │  │ - ADMIN_REVIEW_PERIOD: 7200 (seconds = 2h)               │   │
 │  │ - OPENAI_API_KEY: '***'                                   │   │
-│  │ - SENDGRID_API_KEY: '***'                                 │   │
+│  │ - BREVO_API_KEY: '***'                                    │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │                                                                  │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌────────────────┐   │
@@ -74,7 +74,7 @@ Arhitectură clonabilă pentru orice țară/limbă.
 │                    EXTERNAL SERVICES                             │
 │                                                                  │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
-│  │ OpenAI API  │  │ SendGrid    │  │ Social APIs             │  │
+│  │ OpenAI API  │  │ Brevo       │  │ Social APIs             │  │
 │  │ - GPT-4     │  │ - Email     │  │ - Facebook Graph API    │  │
 │  │ - DALL-E    │  │   delivery  │  │ - Twitter/X API         │  │
 │  │             │  │             │  │ - (Meta Business later) │  │
@@ -241,53 +241,65 @@ wp-content/plugins/teinformez-core/
 
 ```php
 $default_categories = [
-    'tech' => [
-        'label' => __('Tehnologie', 'teinformez'),
-        'subcategories' => [
-            'smartphones', 'laptops', 'ai', 'software', 'gadgets'
-        ]
+    'juridic' => [
+        'label' => __('Juridic cu Alina', 'teinformez'),
+        'subcategories' => ['Dreptul muncii', 'Dreptul familiei', 'Drept comercial', 'Drept penal']
     ],
-    'auto' => [
-        'label' => __('Auto', 'teinformez'),
-        'subcategories' => [
-            'electric-cars', 'classic-cars', 'motorsport', 'reviews'
-        ]
-    ],
-    'finance' => [
-        'label' => __('Finanțe', 'teinformez'),
-        'subcategories' => [
-            'crypto', 'stocks', 'banking', 'real-estate'
-        ]
-    ],
-    'entertainment' => [
-        'label' => __('Divertisment', 'teinformez'),
-        'subcategories' => [
-            'movies', 'music', 'gaming', 'celebrities'
-        ]
-    ],
-    'sports' => [
-        'label' => __('Sport', 'teinformez'),
-        'subcategories' => [
-            'football', 'tennis', 'f1', 'basketball', 'olympics'
-        ]
-    ],
-    'science' => [
-        'label' => __('Știință', 'teinformez'),
-        'subcategories' => [
-            'space', 'medicine', 'environment', 'research'
-        ]
+    'actualitate' => [
+        'label' => __('Actualitate', 'teinformez'),
+        'subcategories' => ['Breaking', 'Social', 'Educație', 'Cultură', 'România']
     ],
     'politics' => [
         'label' => __('Politică', 'teinformez'),
-        'subcategories' => [
-            'romania', 'eu', 'usa', 'international'
-        ]
+        'subcategories' => ['România', 'UE', 'SUA', 'Internațional']
+    ],
+    'international' => [
+        'label' => __('Internațional', 'teinformez'),
+        'subcategories' => ['Europa', 'SUA', 'Orientul Mijlociu', 'Asia', 'Africa']
+    ],
+    'justitie' => [
+        'label' => __('Justiție', 'teinformez'),
+        'subcategories' => ['Instanțe', 'DNA', 'Legislație', 'Cazuri penale']
     ],
     'business' => [
         'label' => __('Business', 'teinformez'),
-        'subcategories' => [
-            'startups', 'corporate', 'entrepreneurship', 'economy'
-        ]
+        'subcategories' => ['Startup-uri', 'Corporate', 'Antreprenoriat', 'Economie']
+    ],
+    'finance' => [
+        'label' => __('Finanțe', 'teinformez'),
+        'subcategories' => ['Crypto', 'Bursă', 'Bănci', 'Imobiliare']
+    ],
+    'tech' => [
+        'label' => __('Tehnologie', 'teinformez'),
+        'subcategories' => ['Smartphone', 'Laptop', 'AI', 'Software', 'Gadget-uri']
+    ],
+    'sanatate' => [
+        'label' => __('Sănătate', 'teinformez'),
+        'subcategories' => ['Medicină', 'Nutriție', 'Fitness', 'Sănătate mintală']
+    ],
+    'science' => [
+        'label' => __('Știință', 'teinformez'),
+        'subcategories' => ['Spațiu', 'Medicină', 'Mediu', 'Cercetare']
+    ],
+    'sports' => [
+        'label' => __('Sport', 'teinformez'),
+        'subcategories' => ['Fotbal', 'Tenis', 'F1', 'Baschet']
+    ],
+    'entertainment' => [
+        'label' => __('Divertisment', 'teinformez'),
+        'subcategories' => ['Filme', 'Muzică', 'Gaming', 'Celebrități']
+    ],
+    'auto' => [
+        'label' => __('Auto', 'teinformez'),
+        'subcategories' => ['Mașini electrice', 'Clasice', 'Motorsport', 'Recenzii']
+    ],
+    'lifestyle' => [
+        'label' => __('Lifestyle', 'teinformez'),
+        'subcategories' => ['Travel', 'Food', 'Fashion', 'Home', 'Parenting']
+    ],
+    'opinii' => [
+        'label' => __('Opinii', 'teinformez'),
+        'subcategories' => ['Editoriale', 'Analize', 'Comentarii', 'Interviuri']
     ]
 ];
 ```
@@ -412,7 +424,7 @@ Avoid: Text, logos, faces of real people
 
 ## FAZA C: Sistem de Livrare
 
-### C1. Email Delivery (SendGrid)
+### C1. Email Delivery (Brevo)
 
 ```php
 class Email_Delivery {
@@ -428,7 +440,7 @@ class Email_Delivery {
             'unsubscribe_link' => $this->get_unsubscribe_link($user_id)
         ]);
 
-        return $this->sendgrid->send([
+        return $this->brevo->send([
             'to' => $user_prefs->email,
             'subject' => $this->get_subject_line($user_prefs->preferred_language),
             'html' => $template
@@ -654,13 +666,13 @@ class TeInformez_Config {
 - [x] Admin review queue (UI + logic)
 - [x] Auto-publish după review period
 
-### 📅 Sprint 5: Delivery System (PLANNED - Phase C)
-- [ ] Email delivery to subscribers (scheduled digests)
-- [ ] Email templates (HTML responsive newsletter)
-- [ ] Personalized digest generator
-- [ ] Delivery scheduler (cron handler exists, logic TODO)
+### ✅ Sprint 5: Delivery System (COMPLETED - Phase C)
+- [x] Email delivery to subscribers (scheduled digests)
+- [x] Email templates (HTML responsive newsletter)
+- [x] Personalized digest generator
+- [x] Delivery scheduler (timezone-aware, Brevo + wp_mail fallback)
+- [x] Delivery logs și statistics
 - [ ] Social media posting (Facebook, Twitter) — deferred
-- [ ] Delivery logs și statistics
 
 ### ✅ Sprint 6 (partial): Polish (COMPLETED - 28 Feb 2026)
 - [x] Share button (Web Share API)
@@ -676,42 +688,30 @@ class TeInformez_Config {
 
 ---
 
-## 📊 Current Status (28 Februarie 2026)
+## 📊 Current Status (Martie 2026)
 
 ### ✅ Completat
-1. **Backend WordPress Plugin** — 23 API endpoints, 12 PHP classes, 5 DB tables
-2. **Frontend Next.js** — 15 pages, auth flow, dashboard, news, GDPR
+1. **Backend WordPress Plugin** — 48 API endpoints, 5 DB tables
+2. **Frontend Next.js** — 20 pages, auth flow, dashboard, news, juridic, GDPR
 3. **Phase A** — User registration, onboarding, dashboard (100%)
 4. **Phase B** — News aggregation, AI processing, admin review (100%)
-5. **Deployment** — VPS2 (WordPress + Next.js standalone + SSL), both on same server
+5. **Phase C** — Email delivery system, timezone-aware scheduling (100%)
+6. **Phase D (partial)** — Analytics + view tracking done, SEO done
+7. **Phase E** — Juridic section, Telegram integration, social posting
+8. **Deployment** — VPS2 (WordPress + Next.js standalone + SSL), both on same server
 
-### 📅 Planned
-6. Phase C — Email delivery system (scheduled digests)
-7. Phase D — Analytics, optimization, launch
+### 📅 Remaining
+- Phase D completion: performance optimization, load testing
+- Soft launch (beta users)
 
 ---
 
 ## 🎯 Next Immediate Steps
 
-Pentru a finaliza Phase A (User Registration & Onboarding):
-
-1. **Onboarding Wizard** (prioritate 1):
-   - Creare component `OnboardingWizard.tsx`
-   - Implementare multi-step form
-   - Integrare cu API pentru bulk subscriptions
-
-2. **User Dashboard** (prioritate 2):
-   - Layout cu sidebar navigation
-   - Subscription management
-   - Stats display
-   - Settings page
-
-3. **Testing & Refinement**:
-   - Test flow complet: register → onboarding → dashboard
-   - Fix bugs
-   - Polish UI/UX
-
-**După finalizare Phase A**, sistemul va fi functional pentru beta testing cu useri reali (fără știri încă, dar cu înregistrare și preferințe complete).
+1. **Performance optimization** — load testing, caching
+2. **SEO refinement** — meta tags, sitemap
+3. **Soft launch** — beta users, monitoring
+4. **Social media automation** — Facebook/Twitter auto-posting (deferred)
 
 ---
 
@@ -733,12 +733,12 @@ Pentru a finaliza Phase A (User Registration & Onboarding):
 
 ### Plugin-uri recomandate
 - **Polylang** - pentru multilingvism frontend
-- **WP Mail SMTP** - pentru configurare SendGrid
+- **WP Mail SMTP** - pentru configurare email
 - **Wordfence** - securitate
 
 ### API Keys necesare
 - OpenAI API Key
-- SendGrid API Key
+- Brevo API Key
 - Facebook App (pentru posting)
 - Twitter Developer App (pentru posting)
 - (Later) NewsAPI.org, GNews.io
@@ -746,4 +746,4 @@ Pentru a finaliza Phase A (User Registration & Onboarding):
 ---
 
 *Document creat: Ianuarie 2026*
-*Ultima actualizare: [auto-update]*
+*Ultima actualizare: Martie 2026*

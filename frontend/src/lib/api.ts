@@ -386,6 +386,63 @@ class ApiClient {
     return response.data.data!.report;
   }
 
+  // Reading history endpoints
+  async markAsRead(newsId: number, timeSpent: number): Promise<void> {
+    await this.client.post('/user/reading-history', {
+      news_id: newsId,
+      time_spent: timeSpent,
+    });
+  }
+
+  async getReadingHistory(): Promise<{
+    history: Array<{ date: string; articlesRead: number[] }>;
+    current_streak: number;
+    total_read: number;
+  }> {
+    const response = await this.client.get<APIResponse<{
+      history: Array<{ date: string; articlesRead: number[] }>;
+      current_streak: number;
+      total_read: number;
+    }>>('/user/reading-history');
+    return response.data.data!;
+  }
+
+  // Bookmark endpoints
+  async getBookmarks(): Promise<Array<{
+    id: number;
+    title: string;
+    summary: string;
+    image: string | null;
+    source: string;
+    categories: string[];
+    published_at: string;
+    original_url: string;
+    savedAt: string;
+  }>> {
+    const response = await this.client.get<APIResponse<{
+      bookmarks: Array<{
+        id: number;
+        title: string;
+        summary: string;
+        image: string | null;
+        source: string;
+        categories: string[];
+        published_at: string;
+        original_url: string;
+        savedAt: string;
+      }>;
+    }>>('/user/bookmarks');
+    return response.data.data!.bookmarks;
+  }
+
+  async addBookmark(newsId: number): Promise<void> {
+    await this.client.post('/user/bookmarks', { news_id: newsId });
+  }
+
+  async removeBookmark(newsId: number): Promise<void> {
+    await this.client.delete(`/user/bookmarks/${newsId}`);
+  }
+
   // Settings endpoints
   async getCategoryOrder(): Promise<string[]> {
     const response = await this.client.get<APIResponse<{ order: string[] }>>('/settings/category-order');

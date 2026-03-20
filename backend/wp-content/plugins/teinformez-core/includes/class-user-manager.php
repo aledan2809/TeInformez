@@ -153,12 +153,21 @@ class User_Manager {
             $user_id
         ), ARRAY_A);
 
+        // Build GDPR consent details
+        $gdpr_consent_data = [
+            'gdpr_consent' => $preferences['gdpr_consent'] ?? 0,
+            'gdpr_consent_date' => $preferences['gdpr_consent_date'] ?? null,
+            'gdpr_consent_ip' => $preferences['gdpr_ip_address'] ?? null,
+            'gdpr_consent_policy_version' => $preferences['gdpr_consent_policy_version'] ?? null,
+        ];
+
         return [
             'user_info' => [
                 'email' => $user->user_email,
                 'name' => $user->display_name,
                 'registered_at' => $user->user_registered
             ],
+            'gdpr_consent' => $gdpr_consent_data,
             'preferences' => $preferences,
             'subscriptions' => $subscriptions,
             'delivery_history' => $delivery_history,

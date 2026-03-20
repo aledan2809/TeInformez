@@ -152,6 +152,11 @@ add_action('teinformez_juridic_published', function($item) {
     $social->post_juridic_on_demand($item, ['facebook', 'twitter', 'instagram']);
 });
 
+add_action('teinformez_check_delivery_health', function() {
+    $handler = new TeInformez\Delivery_Handler();
+    $handler->check_delivery_health();
+});
+
 add_action('teinformez_daily_cleanup', function() {
     $publisher = new TeInformez\News_Publisher();
     $publisher->cleanup_old_items(30);

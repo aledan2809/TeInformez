@@ -17,6 +17,7 @@ class Deactivator {
             'teinformez_fetch_news',
             'teinformez_process_news',
             'teinformez_check_deliveries',
+            'teinformez_check_delivery_health',
             'teinformez_daily_cleanup'
         ];
 

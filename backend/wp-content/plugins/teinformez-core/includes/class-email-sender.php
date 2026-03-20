@@ -108,6 +108,33 @@ class Email_Sender {
     }
 
     /**
+     * Send alert email to site admin using wp_mail (avoids circular dependency with Brevo).
+     */
+    public function send_admin_alert($subject, $message) {
+        $admin_email = get_option('admin_email');
+
+        if (empty($admin_email)) {
+            error_log('TeInformez Admin Alert: No admin email configured.');
+            return false;
+        }
+
+        $headers = [
+            'Content-Type: text/plain; charset=UTF-8',
+            'From: ' . $this->from_name . ' <' . $this->from_email . '>'
+        ];
+
+        $result = wp_mail($admin_email, $subject, $message, $headers);
+
+        if ($result) {
+            error_log('TeInformez Admin Alert: Sent to ' . $admin_email . ' — ' . $subject);
+        } else {
+            error_log('TeInformez Admin Alert: FAILED to send to ' . $admin_email . ' — ' . $subject);
+        }
+
+        return $result;
+    }
+
+    /**
      * Send password reset email
      */
     public function send_password_reset($user_email, $reset_link) {
@@ -117,6 +144,7 @@ class Email_Sender {
             'reset_link' => $reset_link,
             'valid_hours' => '24'
         ]);
+        $html_content .= $this->get_unsubscribe_footer($user_email, 'registered');
 
         error_log('TeInformez: Attempting to send password reset email to: ' . $user_email);
         error_log('TeInformez: Reset link: ' . $reset_link);
@@ -139,8 +167,52 @@ class Email_Sender {
             'user_name' => $user_name,
             'dashboard_link' => Config::get('frontend_url', 'https://teinformez.eu') . '/dashboard'
         ]);
+        $html_content .= $this->get_unsubscribe_footer($user_email, 'registered');
 
         return $this->send($user_email, $subject, $html_content);
+    }
+
+    /**
+     * Send newsletter double opt-in confirmation email
+     */
+    public function send_newsletter_confirmation($to_email, $confirm_link) {
+        $subject = 'Confirmă abonarea la newsletter - TeInformez';
+
+        $html_content = $this->get_email_template('newsletter_confirmation', [
+            'confirm_link' => $confirm_link,
+        ]);
+        // No unsubscribe footer on confirmation email — they haven't subscribed yet
+
+        error_log('TeInformez: Sending newsletter confirmation to: ' . $to_email);
+
+        return $this->send($to_email, $subject, $html_content);
+    }
+
+    /**
+     * Generate unsubscribe footer HTML
+     *
+     * @param string $email  The recipient email address
+     * @param string $type   'registered' for WP users, 'newsletter' for newsletter subscribers
+     * @param string $token  Newsletter token (required when $type is 'newsletter')
+     * @return string HTML footer with unsubscribe link
+     */
+    public function get_unsubscribe_footer($email, $type = 'registered', $token = '') {
+        $frontend_url = Config::get('frontend_url', Config::FRONTEND_URL);
+
+        if ($type === 'newsletter' && !empty($token)) {
+            $unsubscribe_url = $frontend_url . '/newsletter/unsubscribe?token=' . urlencode($token);
+            $link_text = 'Dezabonare newsletter';
+        } else {
+            // For registered users, link to dashboard settings
+            $unsubscribe_url = $frontend_url . '/dashboard/settings';
+            $link_text = 'Gestionează preferințele de email';
+        }
+
+        return '
+            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af;">
+                <p>Ai primit acest email deoarece ești abonat la TeInformez.</p>
+                <p><a href="' . esc_url($unsubscribe_url) . '" style="color: #6b7280; text-decoration: underline;">' . esc_html($link_text) . '</a></p>
+            </div>';
     }
 
     /**
@@ -178,6 +250,42 @@ class Email_Sender {
                             <p style="word-break: break-all; background: #e5e7eb; padding: 10px; border-radius: 4px; font-size: 14px;">{{reset_link}}</p>
                             <p><strong>Acest link este valid pentru {{valid_hours}} ore.</strong></p>
                             <p>Dacă nu ai solicitat resetarea parolei, poți ignora acest email.</p>
+                        </div>
+                        <div class="footer">
+                            <p>&copy; ' . date('Y') . ' TeInformez. Toate drepturile rezervate.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            ',
+            'newsletter_confirmation' => '
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                        .header { background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+                        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+                        .button { display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+                        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #6b7280; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>TeInformez</h1>
+                        </div>
+                        <div class="content">
+                            <h2>Confirmă abonarea la newsletter</h2>
+                            <p>Mulțumim pentru interesul tău! Pentru a finaliza abonarea, te rugăm să confirmi adresa de email apăsând butonul de mai jos:</p>
+                            <p style="text-align: center;">
+                                <a href="{{confirm_link}}" class="button" style="color: white;">Confirmă abonarea</a>
+                            </p>
+                            <p>Sau copiază acest link în browser:</p>
+                            <p style="word-break: break-all; background: #e5e7eb; padding: 10px; border-radius: 4px; font-size: 14px;">{{confirm_link}}</p>
+                            <p>Dacă nu ai solicitat abonarea, poți ignora acest email.</p>
                         </div>
                         <div class="footer">
                             <p>&copy; ' . date('Y') . ' TeInformez. Toate drepturile rezervate.</p>

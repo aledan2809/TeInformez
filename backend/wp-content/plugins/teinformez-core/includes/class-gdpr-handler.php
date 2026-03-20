@@ -13,8 +13,12 @@ class GDPR_Handler {
     /**
      * Record user consent
      */
-    public function record_consent($user_id, $ip_address = '') {
+    public function record_consent($user_id, $ip_address = '', $policy_version = '') {
         global $wpdb;
+
+        if (empty($policy_version)) {
+            $policy_version = Config::PRIVACY_POLICY_VERSION;
+        }
 
         $table = $wpdb->prefix . 'teinformez_user_preferences';
 
@@ -24,6 +28,7 @@ class GDPR_Handler {
                 'gdpr_consent' => 1,
                 'gdpr_consent_date' => current_time('mysql'),
                 'gdpr_ip_address' => sanitize_text_field($ip_address),
+                'gdpr_consent_policy_version' => sanitize_text_field($policy_version),
                 'updated_at' => current_time('mysql')
             ],
             ['user_id' => $user_id]
@@ -73,7 +78,7 @@ class GDPR_Handler {
         $table = $wpdb->prefix . 'teinformez_user_preferences';
 
         return $wpdb->get_row($wpdb->prepare(
-            "SELECT gdpr_consent, gdpr_consent_date, gdpr_ip_address
+            "SELECT gdpr_consent, gdpr_consent_date, gdpr_ip_address, gdpr_consent_policy_version
              FROM {$table}
              WHERE user_id = %d",
             $user_id
