@@ -4,22 +4,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2, X, Pencil } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Subscription, Categories } from '@/types';
-
-// Category labels in Romanian
-const CATEGORY_LABELS: Record<string, string> = {
-  tech: 'Tehnologie',
-  auto: 'Auto',
-  finance: 'Finanțe',
-  entertainment: 'Divertisment',
-  sports: 'Sport',
-  science: 'Știință',
-  politics: 'Politică',
-  business: 'Business',
-};
-
-const getCategoryLabel = (slug: string): string => {
-  return CATEGORY_LABELS[slug] || slug.charAt(0).toUpperCase() + slug.slice(1).replace('-', ' ');
-};
+import { getCategoryLabel } from '@/lib/categories';
 
 export default function SubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);

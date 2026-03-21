@@ -148,10 +148,25 @@ class ApiClient {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     const response = await this.client.post<APIResponse<AuthResponse>>('/auth/login', credentials);
     if (response.data.data?.token) {
-      // Token expires in 24 hours (matches backend)
+      // Set traditional js-cookie (for compatibility)
       Cookies.set('teinformez_token', response.data.data.token, { expires: 1 });
+
+      // Also set secure httpOnly cookie (enhanced security)
+      try {
+        await this.setSecureCookie(response.data.data.token);
+      } catch (error) {
+        console.warn('Failed to set secure cookie:', error);
+        // Continue with js-cookie fallback
+      }
     }
     return response.data.data!;
+  }
+
+  /**
+   * Set secure httpOnly cookie (security enhancement)
+   */
+  async setSecureCookie(token: string): Promise<void> {
+    await this.client.post('/auth/set-secure-cookie', { token });
   }
 
   async logout(): Promise<void> {

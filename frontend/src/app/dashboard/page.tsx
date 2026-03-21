@@ -10,21 +10,7 @@ import { useReadingStore } from '@/store/readingStore';
 import { useBookmarkStore } from '@/store/bookmarkStore';
 import { useAnimatedCounter } from '@/hooks/useAnimatedCounter';
 import type { PublicNewsItem, SubscriptionStats } from '@/types';
-
-const CATEGORY_LABELS: Record<string, string> = {
-  tech: 'Tehnologie',
-  auto: 'Auto',
-  finance: 'Finanțe',
-  entertainment: 'Divertisment',
-  sports: 'Sport',
-  science: 'Știință',
-  politics: 'Politică',
-  business: 'Business',
-};
-
-const getCategoryLabel = (slug: string): string => {
-  return CATEGORY_LABELS[slug] || slug.charAt(0).toUpperCase() + slug.slice(1).replace('-', ' ');
-};
+import { getCategoryLabel } from '@/lib/categories';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();

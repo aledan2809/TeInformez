@@ -79,14 +79,14 @@ OPENAI_API_KEY=sk-proj-NEW_KEY_HERE
 
 ## 📋 Security Checklist
 
-- [ ] Revoked old OpenAI API key
-- [ ] Created new OpenAI API key
-- [ ] Updated `frontend/.env.local` with new key
-- [ ] Updated WordPress Admin with new key
+- [x] Revoked old OpenAI API key
+- [x] Created new OpenAI API key
+- [x] Updated `frontend/.env.local` with new key
+- [x] Updated WordPress Admin with new key
 - [ ] Updated Vercel env vars (if applicable)
-- [ ] Tested that API calls work with new key
-- [ ] Verified `.env.local` is in `.gitignore`
-- [ ] Confirmed `.env.local` is NOT tracked by git
+- [x] Tested that API calls work with new key
+- [x] Verified `.env.local` is in `.gitignore`
+- [x] Confirmed `.env.local` is NOT tracked by git
 
 **Verify last item**:
 ```bash

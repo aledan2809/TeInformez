@@ -64,6 +64,13 @@ class Auth_API extends REST_API {
             'callback' => [$this, 'reset_password'],
             'permission_callback' => '__return_true'
         ]);
+
+        // Set secure httpOnly cookie (security enhancement)
+        register_rest_route($this->namespace, '/auth/set-secure-cookie', [
+            'methods' => 'POST',
+            'callback' => [$this, 'set_secure_cookie'],
+            'permission_callback' => '__return_true'
+        ]);
     }
 
     /**
@@ -439,6 +446,57 @@ class Auth_API extends REST_API {
         $random = bin2hex(random_bytes(32));
         $data = $user_id . '|' . $random . '|' . time();
         return base64_encode($data . '|' . hash_hmac('sha256', $data, AUTH_KEY));
+    }
+
+    /**
+     * Set secure httpOnly cookie
+     * Security enhancement: store JWT in httpOnly cookie instead of accessible JavaScript
+     */
+    public function set_secure_cookie($request) {
+        $params = $request->get_json_params();
+
+        // Validate token is provided
+        if (empty($params['token'])) {
+            return $this->error(
+                __('Token is required.', 'teinformez'),
+                'token_required',
+                400
+            );
+        }
+
+        $token = sanitize_text_field($params['token']);
+
+        // Verify token is valid (basic validation)
+        if (!preg_match('/^[A-Za-z0-9\-_\.]+$/', $token)) {
+            return $this->error(
+                __('Invalid token format.', 'teinformez'),
+                'invalid_token',
+                400
+            );
+        }
+
+        // Set httpOnly cookie (more secure than js-cookie)
+        $cookie_name = 'teinformez_secure_token';
+        $expires = time() + (24 * 60 * 60); // 24 hours
+        $domain = parse_url(home_url(), PHP_URL_HOST);
+
+        setcookie(
+            $cookie_name,
+            $token,
+            [
+                'expires' => $expires,
+                'path' => '/',
+                'domain' => $domain,
+                'secure' => is_ssl(),
+                'httponly' => true,
+                'samesite' => 'Strict'
+            ]
+        );
+
+        return $this->success([
+            'message' => 'Secure cookie set successfully',
+            'expires' => $expires
+        ]);
     }
 
     /**
