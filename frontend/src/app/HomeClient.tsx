@@ -80,23 +80,6 @@ export default function HomeClient({ hero, sections }: HomeClientProps) {
           </div>
         ))}
 
-        {/* Juridic promo banner */}
-        <section className="my-8 rounded-xl bg-gradient-to-r from-stone-100 to-stone-50 dark:from-stone-900/30 dark:to-stone-800/20 border border-stone-200 dark:border-stone-800 p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="flex-1">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <span>📋</span> Juridic cu Alina
-              </h3>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Raspunsuri la intrebari juridice frecvente. Dreptul muncii, dreptul familiei, drept comercial și multe altele.
-              </p>
-            </div>
-            <Link href="/juridic" className="btn-primary text-sm px-4 py-2 whitespace-nowrap">
-              Citește mai mult
-            </Link>
-          </div>
-        </section>
-
         {/* Newsletter CTA for non-logged */}
         <section className="my-8 text-center py-10 rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800">
           <h3 className="text-xl font-bold mb-2">Primește știri pe email</h3>
