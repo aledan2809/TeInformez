@@ -7,16 +7,26 @@ if (!defined('ABSPATH')) {
 
 /**
  * AI Processor
- * Processes news using OpenAI API for summarization, translation, and categorization
+ * Processes news using Anthropic Claude API (primary) or OpenAI (fallback)
+ * for summarization, translation, and categorization
  */
 class AI_Processor {
 
-    private $api_key;
+    private $provider;
+    private $anthropic_key;
+    private $openai_key;
     private $model;
 
     public function __construct() {
-        $this->api_key = Config::get('openai_api_key', '');
-        $this->model = Config::OPENAI_MODEL;
+        $this->provider = Config::AI_PROVIDER;
+        $this->anthropic_key = Config::get('anthropic_api_key', '');
+        $this->openai_key = Config::get('openai_api_key', '');
+
+        if ($this->provider === 'anthropic') {
+            $this->model = Config::ANTHROPIC_MODEL;
+        } else {
+            $this->model = Config::OPENAI_MODEL;
+        }
     }
 
     /**
@@ -53,9 +63,11 @@ class AI_Processor {
      * Process a single news item
      */
     public function process_item($item) {
-        if (empty($this->api_key)) {
-            error_log('TeInformez AI ERROR: OpenAI API key not configured');
-            return ['success' => false, 'error' => 'API key not configured'];
+        $api_key = ($this->provider === 'anthropic') ? $this->anthropic_key : $this->openai_key;
+
+        if (empty($api_key)) {
+            error_log('TeInformez AI ERROR: ' . $this->provider . ' API key not configured');
+            return ['success' => false, 'error' => 'API key not configured for ' . $this->provider];
         }
 
         global $wpdb;
@@ -69,13 +81,28 @@ class AI_Processor {
             $target_language = Config::SITE_LANGUAGE;
 
             // Get AI summary and translation
-            $result = $this->call_openai([
+            $data = [
                 'title' => $item->original_title,
-                'content' => mb_substr($item->original_content, 0, 8000), // Limit content length
+                'content' => mb_substr($item->original_content, 0, 8000),
                 'source_language' => $item->original_language,
                 'target_language' => $target_language,
                 'categories' => json_decode($item->categories, true) ?? []
-            ]);
+            ];
+
+            if ($this->provider === 'anthropic') {
+                $result = $this->call_anthropic($data);
+            } else {
+                $result = $this->call_openai($data);
+            }
+
+            // Fallback: if primary fails and we have the other key, try it
+            if (!$result['success'] && $this->provider === 'anthropic' && !empty($this->openai_key)) {
+                error_log('TeInformez AI: Anthropic failed, trying OpenAI fallback');
+                $result = $this->call_openai($data);
+            } elseif (!$result['success'] && $this->provider === 'openai' && !empty($this->anthropic_key)) {
+                error_log('TeInformez AI: OpenAI failed, trying Anthropic fallback');
+                $result = $this->call_anthropic($data);
+            }
 
             if (!$result['success']) {
                 throw new \Exception($result['error']);
@@ -111,18 +138,77 @@ class AI_Processor {
     }
 
     /**
-     * Call OpenAI API
+     * Call Anthropic Claude API
+     */
+    private function call_anthropic($data) {
+        $prompt = $this->build_prompt($data);
+
+        $response = wp_remote_post('https://api.anthropic.com/v1/messages', [
+            'headers' => [
+                'x-api-key' => $this->anthropic_key,
+                'anthropic-version' => '2023-06-01',
+                'Content-Type' => 'application/json'
+            ],
+            'body' => json_encode([
+                'model' => Config::ANTHROPIC_MODEL,
+                'max_tokens' => 2000,
+                'temperature' => 0.3,
+                'system' => 'You are a professional news editor and translator. You process news articles by summarizing, translating, and categorizing them. Always respond with valid JSON only — no markdown, no code fences, just the JSON object.',
+                'messages' => [
+                    [
+                        'role' => 'user',
+                        'content' => $prompt
+                    ]
+                ]
+            ]),
+            'timeout' => 60
+        ]);
+
+        if (is_wp_error($response)) {
+            return ['success' => false, 'error' => $response->get_error_message()];
+        }
+
+        $status_code = wp_remote_retrieve_response_code($response);
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+
+        if ($status_code !== 200) {
+            $error_msg = $body['error']['message'] ?? ('HTTP ' . $status_code);
+            return ['success' => false, 'error' => $error_msg];
+        }
+
+        if (empty($body['content'][0]['text'])) {
+            return ['success' => false, 'error' => 'Empty response from Anthropic'];
+        }
+
+        $text = $body['content'][0]['text'];
+
+        // Strip markdown code fences if present
+        $text = preg_replace('/^```(?:json)?\s*/i', '', $text);
+        $text = preg_replace('/\s*```$/i', '', $text);
+        $text = trim($text);
+
+        $result = json_decode($text, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return ['success' => false, 'error' => 'Failed to parse Anthropic response: ' . json_last_error_msg()];
+        }
+
+        return ['success' => true, 'data' => $result];
+    }
+
+    /**
+     * Call OpenAI API (fallback)
      */
     private function call_openai($data) {
         $prompt = $this->build_prompt($data);
 
         $response = wp_remote_post('https://api.openai.com/v1/chat/completions', [
             'headers' => [
-                'Authorization' => 'Bearer ' . $this->api_key,
+                'Authorization' => 'Bearer ' . $this->openai_key,
                 'Content-Type' => 'application/json'
             ],
             'body' => json_encode([
-                'model' => $this->model,
+                'model' => Config::OPENAI_MODEL,
                 'messages' => [
                     [
                         'role' => 'system',
@@ -164,7 +250,7 @@ class AI_Processor {
     }
 
     /**
-     * Build prompt for OpenAI
+     * Build prompt for AI processing
      */
     private function build_prompt($data) {
         $target_lang_name = $this->get_language_name($data['target_language']);
@@ -200,6 +286,7 @@ CRITICAL RULES:
 4. The content should be 300-500 words, covering the most important points
 5. Select 1-3 categories from the available list
 6. Generate 3-5 tags in {$target_lang_name}
+7. Return ONLY valid JSON — no markdown, no code fences
 PROMPT;
         } else {
             // Different language or short content — translate and expand
@@ -228,6 +315,7 @@ CRITICAL RULES:
 4. Content should be 300-500 words
 5. Select 1-3 categories from the available list
 6. Generate 3-5 tags in {$target_lang_name}
+7. Return ONLY valid JSON — no markdown, no code fences
 PROMPT;
         }
 
@@ -253,16 +341,16 @@ PROMPT;
     }
 
     /**
-     * Generate AI image for article (optional)
+     * Generate AI image for article (optional, OpenAI only)
      */
     public function generate_image($prompt) {
-        if (empty($this->api_key)) {
-            return ['success' => false, 'error' => 'API key not configured'];
+        if (empty($this->openai_key)) {
+            return ['success' => false, 'error' => 'OpenAI API key not configured (required for image generation)'];
         }
 
         $response = wp_remote_post('https://api.openai.com/v1/images/generations', [
             'headers' => [
-                'Authorization' => 'Bearer ' . $this->api_key,
+                'Authorization' => 'Bearer ' . $this->openai_key,
                 'Content-Type' => 'application/json'
             ],
             'body' => json_encode([

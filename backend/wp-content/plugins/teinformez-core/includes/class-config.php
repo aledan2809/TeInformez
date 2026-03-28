@@ -49,9 +49,11 @@ class Config {
     ];
 
     // === API CONFIGURATION ===
-    const OPENAI_MODEL = 'gpt-4-turbo-preview';
+    const AI_PROVIDER = 'anthropic';          // 'anthropic' or 'openai'
+    const ANTHROPIC_MODEL = 'claude-sonnet-4-20250514';
+    const OPENAI_MODEL = 'gpt-4o';
     const OPENAI_IMAGE_MODEL = 'dall-e-3';
-    const TRANSLATION_PROVIDER = 'openai';  // or 'deepl', 'google'
+    const TRANSLATION_PROVIDER = 'anthropic'; // or 'openai', 'deepl', 'google'
 
     // === NEWS CONFIGURATION ===
     const NEWS_FETCH_INTERVAL = 1800;       // seconds (30 minutes)
