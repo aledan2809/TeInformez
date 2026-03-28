@@ -15,12 +15,14 @@ class AI_Processor {
     private $provider;
     private $anthropic_key;
     private $openai_key;
+    private $groq_key;
     private $model;
 
     public function __construct() {
         $this->provider = Config::AI_PROVIDER;
         $this->anthropic_key = Config::get('anthropic_api_key', '');
         $this->openai_key = Config::get('openai_api_key', '');
+        $this->groq_key = Config::get('groq_api_key', '');
 
         if ($this->provider === 'anthropic') {
             $this->model = Config::ANTHROPIC_MODEL;
@@ -95,13 +97,19 @@ class AI_Processor {
                 $result = $this->call_openai($data);
             }
 
-            // Fallback: if primary fails and we have the other key, try it
+            // Fallback chain: primary -> secondary -> Groq
             if (!$result['success'] && $this->provider === 'anthropic' && !empty($this->openai_key)) {
                 error_log('TeInformez AI: Anthropic failed, trying OpenAI fallback');
                 $result = $this->call_openai($data);
             } elseif (!$result['success'] && $this->provider === 'openai' && !empty($this->anthropic_key)) {
                 error_log('TeInformez AI: OpenAI failed, trying Anthropic fallback');
                 $result = $this->call_anthropic($data);
+            }
+
+            // Groq as final fallback if both primary providers fail
+            if (!$result['success'] && !empty($this->groq_key)) {
+                error_log('TeInformez AI: Primary providers failed, trying Groq fallback');
+                $result = $this->call_groq($data);
             }
 
             if (!$result['success']) {
@@ -244,6 +252,66 @@ class AI_Processor {
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             return ['success' => false, 'error' => 'Failed to parse OpenAI response'];
+        }
+
+        return ['success' => true, 'data' => $result];
+    }
+
+    /**
+     * Call Groq API (final fallback — uses llama-3.3-70b-versatile)
+     */
+    private function call_groq($data) {
+        $prompt = $this->build_prompt($data);
+
+        $response = wp_remote_post('https://api.groq.com/openai/v1/chat/completions', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $this->groq_key,
+                'Content-Type' => 'application/json'
+            ],
+            'body' => json_encode([
+                'model' => 'llama-3.3-70b-versatile',
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You are a professional news editor and translator. You process news articles by summarizing, translating, and categorizing them. Always respond with valid JSON only — no markdown, no code fences, just the JSON object.'
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $prompt
+                    ]
+                ],
+                'temperature' => 0.3,
+                'max_tokens' => 2000,
+                'response_format' => ['type' => 'json_object']
+            ]),
+            'timeout' => 60
+        ]);
+
+        if (is_wp_error($response)) {
+            return ['success' => false, 'error' => 'Groq: ' . $response->get_error_message()];
+        }
+
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+
+        if (isset($body['error'])) {
+            return ['success' => false, 'error' => 'Groq: ' . ($body['error']['message'] ?? 'Unknown error')];
+        }
+
+        if (empty($body['choices'][0]['message']['content'])) {
+            return ['success' => false, 'error' => 'Empty response from Groq'];
+        }
+
+        $text = $body['choices'][0]['message']['content'];
+
+        // Strip markdown code fences if present
+        $text = preg_replace('/^```(?:json)?\s*/i', '', $text);
+        $text = preg_replace('/\s*```$/i', '', $text);
+        $text = trim($text);
+
+        $result = json_decode($text, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return ['success' => false, 'error' => 'Failed to parse Groq response: ' . json_last_error_msg()];
         }
 
         return ['success' => true, 'data' => $result];
