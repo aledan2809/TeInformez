@@ -130,6 +130,9 @@ class AI_Processor {
 
             error_log('TeInformez AI: Successfully processed item #' . $item->id);
 
+            // Trigger Chief Editor review
+            do_action('teinformez_article_pending_review', $item->id);
+
             return ['success' => true, 'item_id' => $item->id];
 
         } catch (\Exception $e) {

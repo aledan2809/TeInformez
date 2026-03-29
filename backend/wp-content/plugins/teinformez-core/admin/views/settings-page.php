@@ -140,6 +140,26 @@ use TeInformez\Config;
 
             <tr>
                 <th scope="row">
+                    <label for="chief_editor_enabled"><?php _e('Chief Editor AI Agent', 'teinformez'); ?></label>
+                </th>
+                <td>
+                    <label>
+                        <input type="checkbox"
+                               id="chief_editor_enabled"
+                               name="chief_editor_enabled"
+                               value="1"
+                               <?php checked(get_option('teinformez_chief_editor_enabled', '1'), '1'); ?>
+                        />
+                        <?php _e('Enable AI Chief Editor (auto-review and publish articles)', 'teinformez'); ?>
+                    </label>
+                    <p class="description">
+                        <?php _e('When enabled, articles are automatically reviewed by an AI editor and published immediately. When disabled, articles stay in pending_review for manual approval or auto-publish after the review period.', 'teinformez'); ?>
+                    </p>
+                </td>
+            </tr>
+
+            <tr>
+                <th scope="row">
                     <label for="news_fetch_interval"><?php _e('News Fetch Interval (seconds)', 'teinformez'); ?></label>
                 </th>
                 <td>

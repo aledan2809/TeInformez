@@ -73,6 +73,9 @@ function teinformez_init() {
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-ai-processor.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-news-publisher.php';
 
+    // Load Chief Editor AI Agent
+    require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-chief-editor.php';
+
     // Load delivery system (Phase C)
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-delivery-handler.php';
 
@@ -138,6 +141,14 @@ add_action('teinformez_check_deliveries', function() {
     // Retry failed social media posts
     $social = new TeInformez\Social_Poster();
     $social->retry_failed_posts();
+});
+
+// Chief Editor AI Agent: review article when it reaches pending_review
+add_action('teinformez_article_pending_review', function($article_id) {
+    if (TeInformez\Chief_Editor::is_enabled()) {
+        $editor = new TeInformez\Chief_Editor();
+        $editor->review_and_publish($article_id);
+    }
 });
 
 // Social media posting: auto-post when news is published (Phase E)

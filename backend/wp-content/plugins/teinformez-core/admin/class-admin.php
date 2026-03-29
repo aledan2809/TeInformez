@@ -186,6 +186,7 @@ class Admin {
             'from_name',
             'frontend_url',
             'admin_review_period',
+            'chief_editor_enabled',
             'news_fetch_interval',
             'ga4_property_id',
             'ga4_service_account_email',
@@ -203,7 +204,7 @@ class Admin {
         ];
 
         // Handle checkbox fields (unchecked = not in POST)
-        $checkboxes = ['social_posting_enabled'];
+        $checkboxes = ['social_posting_enabled', 'chief_editor_enabled'];
 
         foreach ($fields as $field) {
             if (in_array($field, $checkboxes)) {
