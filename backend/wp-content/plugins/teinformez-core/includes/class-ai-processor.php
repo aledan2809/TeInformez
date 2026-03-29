@@ -17,12 +17,14 @@ class AI_Processor {
     private $openai_key;
     private $groq_key;
     private $model;
+    private $ai_router_url;
 
     public function __construct() {
         $this->provider = Config::AI_PROVIDER;
         $this->anthropic_key = Config::get('anthropic_api_key', '');
         $this->openai_key = Config::get('openai_api_key', '');
         $this->groq_key = Config::get('groq_api_key', '');
+        $this->ai_router_url = get_option('teinformez_ai_router_url', 'http://127.0.0.1:3100/api/ai/chat');
 
         if ($this->provider === 'anthropic') {
             $this->model = Config::ANTHROPIC_MODEL;
@@ -91,25 +93,28 @@ class AI_Processor {
                 'categories' => json_decode($item->categories, true) ?? []
             ];
 
-            if ($this->provider === 'anthropic') {
-                $result = $this->call_anthropic($data);
-            } else {
-                $result = $this->call_openai($data);
-            }
+            // Try AI Router microservice first (smart multi-provider routing)
+            $result = $this->call_ai_router($data);
 
-            // Fallback chain: primary -> secondary -> Groq
-            if (!$result['success'] && $this->provider === 'anthropic' && !empty($this->openai_key)) {
-                error_log('TeInformez AI: Anthropic failed, trying OpenAI fallback');
-                $result = $this->call_openai($data);
-            } elseif (!$result['success'] && $this->provider === 'openai' && !empty($this->anthropic_key)) {
-                error_log('TeInformez AI: OpenAI failed, trying Anthropic fallback');
-                $result = $this->call_anthropic($data);
-            }
+            // Fallback to direct provider calls if AI Router is down
+            if (!$result['success'] && strpos($result['error'] ?? '', 'AI Router') !== false) {
+                error_log('TeInformez AI: AI Router unavailable, falling back to direct provider calls');
 
-            // Groq as final fallback if both primary providers fail
-            if (!$result['success'] && !empty($this->groq_key)) {
-                error_log('TeInformez AI: Primary providers failed, trying Groq fallback');
-                $result = $this->call_groq($data);
+                if ($this->provider === 'anthropic') {
+                    $result = $this->call_anthropic($data);
+                } else {
+                    $result = $this->call_openai($data);
+                }
+
+                if (!$result['success'] && $this->provider === 'anthropic' && !empty($this->openai_key)) {
+                    $result = $this->call_openai($data);
+                } elseif (!$result['success'] && $this->provider === 'openai' && !empty($this->anthropic_key)) {
+                    $result = $this->call_anthropic($data);
+                }
+
+                if (!$result['success'] && !empty($this->groq_key)) {
+                    $result = $this->call_groq($data);
+                }
             }
 
             if (!$result['success']) {
@@ -146,6 +151,62 @@ class AI_Processor {
 
             return ['success' => false, 'error' => $e->getMessage()];
         }
+    }
+
+    /**
+     * Call AI Router microservice (smart multi-provider routing)
+     */
+    private function call_ai_router($data) {
+        if (empty($this->ai_router_url)) {
+            return ['success' => false, 'error' => 'AI Router URL not configured'];
+        }
+
+        $prompt = $this->build_prompt($data);
+        $system = 'You are a professional news editor and translator. You process news articles by summarizing, translating, and categorizing them. Always respond with valid JSON only — no markdown, no code fences, just the JSON object.';
+
+        $response = wp_remote_post($this->ai_router_url, [
+            'headers' => ['Content-Type' => 'application/json'],
+            'body' => json_encode([
+                'system' => $system,
+                'prompt' => $prompt,
+                'maxTokens' => 2000,
+                'temperature' => 0.3,
+                'projectName' => 'teinformez',
+                'jsonMode' => true,
+                'languageHint' => 'ro',
+                'taskHint' => ($data['source_language'] !== $data['target_language']) ? 'translation' : 'summarization',
+            ]),
+            'timeout' => 90,
+        ]);
+
+        if (is_wp_error($response)) {
+            return ['success' => false, 'error' => 'AI Router connection failed: ' . $response->get_error_message()];
+        }
+
+        $status_code = wp_remote_retrieve_response_code($response);
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+
+        if ($status_code !== 200 || empty($body['text'])) {
+            $error = $body['error'] ?? ('AI Router HTTP ' . $status_code);
+            return ['success' => false, 'error' => 'AI Router: ' . $error];
+        }
+
+        $text = $body['text'];
+
+        // Strip markdown code fences if present
+        $text = preg_replace('/^```(?:json)?\s*/i', '', $text);
+        $text = preg_replace('/\s*```$/i', '', $text);
+        $text = trim($text);
+
+        $result = json_decode($text, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return ['success' => false, 'error' => 'Failed to parse AI Router response: ' . json_last_error_msg()];
+        }
+
+        error_log('TeInformez AI: Processed via AI Router (provider: ' . ($body['provider'] ?? 'unknown') . ', model: ' . ($body['model'] ?? 'unknown') . ')');
+
+        return ['success' => true, 'data' => $result];
     }
 
     /**

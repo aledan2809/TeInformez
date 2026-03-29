@@ -16,12 +16,14 @@ class Chief_Editor {
     private $anthropic_key;
     private $openai_key;
     private $groq_key;
+    private $ai_router_url;
 
     public function __construct() {
         $this->provider = Config::AI_PROVIDER;
         $this->anthropic_key = Config::get('anthropic_api_key', '');
         $this->openai_key = Config::get('openai_api_key', '');
         $this->groq_key = Config::get('groq_api_key', '');
+        $this->ai_router_url = get_option('teinformez_ai_router_url', 'http://127.0.0.1:3100/api/ai/chat');
     }
 
     /**
@@ -155,6 +157,15 @@ class Chief_Editor {
     private function call_ai($user_message) {
         $system_prompt = $this->get_system_prompt();
 
+        // Try AI Router microservice first
+        $result = $this->call_ai_router($system_prompt, $user_message);
+        if ($result['success']) return $result;
+
+        // AI Router unavailable — fallback to direct provider calls
+        if (strpos($result['error'] ?? '', 'AI Router') !== false) {
+            error_log('TeInformez Chief Editor: AI Router unavailable, falling back to direct calls');
+        }
+
         // Try primary provider
         if ($this->provider === 'anthropic' && !empty($this->anthropic_key)) {
             $result = $this->call_anthropic($system_prompt, $user_message);
@@ -179,6 +190,52 @@ class Chief_Editor {
         }
 
         return ['success' => false, 'error' => 'All AI providers failed', 'provider' => 'none'];
+    }
+
+    /**
+     * Call AI Router microservice
+     */
+    private function call_ai_router($system_prompt, $user_message) {
+        if (empty($this->ai_router_url)) {
+            return ['success' => false, 'error' => 'AI Router URL not configured'];
+        }
+
+        $response = wp_remote_post($this->ai_router_url, [
+            'headers' => ['Content-Type' => 'application/json'],
+            'body' => json_encode([
+                'system' => $system_prompt,
+                'prompt' => $user_message,
+                'maxTokens' => 4096,
+                'temperature' => 0.3,
+                'projectName' => 'teinformez',
+                'jsonMode' => true,
+                'languageHint' => 'ro',
+                'taskHint' => 'analysis',
+            ]),
+            'timeout' => 90,
+        ]);
+
+        if (is_wp_error($response)) {
+            return ['success' => false, 'error' => 'AI Router connection failed: ' . $response->get_error_message()];
+        }
+
+        $status_code = wp_remote_retrieve_response_code($response);
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+
+        if ($status_code !== 200 || empty($body['text'])) {
+            $error = $body['error'] ?? ('AI Router HTTP ' . $status_code);
+            return ['success' => false, 'error' => 'AI Router: ' . $error];
+        }
+
+        $parsed = $this->parse_json_response($body['text']);
+
+        if ($parsed['success']) {
+            $provider = $body['provider'] ?? 'ai-router';
+            error_log('TeInformez Chief Editor: Processed via AI Router (provider: ' . $provider . ')');
+            return array_merge($parsed, ['provider' => $provider]);
+        }
+
+        return $parsed;
     }
 
     /**
