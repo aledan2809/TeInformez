@@ -200,7 +200,7 @@ class News_Publisher {
 
         // Get approved items ready for publishing
         $items = $wpdb->get_results(
-            "SELECT * FROM {$table} WHERE status = 'approved' ORDER BY reviewed_at ASC LIMIT 50"
+            "SELECT * FROM {$table} WHERE status = 'approved' ORDER BY reviewed_at ASC LIMIT 500"
         );
 
         if (empty($items)) {
@@ -236,7 +236,7 @@ class News_Publisher {
              WHERE status = 'pending_review'
              AND processed_at < %s
              ORDER BY processed_at ASC
-             LIMIT 50",
+             LIMIT 500",
             $cutoff_time
         ));
 
