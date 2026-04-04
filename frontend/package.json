@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3002",
-    "build": "TURBOPACK= next build",
+    "build": "TURBOPACK= NODE_ENV=production next build",
     "start": "next start -p 3002",
     "lint": "next lint",
     "type-check": "tsc --noEmit"
