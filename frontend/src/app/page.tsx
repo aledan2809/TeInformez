@@ -1,6 +1,4 @@
 import SharedFooter from '@/components/SharedFooter';
-import HeroArticle from '@/components/home/HeroArticle';
-import CategorySection from '@/components/home/CategorySection';
 import HomeClient from './HomeClient';
 
 const API_BASE = process.env.NEXT_PUBLIC_WP_API_URL || 'http://localhost/wp-json';
