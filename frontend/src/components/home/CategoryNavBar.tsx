@@ -87,7 +87,7 @@ export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) 
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 border-b sticky top-14 z-40">
+    <nav aria-label="Categorii" className="bg-white dark:bg-gray-900 border-b sticky top-14 z-40">
       <div className="container-custom relative flex items-center">
         {canScrollLeft && (
           <button
@@ -134,7 +134,7 @@ export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) 
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                   hasArticles
                     ? 'bg-gray-100 dark:bg-gray-800 hover:bg-primary-100 dark:hover:bg-primary-900/30 text-gray-700 dark:text-gray-300'
-                    : 'bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-600'
+                    : 'bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400'
                 }`}
               >
                 <span>{cat.emoji}</span>
@@ -154,6 +154,6 @@ export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) 
           </button>
         )}
       </div>
-    </div>
+    </nav>
   );
 }

@@ -52,7 +52,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white dark:from-gray-900 dark:to-gray-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-gradient-to-b from-primary-50 to-white dark:from-gray-900 dark:to-gray-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link href="/" className="flex justify-center items-center space-x-2 mb-6">
           <Newspaper className="h-10 w-10 text-primary-600" />
@@ -72,7 +72,7 @@ export default function RegisterPage() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="card">
           {error && (
-            <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-800">
+            <div role="alert" className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-500">
               {error}
             </div>
           )}
@@ -111,7 +111,7 @@ export default function RegisterPage() {
                 placeholder="nume@exemplu.ro"
               />
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
               )}
             </div>
 
@@ -144,7 +144,7 @@ export default function RegisterPage() {
                 placeholder="••••••••"
               />
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
               )}
               <p className="mt-1 text-xs text-gray-500">
                 Min. 8 caractere, 1 majusculă, 1 minusculă, 1 cifră, 1 caracter special
@@ -168,7 +168,7 @@ export default function RegisterPage() {
                 placeholder="••••••••"
               />
               {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+                <p className="mt-1 text-sm text-red-500">{errors.confirmPassword.message}</p>
               )}
             </div>
 
@@ -192,7 +192,7 @@ export default function RegisterPage() {
                   și sunt de acord ca datele mele să fie procesate pentru a primi știri personalizate. *
                 </label>
                 {errors.gdprConsent && (
-                  <p className="mt-1 text-red-600">{errors.gdprConsent.message}</p>
+                  <p className="mt-1 text-red-500">{errors.gdprConsent.message}</p>
                 )}
               </div>
             </div>
@@ -245,6 +245,6 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

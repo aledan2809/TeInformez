@@ -38,17 +38,17 @@ function estimateReadingTime(content: string): number {
 
 // Animation variants
 const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { y: 20 },
   visible: (i: number) => ({
-    opacity: 1, y: 0,
+    y: 0,
     transition: { delay: i * 0.05, duration: 0.4, ease: 'easeOut' as const },
   }),
 };
 
 const heroVariants = {
-  hidden: { opacity: 0, scale: 0.98 },
+  hidden: { scale: 0.98 },
   visible: {
-    opacity: 1, scale: 1,
+    scale: 1,
     transition: { duration: 0.5, ease: 'easeOut' as const },
   },
 };
@@ -263,7 +263,7 @@ export default function NewsListClient() {
 
   if (loading && news.length === 0 && !searchQuery) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+      <main className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -272,7 +272,7 @@ export default function NewsListClient() {
           <Loader2 className="h-12 w-12 animate-spin text-primary-600 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">Se încarcă știrile...</p>
         </motion.div>
-      </div>
+      </main>
     );
   }
 
@@ -281,7 +281,7 @@ export default function NewsListClient() {
   const gridItems = news.slice(3);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
       <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
         <div className="container mx-auto px-4 py-6">
@@ -715,7 +715,7 @@ export default function NewsListClient() {
         <TrendingSidebar items={trendingNews} onArticleClick={handleArticleClick} />
         </div>{/* end lg:flex */}
       </div>
-    </div>
+    </main>
   );
 }
 

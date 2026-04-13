@@ -31,7 +31,7 @@ export default function ArticleCard({
         <h4 className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug">
           {title}
         </h4>
-        <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex items-center gap-2 mt-1 text-xs text-gray-600 dark:text-gray-400">
           <span>{source}</span>
           <span>·</span>
           <span>{timeAgo}</span>
@@ -66,7 +66,7 @@ export default function ArticleCard({
             {summary}
           </p>
         )}
-        <div className="flex items-center gap-2 mt-3 text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex items-center gap-2 mt-3 text-xs text-gray-600 dark:text-gray-400">
           <ExternalLink className="h-3 w-3" />
           <span>{source}</span>
           <span>·</span>
@@ -74,7 +74,7 @@ export default function ArticleCard({
           <span>{timeAgo}</span>
         </div>
         {imageSource && (
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Foto: {imageSource}</p>
+          <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">Foto: {imageSource}</p>
         )}
       </div>
     </Link>

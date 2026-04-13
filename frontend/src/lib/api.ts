@@ -29,13 +29,27 @@ import type {
 const API_BASE_URL = process.env.NEXT_PUBLIC_WP_API_URL || 'http://localhost/wp-json';
 const API_NAMESPACE = 'teinformez/v1';
 
-// Enforce HTTPS in production
+// Use local proxy to avoid CORS issues when API is cross-origin
 const getSecureApiUrl = () => {
   const url = API_BASE_URL;
 
-  // In production (non-localhost), enforce HTTPS
-  if (typeof window !== 'undefined' && !url.includes('localhost')) {
-    return url.replace(/^http:/, 'https:');
+  if (typeof window !== 'undefined') {
+    // Check if API is cross-origin (different host than current page)
+    try {
+      const apiHost = new URL(url).host;
+      const pageHost = window.location.host;
+      if (apiHost !== pageHost) {
+        // Route through Next.js rewrite proxy to avoid CORS
+        return '/api/wp';
+      }
+    } catch {
+      // If URL parsing fails, fall through to direct URL
+    }
+
+    // Same-origin: enforce HTTPS in production
+    if (!url.includes('localhost')) {
+      return url.replace(/^http:/, 'https:');
+    }
   }
 
   return url;
@@ -135,38 +149,49 @@ class ApiClient {
     );
   }
 
-  // Auth endpoints
-  async register(data: RegisterData): Promise<AuthResponse> {
-    const response = await this.client.post<APIResponse<AuthResponse>>('/auth/register', data);
-    if (response.data.data?.token) {
-      // Token expires in 24 hours (matches backend)
-      Cookies.set('teinformez_token', response.data.data.token, { expires: 1 });
+  // Auth endpoints — use local proxy to avoid browser console errors on 4xx
+  private async authProxy<T>(action: string, body: Record<string, unknown>): Promise<T> {
+    const res = await fetch(`/api/auth?action=${action}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json();
+    if (json.success === false) {
+      const error = new Error(json.message || 'Auth error');
+      throw error;
     }
-    return response.data.data!;
+    return json;
+  }
+
+  async register(data: RegisterData): Promise<AuthResponse> {
+    const json = await this.authProxy<APIResponse<AuthResponse>>('register', data as unknown as Record<string, unknown>);
+    if (json.data?.token) {
+      Cookies.set('teinformez_token', json.data.token, { expires: 1 });
+    }
+    return json.data!;
   }
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await this.client.post<APIResponse<AuthResponse>>('/auth/login', credentials);
-    if (response.data.data?.token) {
-      // Set traditional js-cookie (for compatibility)
-      Cookies.set('teinformez_token', response.data.data.token, { expires: 1 });
+    const json = await this.authProxy<APIResponse<AuthResponse>>('login', credentials as unknown as Record<string, unknown>);
+    if (json.data?.token) {
+      Cookies.set('teinformez_token', json.data.token, { expires: 1 });
 
       // Also set secure httpOnly cookie (enhanced security)
       try {
-        await this.setSecureCookie(response.data.data.token);
+        await this.setSecureCookie(json.data.token);
       } catch (error) {
         console.warn('Failed to set secure cookie:', error);
-        // Continue with js-cookie fallback
       }
     }
-    return response.data.data!;
+    return json.data!;
   }
 
   /**
    * Set secure httpOnly cookie (security enhancement)
    */
   async setSecureCookie(token: string): Promise<void> {
-    await this.client.post('/auth/set-secure-cookie', { token });
+    await this.authProxy('set-secure-cookie', { token });
   }
 
   async logout(): Promise<void> {

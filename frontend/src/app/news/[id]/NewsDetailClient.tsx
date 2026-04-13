@@ -143,7 +143,7 @@ export default function NewsDetailClient() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+      <main className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -152,13 +152,13 @@ export default function NewsDetailClient() {
           <Loader2 className="h-12 w-12 animate-spin text-primary-600 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">Se încarcă știrea...</p>
         </motion.div>
-      </div>
+      </main>
     );
   }
 
   if (error || !news) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+      <main className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -171,14 +171,14 @@ export default function NewsDetailClient() {
             Înapoi la știri
           </Link>
         </motion.div>
-      </div>
+      </main>
     );
   }
 
   const bookmarked = isBookmarked(news.id);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Reading progress bar */}
       <ReadingProgressBar />
 
@@ -443,7 +443,7 @@ export default function NewsDetailClient() {
           </Link>
         </div>
       </motion.article>
-    </div>
+    </main>
   );
 }
 

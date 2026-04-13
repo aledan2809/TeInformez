@@ -43,7 +43,7 @@ export default function HeroArticle({ id, title, summary, image, imageSource, so
           <p className="mt-2 text-sm sm:text-base text-gray-200 line-clamp-2 max-w-2xl">
             {summary}
           </p>
-          <div className="flex items-center gap-3 mt-3 text-xs text-gray-300">
+          <div className="flex items-center gap-3 mt-3 text-xs text-gray-200">
             <span className="flex items-center gap-1">
               <ExternalLink className="h-3 w-3" />
               {source}
