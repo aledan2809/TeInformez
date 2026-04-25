@@ -60,3 +60,7 @@ cd frontend && npm install && npm run build
 
 ## Knowledge Base
 - `knowledge/README.md` — Project overview and architecture
+
+
+## Governance Reference
+See: `Master/knowledge/MASTER_SYSTEM.md` §1-§5. This project follows Master governance; do not duplicate rules.

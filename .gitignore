@@ -53,3 +53,9 @@ logs/
 
 .vercel
 .env*.local
+
+# Frontend runtime + auto-gen artifacts (added 2026-04-25 stale-recovery)
+frontend/tsconfig.tsbuildinfo
+frontend/.tester/
+frontend/.tester-screenshots/
+frontend/test-results/

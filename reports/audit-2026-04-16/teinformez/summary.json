@@ -1,0 +1,63 @@
+{
+  "audit": {
+    "date": "2026-04-16",
+    "updated": "2026-04-18",
+    "mode": "AUDIT-ONLY",
+    "scope": "Static code analysis",
+    "target_directory": "backend/wp-content/plugins/teinformez-core/",
+    "files_analyzed": 32,
+    "lines_of_code": 11082
+  },
+  "plugin": {
+    "name": "TeInformez Core",
+    "version": "1.0.0",
+    "requires_wordpress": "6.0+",
+    "requires_php": "8.0+",
+    "author": "TeInformez Team",
+    "license": "GPL v2 or later"
+  },
+  "findings": {
+    "total": 44,
+    "by_severity": {
+      "critical": 1,
+      "high": 8,
+      "medium": 17,
+      "low": 12,
+      "informational": 6
+    },
+    "by_category": {
+      "broken_access_control": 6,
+      "injection": 5,
+      "authentication_weaknesses": 5,
+      "sensitive_data_exposure": 5,
+      "input_validation": 9,
+      "security_misconfiguration": 6,
+      "csrf": 2,
+      "other": 6
+    },
+    "top_risks": [
+      "IDOR in subscription update (C-01) — any authenticated user can modify any subscription",
+      "Missing admin capability checks on 4 API classes (H-04 through H-08) — privilege escalation",
+      "No rate limiting on authentication endpoints (H-02) — brute-force attacks",
+      "Stateless tokens cannot be revoked (H-03) — stolen tokens valid for 24h",
+      "Unbounded bulk subscription endpoint (M-15) — DoS via database exhaustion",
+      "Email change without confirmation (M-16) — permanent account lockout risk"
+    ]
+  },
+  "strengths": [
+    "Consistent use of $wpdb->prepare() for parameterized queries",
+    "Input sanitization with sanitize_text_field/sanitize_email across API endpoints",
+    "HMAC-based token signing with hash_equals for timing-safe comparison",
+    "Nonce verification in WordPress admin forms",
+    "GDPR compliance with consent tracking, data export, and right to be forgotten",
+    "ABSPATH guard on all PHP files to prevent direct access",
+    "No hardcoded API keys — all credentials loaded from Config/options",
+    "No unsafe eval(), extract(), or unserialize() usage"
+  ],
+  "code_modifications": false,
+  "report_files": [
+    "TeInformez/AUDIT_GAPS.md",
+    "reports/audit-2026-04-16/teinformez/summary.json",
+    "reports/audit-2026-04-16/teinformez/AUDIT_GAPS.md"
+  ]
+}
