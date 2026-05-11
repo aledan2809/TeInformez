@@ -119,6 +119,7 @@ class News_API extends REST_API {
         if ($is_cacheable) {
             $cached = get_transient($news_cache_key);
             if ($cached !== false) {
+                header('X-WP-Cache: HIT');
                 return $this->success($cached);
             }
         }
@@ -367,6 +368,7 @@ class News_API extends REST_API {
         $cache_key = 'teinformez_homepage_data';
         $cached = get_transient($cache_key);
         if ($cached !== false) {
+            header('X-WP-Cache: HIT');
             return $this->success($cached);
         }
 

@@ -95,6 +95,17 @@ class Juridic_API extends REST_API {
         $search = sanitize_text_field($request->get_param('search') ?: '');
         $column_only = (bool) $request->get_param('column_only');
 
+        // Cache the unfiltered first page (hot path)
+        $is_cacheable = ($page === 1 && !$category && !$search && !$column_only);
+        $cache_key = 'teinformez_juridic_list_pp' . $per_page;
+        if ($is_cacheable) {
+            $cached = get_transient($cache_key);
+            if ($cached !== false) {
+                header('X-WP-Cache: HIT');
+                return $this->success($cached);
+            }
+        }
+
         $where = "WHERE status = 'published'";
         $params = [];
 
@@ -129,13 +140,19 @@ class Juridic_API extends REST_API {
 
         $formatted = array_map([$this, 'format_item'], $items);
 
-        return $this->success([
+        $result = [
             'items' => $formatted,
             'total' => $total,
             'page' => $page,
             'per_page' => $per_page,
             'total_pages' => ceil($total / $per_page),
-        ]);
+        ];
+
+        if ($is_cacheable) {
+            set_transient($cache_key, $result, 5 * MINUTE_IN_SECONDS);
+        }
+
+        return $this->success($result);
     }
 
     /**

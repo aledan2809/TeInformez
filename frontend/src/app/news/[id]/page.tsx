@@ -116,6 +116,15 @@ export default async function NewsDetailPage({
 
   return (
     <>
+      {news?.image && (
+        <link
+          rel="preload"
+          as="image"
+          href={news.image}
+          // @ts-expect-error fetchPriority is valid but not yet in all TS defs
+          fetchPriority="high"
+        />
+      )}
       {jsonLd && (
         <script
           type="application/ld+json"
