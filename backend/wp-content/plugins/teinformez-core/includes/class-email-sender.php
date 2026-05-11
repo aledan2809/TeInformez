@@ -41,7 +41,7 @@ class Email_Sender {
 
         error_log('TeInformez Brevo: Preparing to send email');
         error_log('TeInformez Brevo: From: ' . $this->from_name . ' <' . $this->from_email . '>');
-        error_log('TeInformez Brevo: To: ' . $to_email);
+        error_log('TeInformez Brevo: To: *' . strstr($to_email, '@'));
         error_log('TeInformez Brevo: Subject: ' . $subject);
 
         $body = [
@@ -182,7 +182,7 @@ class Email_Sender {
         ]);
         // No unsubscribe footer on confirmation email — they haven't subscribed yet
 
-        error_log('TeInformez: Sending newsletter confirmation to: ' . $to_email);
+        error_log('TeInformez: Sending newsletter confirmation to: *' . strstr($to_email, '@'));
 
         return $this->send($to_email, $subject, $html_content);
     }

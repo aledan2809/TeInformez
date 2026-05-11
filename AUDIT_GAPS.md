@@ -43,7 +43,7 @@
 | Sprint 5 review fixes | Eliminated | `564a983` — string type hint; WP_REST_Response Retry-After; IPv6 brackets trim; dev comment removed from authStore | 2026-05-12 |
 
 **Evidence H-04–H-08**: E8 test (2026-05-11): unauthenticated GET /admin/analytics → HTTP 401; reader → HTTP 403; admin → HTTP 200.
-**Note M-07 partial**: `send_via_brevo()` line 44 still logs `$to_email` for all email types — tracked as backlog item (low risk, no token exposure).
+**Note M-07**: Fully eliminated — `send_via_brevo()` and `send_newsletter_confirmation()` now log `*@domain.com` only (see commit below).
 
 ---
 

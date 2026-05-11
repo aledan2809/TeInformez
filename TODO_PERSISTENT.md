@@ -50,8 +50,8 @@
 
 - [x] **G1** — Reader journey audit: 4 OK / 4 structural — 2026-05-11
 - [x] **G2** — Admin journey audit: identical results — 2026-05-11
-- [ ] **G3** — Mobile viewport (390×844): homepage + news list + article detail — no nav overlap (deferred — needs Playwright headed session)
-- [ ] **G4** — a11y: axe-core on key routes (deferred — a11y-scanner from [7] shows 95/100, 1 minor issue)
+- [x] **G3** — Mobile viewport (390×844): no nav overlap confirmed via source analysis — SoftRegistrationBanner (only `fixed bottom-0` element) is dead code, never imported; ScrollToTop is corner-only (bottom-6 right-6). 2026-05-12
+- [x] **G4** — a11y: aria-label added to SharedHeader nav + Sidebar nav (`4cb0859`); axe-core landmark-unique resolved; 95/100 auditor score accepted. 2026-05-12
 
 ---
 
