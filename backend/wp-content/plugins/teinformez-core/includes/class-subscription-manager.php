@@ -80,7 +80,7 @@ class Subscription_Manager {
         global $wpdb;
 
         // H-01: Whitelist allowed fields to prevent arbitrary column injection
-        $allowed = ['category_slug', 'topic_keyword', 'country_filter', 'source_filter', 'frequency', 'is_active'];
+        $allowed = ['category_slug', 'topic_keyword', 'country_filter', 'source_filter', 'is_active'];
         $filtered = array_intersect_key($data, array_flip($allowed));
 
         if (empty($filtered)) {

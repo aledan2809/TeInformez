@@ -16,16 +16,23 @@ if (!defined('ABSPATH')) {
 class Auth_API extends REST_API {
 
     /**
-     * H-02: Rate limiter — max 5 attempts per IP per 15 minutes on sensitive auth endpoints.
+     * H-02: Rate limiter — max 5 attempts per IP per 15-minute sliding window.
+     * Stores {count, start} in a single transient so the window is preserved on
+     * all backends (DB, Redis, Memcached) — no reliance on _transient_timeout_ option.
      * Returns WP_REST_Response error on limit exceeded, null when OK.
      */
     private function check_rate_limit(string $action): ?\WP_REST_Response {
         $ip  = Config::get_client_ip() ?: 'unknown';
         $key = 'teinformez_rl_' . $action . '_' . md5($ip);
 
-        $attempts = (int) get_transient($key);
+        $data = get_transient($key);
 
-        if ($attempts >= 5) {
+        if ($data === false) {
+            set_transient($key, ['count' => 1, 'start' => time()], 15 * MINUTE_IN_SECONDS);
+            return null;
+        }
+
+        if ((int) $data['count'] >= 5) {
             return $this->error(
                 __('Too many attempts. Please try again later.', 'teinformez'),
                 'rate_limit_exceeded',
@@ -33,14 +40,9 @@ class Auth_API extends REST_API {
             );
         }
 
-        // First attempt in this window — set TTL to 15 min; otherwise just increment
-        if ($attempts === 0) {
-            set_transient($key, 1, 15 * MINUTE_IN_SECONDS);
-        } else {
-            // Preserve remaining TTL by re-using the window (increment only)
-            $ttl = (int) (get_option('_transient_timeout_' . $key, time() + 15 * MINUTE_IN_SECONDS) - time());
-            set_transient($key, $attempts + 1, max($ttl, 1));
-        }
+        // Preserve original window start — remaining TTL = 15 min minus elapsed
+        $remaining = max(1, 15 * MINUTE_IN_SECONDS - (time() - (int) $data['start']));
+        set_transient($key, ['count' => $data['count'] + 1, 'start' => $data['start']], $remaining);
 
         return null;
     }
