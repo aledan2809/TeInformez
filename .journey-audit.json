@@ -1,0 +1,32 @@
+{
+  "name": "TeInformez",
+  "baseUrl": "https://teinformez.eu",
+  "login": {
+    "path": "/login",
+    "emailSelector": "input[type=email]",
+    "passwordSelector": "input[type=password]",
+    "submitSelector": "button[type=submit]",
+    "successUrlPattern": "/(dashboard|onboarding|$)"
+  },
+  "credentials": {
+    "emailEnv": "JOURNEY_EMAIL",
+    "passwordEnv": "JOURNEY_PASSWORD"
+  },
+  "navLinks": [
+    { "name": "Home", "href": "/" },
+    { "name": "Stiri", "href": "/news" },
+    { "name": "Dashboard", "href": "/dashboard" },
+    { "name": "Juridic", "href": "/juridic" },
+    { "name": "Profil", "href": "/profile" },
+    { "name": "Setari", "href": "/settings" },
+    { "name": "GDPR", "href": "/gdpr" },
+    { "name": "Privacy", "href": "/privacy" },
+    { "name": "Terms", "href": "/terms" }
+  ],
+  "onboardingMarkers": "Alege categorii|selecteaza|interese|onboarding|preferences",
+  "emptyStateMarkers": "Nu exista|nicio stire|empty|no results|Niciun",
+  "errorMarkers": "error|eroare|failed|esuat|500|crash",
+  "viewport": { "width": 1440, "height": 900 },
+  "pageTimeout": 25000,
+  "settleDelay": 2000
+}

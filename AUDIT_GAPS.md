@@ -1,10 +1,41 @@
 # TeInformez Security Audit — Gap Analysis
 
-**Date:** 2026-04-16
+**Date:** 2026-04-16 (updated 2026-05-11)
 **Plugin:** TeInformez Core v1.0.0
 **Scope:** Static code analysis of `backend/wp-content/plugins/teinformez-core/`
-**Mode:** AUDIT-ONLY (no code modifications)
+**Mode:** AUDIT-ONLY → DIRECT FIX (H-01–H-08 fixed 2026-05-11)
 **Target:** WordPress 6.0+ / PHP 8.0+
+
+---
+
+## Eliminated Gaps (H-01–H-08)
+
+| Gap | Status | Commit | Date |
+|-----|--------|--------|------|
+| C-01 | Eliminated | VPS deploy 2026-05-11 | 2026-05-11 |
+| H-01 | Eliminated | VPS deploy 2026-05-11 | 2026-05-11 |
+| H-02 | Eliminated | VPS deploy 2026-05-11 | 2026-05-11 |
+| H-03 | Eliminated | VPS deploy 2026-05-11 | 2026-05-11 |
+| H-04 | Eliminated | `is_admin()` + `is_authenticated→is_admin` on `/admin/analytics` | 2026-05-11 |
+| H-05 | Eliminated | `is_admin()` on all 5 juridic admin endpoints | 2026-05-11 |
+| H-06 | Eliminated | `is_admin()` on all 5 telegram endpoints | 2026-05-11 |
+| H-07 | Eliminated | AES-256-CBC encrypt/decrypt_token() in class-telegram-api.php | 2026-05-11 |
+| H-08 | Eliminated | `current_user_can('manage_options')` in juridic-queue.php + news-queue.php | 2026-05-11 |
+
+**Evidence**: E8 test (2026-05-11): unauthenticated GET /admin/analytics → HTTP 401; reader → HTTP 403; admin → HTTP 200.
+
+---
+
+## New Gaps (TRUE E2E FULL 2026-05-11)
+
+| Gap | Severity | Description | Status |
+|-----|----------|-------------|--------|
+| G-TI-NEW-001 | LOW | `/profile` and `/settings` frontend routes return 404 — not implemented | OPEN |
+| G-TI-NEW-002 | INFO | Dashboard SSR delivers 112-byte loading skeleton — journey audit tooling sees EMPTY | INFO |
+| G-TI-NEW-003 | INFO | Journey audit `/terms` GATED false positive — onboarding marker matches word in content | INFO |
+| G-TI-NEW-004 | INFO | Journey audit `/news` HAS_ERRORS false positive — Next.js RSC JSON payload | INFO |
+
+---
 
 ---
 
