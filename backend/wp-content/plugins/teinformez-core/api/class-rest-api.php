@@ -129,6 +129,37 @@ class REST_API {
     }
 
     /**
+     * Validate password strength (M-02)
+     * Returns true on success, WP_Error on failure.
+     */
+    protected function validate_password_strength($password) {
+        $errors = [];
+        if (strlen($password) < 8) {
+            $errors[] = __('minimum 8 characters', 'teinformez');
+        }
+        if (!preg_match('/[A-Z]/', $password)) {
+            $errors[] = __('at least one uppercase letter', 'teinformez');
+        }
+        if (!preg_match('/[a-z]/', $password)) {
+            $errors[] = __('at least one lowercase letter', 'teinformez');
+        }
+        if (!preg_match('/[0-9]/', $password)) {
+            $errors[] = __('at least one number', 'teinformez');
+        }
+        if (!preg_match('/[^A-Za-z0-9]/', $password)) {
+            $errors[] = __('at least one special character', 'teinformez');
+        }
+        if (!empty($errors)) {
+            return $this->error(
+                sprintf(__('Password must contain: %s.', 'teinformez'), implode(', ', $errors)),
+                'weak_password',
+                400
+            );
+        }
+        return true;
+    }
+
+    /**
      * Sanitize array recursively
      */
     protected function sanitize_array($array) {

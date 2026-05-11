@@ -378,8 +378,9 @@ class User_API extends REST_API {
         }
 
         $new_password = $params['new_password'];
-        if (strlen($new_password) < 8) {
-            return $this->error(__('New password must be at least 8 characters.', 'teinformez'), 'weak_password', 400);
+        $strength = $this->validate_password_strength($new_password);
+        if (is_wp_error($strength)) {
+            return $strength;
         }
 
         wp_set_password($new_password, $user_id);

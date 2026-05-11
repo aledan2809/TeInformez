@@ -155,33 +155,9 @@ class Auth_API extends REST_API {
 
         // Validate password strength
         $password = $params['password'];
-        $password_errors = [];
-
-        if (strlen($password) < 8) {
-            $password_errors[] = __('minimum 8 characters', 'teinformez');
-        }
-        if (!preg_match('/[A-Z]/', $password)) {
-            $password_errors[] = __('at least one uppercase letter', 'teinformez');
-        }
-        if (!preg_match('/[a-z]/', $password)) {
-            $password_errors[] = __('at least one lowercase letter', 'teinformez');
-        }
-        if (!preg_match('/[0-9]/', $password)) {
-            $password_errors[] = __('at least one number', 'teinformez');
-        }
-        if (!preg_match('/[^A-Za-z0-9]/', $password)) {
-            $password_errors[] = __('at least one special character', 'teinformez');
-        }
-
-        if (!empty($password_errors)) {
-            return $this->error(
-                sprintf(
-                    __('Password must contain: %s.', 'teinformez'),
-                    implode(', ', $password_errors)
-                ),
-                'weak_password',
-                400
-            );
+        $strength = $this->validate_password_strength($password);
+        if (is_wp_error($strength)) {
+            return $strength;
         }
 
         // Create user
@@ -439,12 +415,9 @@ class Auth_API extends REST_API {
         $password = $params['password'];
 
         // Validate password strength
-        if (strlen($password) < 8) {
-            return $this->error(
-                __('Password must be at least 8 characters long.', 'teinformez'),
-                'weak_password',
-                400
-            );
+        $strength = $this->validate_password_strength($password);
+        if (is_wp_error($strength)) {
+            return $strength;
         }
 
         $user = get_user_by('email', $email);
