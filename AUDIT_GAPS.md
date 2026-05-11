@@ -3,7 +3,7 @@
 **Date:** 2026-04-16 (updated 2026-05-12)
 **Plugin:** TeInformez Core v1.0.0
 **Scope:** Static code analysis of `backend/wp-content/plugins/teinformez-core/`
-**Mode:** AUDIT-ONLY → DIRECT FIX (H-01–H-08 fixed 2026-05-11; Sprint 1 fixed 2026-05-11; Sprint 2 fixed 2026-05-12; Sprint 3 fixed 2026-05-12; Sprint 4 fixed 2026-05-12; Sprint 5 fixed 2026-05-12)
+**Mode:** AUDIT-ONLY → DIRECT FIX (H-01–H-08 fixed 2026-05-11; Sprint 1 fixed 2026-05-11; Sprint 2 fixed 2026-05-12; Sprint 3 fixed 2026-05-12; Sprint 4 fixed 2026-05-12; Sprint 5 fixed 2026-05-12; Sprint 5 review fixes `564a983` 2026-05-12)
 **Target:** WordPress 6.0+ / PHP 8.0+
 
 ---
@@ -40,6 +40,7 @@
 | M-04 | Eliminated | `0c4e0a8` — rate limit 60/min per IP on /analytics/track; check_rate_limit+clear_rate_limit promoted to REST_API base with configurable params | 2026-05-12 |
 | M-06 | Eliminated | `1b73b9b` — get_client_ip() takes rightmost XFF entry only when REMOTE_ADDR is loopback/private; is_trusted_proxy() helper added | 2026-05-12 |
 | M-12 | Eliminated | `fb15a12` — Config::validate_ai_router_url() guards both AI_Processor + Chief_Editor; http only for localhost, https for any external host | 2026-05-12 |
+| Sprint 5 review fixes | Eliminated | `564a983` — string type hint; WP_REST_Response Retry-After; IPv6 brackets trim; dev comment removed from authStore | 2026-05-12 |
 
 **Evidence H-04–H-08**: E8 test (2026-05-11): unauthenticated GET /admin/analytics → HTTP 401; reader → HTTP 403; admin → HTTP 200.
 **Note M-07 partial**: `send_via_brevo()` line 44 still logs `$to_email` for all email types — tracked as backlog item (low risk, no token exposure).
