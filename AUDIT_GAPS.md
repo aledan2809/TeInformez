@@ -3,7 +3,7 @@
 **Date:** 2026-04-16 (updated 2026-05-12)
 **Plugin:** TeInformez Core v1.0.0
 **Scope:** Static code analysis of `backend/wp-content/plugins/teinformez-core/`
-**Mode:** AUDIT-ONLY → DIRECT FIX (H-01–H-08 fixed 2026-05-11; Sprint 1 fixed 2026-05-11; Sprint 2 fixed 2026-05-12; Sprint 3 fixed 2026-05-12; Sprint 4 fixed 2026-05-12)
+**Mode:** AUDIT-ONLY → DIRECT FIX (H-01–H-08 fixed 2026-05-11; Sprint 1 fixed 2026-05-11; Sprint 2 fixed 2026-05-12; Sprint 3 fixed 2026-05-12; Sprint 4 fixed 2026-05-12; Sprint 5 fixed 2026-05-12)
 **Target:** WordPress 6.0+ / PHP 8.0+
 
 ---
@@ -33,6 +33,13 @@
 | M-11 | Eliminated | Sprint 4 — AI-generated title/summary/content sanitized via `sanitize_text_field()` / `sanitize_textarea_field()` / `wp_kses_post()` in both class-ai-processor.php and class-chief-editor.php (6 call-sites) | 2026-05-12 |
 | M-13 | Eliminated | Sprint 4 — HAVING clause in social-poster retry query wrapped in `$wpdb->prepare()` with `%d` placeholder | 2026-05-12 |
 | M-17 | Eliminated | Sprint 4 — localhost:3000 and localhost:3002 removed from ALLOWED_ORIGINS const; added conditionally in get_allowed_origins() only when `wp_get_environment_type() !== 'production'` | 2026-05-12 |
+| G3 | Eliminated | Sprint 5 — verified no fixed-bottom overlap issue; SoftRegistrationBanner.tsx is dead code (never imported); no pb-* needed | 2026-05-12 |
+| G4 | Eliminated | `4cb0859` — aria-label added to SharedHeader nav + Sidebar nav; axe-core landmark-unique resolved | 2026-05-12 |
+| M-01 | Eliminated | `ea02951` — register() returns HTTP 200 + null data for existing email; frontend null-guard on response?.user | 2026-05-12 |
+| M-02 | Eliminated | `c27054b` — validate_password_strength() in REST_API base; register/reset_password/change_password all enforce full 5-rule policy | 2026-05-12 |
+| M-04 | Eliminated | `0c4e0a8` — rate limit 60/min per IP on /analytics/track; check_rate_limit+clear_rate_limit promoted to REST_API base with configurable params | 2026-05-12 |
+| M-06 | Eliminated | `1b73b9b` — get_client_ip() takes rightmost XFF entry only when REMOTE_ADDR is loopback/private; is_trusted_proxy() helper added | 2026-05-12 |
+| M-12 | Eliminated | `fb15a12` — Config::validate_ai_router_url() guards both AI_Processor + Chief_Editor; http only for localhost, https for any external host | 2026-05-12 |
 
 **Evidence H-04–H-08**: E8 test (2026-05-11): unauthenticated GET /admin/analytics → HTTP 401; reader → HTTP 403; admin → HTTP 200.
 **Note M-07 partial**: `send_via_brevo()` line 44 still logs `$to_email` for all email types — tracked as backlog item (low risk, no token exposure).
