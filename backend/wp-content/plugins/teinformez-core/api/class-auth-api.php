@@ -15,6 +15,36 @@ if (!defined('ABSPATH')) {
  */
 class Auth_API extends REST_API {
 
+    /**
+     * H-02: Rate limiter — max 5 attempts per IP per 15 minutes on sensitive auth endpoints.
+     * Returns WP_REST_Response error on limit exceeded, null when OK.
+     */
+    private function check_rate_limit(string $action): ?\WP_REST_Response {
+        $ip  = Config::get_client_ip() ?: 'unknown';
+        $key = 'teinformez_rl_' . $action . '_' . md5($ip);
+
+        $attempts = (int) get_transient($key);
+
+        if ($attempts >= 5) {
+            return $this->error(
+                __('Too many attempts. Please try again later.', 'teinformez'),
+                'rate_limit_exceeded',
+                429
+            );
+        }
+
+        // First attempt in this window — set TTL to 15 min; otherwise just increment
+        if ($attempts === 0) {
+            set_transient($key, 1, 15 * MINUTE_IN_SECONDS);
+        } else {
+            // Preserve remaining TTL by re-using the window (increment only)
+            $ttl = (int) (get_option('_transient_timeout_' . $key, time() + 15 * MINUTE_IN_SECONDS) - time());
+            set_transient($key, $attempts + 1, max($ttl, 1));
+        }
+
+        return null;
+    }
+
     public function register_routes() {
         // Register new user
         register_rest_route($this->namespace, '/auth/register', [
@@ -77,6 +107,9 @@ class Auth_API extends REST_API {
      * Register new user
      */
     public function register($request) {
+        $rl = $this->check_rate_limit('register');
+        if ($rl) return $rl;
+
         $params = $request->get_json_params();
 
         // Validate required fields
@@ -194,6 +227,9 @@ class Auth_API extends REST_API {
      * Login user
      */
     public function login($request) {
+        $rl = $this->check_rate_limit('login');
+        if ($rl) return $rl;
+
         $params = $request->get_json_params();
 
         $validation = $this->validate_required($params, ['email', 'password']);
@@ -276,28 +312,31 @@ class Auth_API extends REST_API {
     }
 
     /**
-     * Generate secure token using HMAC
+     * Generate secure token using HMAC.
+     * H-03: The signing secret includes the user's password hash so that
+     * any password change or account deletion immediately invalidates all
+     * previously issued tokens (no server-side token store needed).
      */
     private function generate_token($user_id) {
-        // Token expires in 24 hours (security best practice)
-        // Refresh tokens available via /auth/refresh endpoint
-        $expires_at = time() + DAY_IN_SECONDS; // 24 hours
-
-        // Create token data
+        $expires_at = time() + DAY_IN_SECONDS;
         $token_data = $user_id . '|' . $expires_at;
 
-        // Sign with WordPress AUTH_KEY (unique per site)
-        $signature = hash_hmac('sha256', $token_data, AUTH_KEY);
+        // Per-user secret: AUTH_KEY + password hash fragment — rotates on password change
+        $user_data  = get_userdata((int)$user_id);
+        $per_user   = $user_data ? substr($user_data->user_pass, 8, 12) : '';
+        $secret     = AUTH_KEY . $per_user;
 
-        // Return base64 encoded token: user_id|expires_at|signature
+        $signature = hash_hmac('sha256', $token_data, $secret);
+
         return base64_encode($token_data . '|' . $signature);
     }
 
     /**
-     * Validate token and return user_id if valid
+     * Validate token and return user_id if valid.
+     * H-03: Re-derives the per-user secret from the current password hash;
+     * old tokens become invalid as soon as the password changes.
      */
     public static function validate_auth_token($token) {
-        // Decode token
         $decoded = base64_decode($token);
         if (!$decoded) {
             return false;
@@ -310,22 +349,22 @@ class Auth_API extends REST_API {
 
         list($user_id, $expires_at, $signature) = $parts;
 
-        // Check if expired
         if (time() > (int)$expires_at) {
             return false;
         }
 
-        // Verify signature
-        $token_data = $user_id . '|' . $expires_at;
-        $expected_signature = hash_hmac('sha256', $token_data, AUTH_KEY);
-
-        if (!hash_equals($expected_signature, $signature)) {
+        $user = get_userdata((int)$user_id);
+        if (!$user) {
             return false;
         }
 
-        // Verify user exists
-        $user = get_userdata((int)$user_id);
-        if (!$user) {
+        // Re-derive the same per-user secret used at token generation
+        $per_user          = substr($user->user_pass, 8, 12);
+        $secret            = AUTH_KEY . $per_user;
+        $token_data        = $user_id . '|' . $expires_at;
+        $expected_signature = hash_hmac('sha256', $token_data, $secret);
+
+        if (!hash_equals($expected_signature, $signature)) {
             return false;
         }
 
@@ -336,6 +375,9 @@ class Auth_API extends REST_API {
      * Request password reset
      */
     public function forgot_password($request) {
+        $rl = $this->check_rate_limit('forgot');
+        if ($rl) return $rl;
+
         $params = $request->get_json_params();
 
         $validation = $this->validate_required($params, ['email']);

@@ -71,20 +71,33 @@ class Subscription_Manager {
 
     /**
      * Update subscription
+     *
+     * @param int $subscription_id
+     * @param int $user_id Ownership check — only the subscription owner can update it (C-01)
+     * @param array $data Fields to update
      */
-    public function update_subscription($subscription_id, $data) {
+    public function update_subscription($subscription_id, $user_id, $data) {
         global $wpdb;
 
-        if (isset($data['source_filter']) && is_array($data['source_filter'])) {
-            $data['source_filter'] = json_encode($data['source_filter']);
+        // H-01: Whitelist allowed fields to prevent arbitrary column injection
+        $allowed = ['category_slug', 'topic_keyword', 'country_filter', 'source_filter', 'frequency', 'is_active'];
+        $filtered = array_intersect_key($data, array_flip($allowed));
+
+        if (empty($filtered)) {
+            return false;
         }
 
-        $data['updated_at'] = current_time('mysql');
+        if (isset($filtered['source_filter']) && is_array($filtered['source_filter'])) {
+            $filtered['source_filter'] = json_encode($filtered['source_filter']);
+        }
 
+        $filtered['updated_at'] = current_time('mysql');
+
+        // C-01: WHERE includes user_id — user can only update their own subscription
         return $wpdb->update(
             $this->table_name,
-            $data,
-            ['id' => $subscription_id]
+            $filtered,
+            ['id' => $subscription_id, 'user_id' => $user_id]
         );
     }
 

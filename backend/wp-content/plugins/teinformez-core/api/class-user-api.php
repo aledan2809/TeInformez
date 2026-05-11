@@ -254,7 +254,7 @@ class User_API extends REST_API {
         $params = $request->get_json_params();
 
         $sub_manager = new Subscription_Manager();
-        $result = $sub_manager->update_subscription($subscription_id, $params);
+        $result = $sub_manager->update_subscription($subscription_id, $user_id, $params);
 
         if ($result === false) {
             return $this->error(__('Failed to update subscription.', 'teinformez'), 'update_failed', 500);
