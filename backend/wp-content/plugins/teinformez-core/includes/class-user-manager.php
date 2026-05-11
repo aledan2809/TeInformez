@@ -73,7 +73,7 @@ class User_Manager {
         $data = array_intersect_key($data, array_flip($allowed));
 
         if (empty($data)) {
-            return false;
+            return null;
         }
 
         // Encode JSON fields if they're arrays

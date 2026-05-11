@@ -5,6 +5,7 @@ use TeInformez\User_Manager;
 use TeInformez\Subscription_Manager;
 use TeInformez\Delivery_Handler;
 use TeInformez\GDPR_Handler;
+use TeInformez\Email_Sender;
 use TeInformez\Config;
 use TeInformez\Database;
 
@@ -102,11 +103,18 @@ class User_API extends REST_API {
             'permission_callback' => [$this, 'is_authenticated']
         ]);
 
-        // Change email
+        // Change email — initiates double opt-in flow (M-16)
         register_rest_route($this->namespace, '/user/change-email', [
             'methods' => 'POST',
             'callback' => [$this, 'change_email'],
             'permission_callback' => [$this, 'is_authenticated']
+        ]);
+
+        // Confirm email change via token link — public, user clicks from email (M-16)
+        register_rest_route($this->namespace, '/user/confirm-email-change', [
+            'methods' => 'GET',
+            'callback' => [$this, 'confirm_email_change'],
+            'permission_callback' => '__return_true'
         ]);
 
         // Get delivery history
@@ -179,6 +187,10 @@ class User_API extends REST_API {
 
         $user_manager = new User_Manager();
         $result = $user_manager->update_preferences($user_id, $params);
+
+        if ($result === null) {
+            return $this->error(__('No valid preference fields provided.', 'teinformez'), 'no_valid_fields', 400);
+        }
 
         if ($result === false) {
             return $this->error(__('Failed to update preferences.', 'teinformez'), 'update_failed', 500);
@@ -380,9 +392,12 @@ class User_API extends REST_API {
     }
 
     /**
-     * Change email (requires current password for verification)
+     * Change email — double opt-in flow (M-16).
+     * Verifies password, stores pending email + token in user_meta,
+     * sends confirmation to the NEW address. The change is NOT applied here.
      */
     public function change_email($request) {
+        $csrf = $this->check_cookie_csrf($request); if ($csrf) return $csrf;
         $user_id = $this->get_current_user_id();
         $params = $request->get_json_params();
 
@@ -401,23 +416,93 @@ class User_API extends REST_API {
             return $this->error(__('Invalid email address.', 'teinformez'), 'invalid_email', 400);
         }
 
+        if ($new_email === $user->user_email) {
+            return $this->error(__('New email is the same as the current email.', 'teinformez'), 'same_email', 400);
+        }
+
         if (email_exists($new_email) && email_exists($new_email) !== $user_id) {
             return $this->error(__('This email is already in use.', 'teinformez'), 'email_exists', 409);
         }
 
+        // Store pending state — do not apply the change yet
+        $token = bin2hex(random_bytes(32));
+        update_user_meta($user_id, '_teinformez_pending_email', $new_email);
+        update_user_meta($user_id, '_teinformez_email_token', $token);
+        update_user_meta($user_id, '_teinformez_email_token_expires', time() + 24 * HOUR_IN_SECONDS);
+
+        $confirm_link = rest_url($this->namespace . '/user/confirm-email-change')
+            . '?user_id=' . (int) $user_id
+            . '&token=' . urlencode($token);
+
+        $email_sender = new Email_Sender();
+        $email_sender->send_email_change_confirmation($new_email, $confirm_link, $user->display_name);
+
+        return $this->success(
+            [],
+            __('A confirmation email has been sent to your new address. Please confirm within 24 hours.', 'teinformez'),
+            202
+        );
+    }
+
+    /**
+     * Confirm email change via token (M-16).
+     * Public endpoint — user clicks link from email.
+     * Validates token, applies change, cleans up meta.
+     */
+    public function confirm_email_change($request) {
+        $user_id = absint($request->get_param('user_id'));
+        $token   = sanitize_text_field($request->get_param('token') ?? '');
+
+        if (!$user_id || !$token) {
+            return $this->error(__('Invalid confirmation link.', 'teinformez'), 'invalid_link', 400);
+        }
+
+        $stored_token  = get_user_meta($user_id, '_teinformez_email_token', true);
+        $pending_email = get_user_meta($user_id, '_teinformez_pending_email', true);
+        $expires       = (int) get_user_meta($user_id, '_teinformez_email_token_expires', true);
+
+        if (empty($stored_token) || empty($pending_email)) {
+            return $this->error(__('No pending email change found.', 'teinformez'), 'no_pending', 400);
+        }
+
+        if (!hash_equals($stored_token, $token)) {
+            return $this->error(__('Invalid confirmation token.', 'teinformez'), 'invalid_token', 400);
+        }
+
+        if (time() > $expires) {
+            delete_user_meta($user_id, '_teinformez_pending_email');
+            delete_user_meta($user_id, '_teinformez_email_token');
+            delete_user_meta($user_id, '_teinformez_email_token_expires');
+            return $this->error(
+                __('Confirmation link has expired. Please request a new email change.', 'teinformez'),
+                'token_expired',
+                400
+            );
+        }
+
+        // Re-check availability at confirmation time
+        if (email_exists($pending_email) && email_exists($pending_email) !== $user_id) {
+            delete_user_meta($user_id, '_teinformez_pending_email');
+            delete_user_meta($user_id, '_teinformez_email_token');
+            delete_user_meta($user_id, '_teinformez_email_token_expires');
+            return $this->error(__('This email is already in use.', 'teinformez'), 'email_exists', 409);
+        }
+
         $result = wp_update_user([
-            'ID' => $user_id,
-            'user_email' => $new_email,
-            'user_login' => $new_email,
+            'ID'         => $user_id,
+            'user_email' => $pending_email,
+            'user_login' => $pending_email,
         ]);
+
+        delete_user_meta($user_id, '_teinformez_pending_email');
+        delete_user_meta($user_id, '_teinformez_email_token');
+        delete_user_meta($user_id, '_teinformez_email_token_expires');
 
         if (is_wp_error($result)) {
             return $this->error($result->get_error_message(), 'update_failed', 500);
         }
 
-        return $this->success([
-            'email' => $new_email
-        ], __('Email changed successfully.', 'teinformez'));
+        return $this->success(['email' => $pending_email], __('Email address updated successfully.', 'teinformez'));
     }
 
     /**

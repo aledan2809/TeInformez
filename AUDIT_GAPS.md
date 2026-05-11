@@ -3,7 +3,7 @@
 **Date:** 2026-04-16 (updated 2026-05-12)
 **Plugin:** TeInformez Core v1.0.0
 **Scope:** Static code analysis of `backend/wp-content/plugins/teinformez-core/`
-**Mode:** AUDIT-ONLY → DIRECT FIX (H-01–H-08 fixed 2026-05-11; Sprint 1 fixed 2026-05-11; Sprint 2 fixed 2026-05-12)
+**Mode:** AUDIT-ONLY → DIRECT FIX (H-01–H-08 fixed 2026-05-11; Sprint 1 fixed 2026-05-11; Sprint 2 fixed 2026-05-12; Sprint 3 fixed 2026-05-12)
 **Target:** WordPress 6.0+ / PHP 8.0+
 
 ---
@@ -23,10 +23,10 @@
 | H-08 | Eliminated | `current_user_can('manage_options')` in juridic-queue.php + news-queue.php | 2026-05-11 |
 | M-03 | Eliminated | `a6ed79d` — is_authenticated required + validate_auth_token() + user ownership check | 2026-05-11 |
 | M-07 | Eliminated | `a6ed79d` — reset link removed from error_log in send_password_reset() | 2026-05-11 |
-| M-08 | Eliminated | `a6ed79d` — field whitelist in update_preferences() blocks GDPR column overwrite | 2026-05-11 |
+| M-08 | Eliminated | `a6ed79d` — field whitelist blocks GDPR column overwrite; Sprint 3 — null vs false semantic: empty-after-whitelist now returns null→400 instead of false→500 | 2026-05-12 |
 | M-14 | Eliminated | Sprint 2 — `check_cookie_csrf()` wired on all POST/PUT/DELETE endpoints incl. bulk_add_subscriptions | 2026-05-12 |
 | M-15 | Eliminated | Sprint 2 — `count() > 50` cap + 400 error in bulk_add_subscriptions() | 2026-05-12 |
-| M-16 | Eliminated | Sprint 2 — double opt-in flow complete: pending_email/token in user_meta + send_email_change_confirmation() added to Email_Sender | 2026-05-12 |
+| M-16 | Eliminated | Sprint 3 — full double opt-in: change_email() stores pending_email/token/expires in user_meta + sends confirmation email; new GET confirm-email-change route validates hash_equals token + expiry + re-checks email availability before applying wp_update_user | 2026-05-12 |
 
 **Evidence H-04–H-08**: E8 test (2026-05-11): unauthenticated GET /admin/analytics → HTTP 401; reader → HTTP 403; admin → HTTP 200.
 **Note M-07 partial**: `send_via_brevo()` line 44 still logs `$to_email` for all email types — tracked as backlog item (low risk, no token exposure).
