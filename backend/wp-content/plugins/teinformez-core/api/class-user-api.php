@@ -435,7 +435,9 @@ class User_API extends REST_API {
             . '&token=' . urlencode($token);
 
         $email_sender = new Email_Sender();
-        $email_sender->send_email_change_notice_to_old($user->user_email, $user->display_name);
+        if (!$email_sender->send_email_change_notice_to_old($user->user_email, $user->display_name)) {
+            error_log('TeInformez: Failed to send email-change notice to old address for user ' . $user_id);
+        }
         $email_sender->send_email_change_confirmation($new_email, $confirm_link, $user->display_name);
 
         return $this->success(
