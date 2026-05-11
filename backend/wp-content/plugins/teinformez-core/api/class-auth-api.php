@@ -33,6 +33,7 @@ class Auth_API extends REST_API {
         }
 
         if ((int) $data['count'] >= 5) {
+            header('Retry-After: 900');
             return $this->error(
                 __('Too many attempts. Please try again later.', 'teinformez'),
                 'rate_limit_exceeded',
@@ -45,6 +46,11 @@ class Auth_API extends REST_API {
         set_transient($key, ['count' => $data['count'] + 1, 'start' => $data['start']], $remaining);
 
         return null;
+    }
+
+    private function clear_rate_limit(string $action): void {
+        $ip  = Config::get_client_ip() ?: 'unknown';
+        delete_transient('teinformez_rl_' . $action . '_' . md5($ip));
     }
 
     public function register_routes() {
@@ -256,6 +262,9 @@ class Auth_API extends REST_API {
         }
 
         wp_set_current_user($user->ID);
+
+        // Clear rate limit window on successful login so the user isn't locked out
+        $this->clear_rate_limit('login');
 
         $token = $this->generate_token($user->ID);
 
