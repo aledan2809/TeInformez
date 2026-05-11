@@ -188,6 +188,23 @@ class Email_Sender {
     }
 
     /**
+     * Notify OLD email address when a change request is initiated (M-16).
+     * Security notice — lets the owner detect unauthorized requests.
+     */
+    public function send_email_change_notice_to_old($old_email, $display_name) {
+        $subject = 'Solicitare schimbare adresă email - TeInformez';
+
+        $html_content = $this->get_email_template('email_change_notice_old', [
+            'display_name' => $display_name,
+            'settings_link' => Config::FRONTEND_URL . '/settings',
+        ]);
+
+        error_log('TeInformez: Sending email-change notice to old address.');
+
+        return $this->send($old_email, $subject, $html_content);
+    }
+
+    /**
      * Send email-change double opt-in confirmation (M-16).
      * Sent to the NEW address — change is not applied until confirmed.
      */
@@ -342,6 +359,45 @@ class Email_Sender {
                             <p style="word-break: break-all; background: #e5e7eb; padding: 10px; border-radius: 4px; font-size: 14px;">{{confirm_link}}</p>
                             <p><strong>Acest link este valid pentru 24 de ore.</strong></p>
                             <p>Dacă nu ai solicitat această schimbare, poți ignora acest email. Adresa ta actuală rămâne neschimbată.</p>
+                        </div>
+                        <div class="footer">
+                            <p>&copy; ' . date('Y') . ' TeInformez. Toate drepturile rezervate.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            ',
+            'email_change_notice_old' => '
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                        .header { background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+                        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+                        .button { display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+                        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #6b7280; }
+                        .alert { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 4px; margin: 16px 0; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>TeInformez</h1>
+                        </div>
+                        <div class="content">
+                            <h2>Solicitare schimbare adresă email</h2>
+                            <p>Salut, {{display_name}}!</p>
+                            <p>Cineva a solicitat schimbarea adresei de email asociate contului tău TeInformez.</p>
+                            <div class="alert">
+                                <strong>⚠️ Dacă nu ai solicitat această schimbare</strong>, contul tău poate fi compromis. Contactează-ne imediat sau verifică setările contului.
+                            </div>
+                            <p>Dacă chiar tu ai inițiat această schimbare, nu trebuie să faci nimic — vei primi un email de confirmare la noua adresă.</p>
+                            <p style="text-align: center;">
+                                <a href="{{settings_link}}" class="button" style="color: white;">Verifică setările contului</a>
+                            </p>
                         </div>
                         <div class="footer">
                             <p>&copy; ' . date('Y') . ' TeInformez. Toate drepturile rezervate.</p>

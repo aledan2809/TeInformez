@@ -435,6 +435,7 @@ class User_API extends REST_API {
             . '&token=' . urlencode($token);
 
         $email_sender = new Email_Sender();
+        $email_sender->send_email_change_notice_to_old($user->user_email, $user->display_name);
         $email_sender->send_email_change_confirmation($new_email, $confirm_link, $user->display_name);
 
         return $this->success(
@@ -451,10 +452,13 @@ class User_API extends REST_API {
      */
     public function confirm_email_change($request) {
         $user_id = absint($request->get_param('user_id'));
-        $token   = sanitize_text_field($request->get_param('token') ?? '');
+        $token   = preg_replace('/[^a-f0-9]/', '', $request->get_param('token') ?? '');
+
+        $frontend_url = Config::FRONTEND_URL;
 
         if (!$user_id || !$token) {
-            return $this->error(__('Invalid confirmation link.', 'teinformez'), 'invalid_link', 400);
+            wp_safe_redirect($frontend_url . '/settings?email_change=invalid_link');
+            exit;
         }
 
         $stored_token  = get_user_meta($user_id, '_teinformez_email_token', true);
@@ -462,30 +466,31 @@ class User_API extends REST_API {
         $expires       = (int) get_user_meta($user_id, '_teinformez_email_token_expires', true);
 
         if (empty($stored_token) || empty($pending_email)) {
-            return $this->error(__('No pending email change found.', 'teinformez'), 'no_pending', 400);
+            wp_safe_redirect($frontend_url . '/settings?email_change=no_pending');
+            exit;
         }
 
         if (!hash_equals($stored_token, $token)) {
-            return $this->error(__('Invalid confirmation token.', 'teinformez'), 'invalid_token', 400);
+            wp_safe_redirect($frontend_url . '/settings?email_change=invalid_token');
+            exit;
         }
 
         if (time() > $expires) {
             delete_user_meta($user_id, '_teinformez_pending_email');
             delete_user_meta($user_id, '_teinformez_email_token');
             delete_user_meta($user_id, '_teinformez_email_token_expires');
-            return $this->error(
-                __('Confirmation link has expired. Please request a new email change.', 'teinformez'),
-                'token_expired',
-                400
-            );
+            wp_safe_redirect($frontend_url . '/settings?email_change=token_expired');
+            exit;
         }
 
         // Re-check availability at confirmation time
-        if (email_exists($pending_email) && email_exists($pending_email) !== $user_id) {
+        $existing_id = email_exists($pending_email);
+        if ($existing_id && $existing_id !== $user_id) {
             delete_user_meta($user_id, '_teinformez_pending_email');
             delete_user_meta($user_id, '_teinformez_email_token');
             delete_user_meta($user_id, '_teinformez_email_token_expires');
-            return $this->error(__('This email is already in use.', 'teinformez'), 'email_exists', 409);
+            wp_safe_redirect($frontend_url . '/settings?email_change=email_exists');
+            exit;
         }
 
         $result = wp_update_user([
@@ -499,10 +504,12 @@ class User_API extends REST_API {
         delete_user_meta($user_id, '_teinformez_email_token_expires');
 
         if (is_wp_error($result)) {
-            return $this->error($result->get_error_message(), 'update_failed', 500);
+            wp_safe_redirect($frontend_url . '/settings?email_change=update_failed');
+            exit;
         }
 
-        return $this->success(['email' => $pending_email], __('Email address updated successfully.', 'teinformez'));
+        wp_safe_redirect($frontend_url . '/settings?email_change=success');
+        exit;
     }
 
     /**
