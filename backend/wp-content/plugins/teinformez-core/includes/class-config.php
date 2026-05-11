@@ -307,6 +307,34 @@ class Config {
     }
 
     /**
+     * Validate an AI Router URL (M-12).
+     * - Must be a well-formed HTTP/HTTPS URL.
+     * - http:// is only allowed for loopback / localhost (prevents SSRF to
+     *   internal services or cloud-metadata endpoints on external hosts).
+     * - https:// is allowed for any host.
+     *
+     * @param string $url URL to validate.
+     * @return bool True when safe to use.
+     */
+    public static function validate_ai_router_url(string $url): bool {
+        if (empty($url)) {
+            return false;
+        }
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return false;
+        }
+        if ($scheme === 'http') {
+            $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+            return $host === 'localhost' || $host === '127.0.0.1' || $host === '::1';
+        }
+        return true; // https is acceptable for any external host
+    }
+
+    /**
      * Get translatable UI strings
      */
     public static function get_strings() {

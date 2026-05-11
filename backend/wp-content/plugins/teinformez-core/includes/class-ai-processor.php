@@ -157,8 +157,8 @@ class AI_Processor {
      * Call AI Router microservice (smart multi-provider routing)
      */
     private function call_ai_router($data) {
-        if (empty($this->ai_router_url)) {
-            return ['success' => false, 'error' => 'AI Router URL not configured'];
+        if (!Config::validate_ai_router_url($this->ai_router_url)) {
+            return ['success' => false, 'error' => 'AI Router URL not configured or invalid (must be https or localhost http)'];
         }
 
         $prompt = $this->build_prompt($data);

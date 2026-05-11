@@ -196,8 +196,8 @@ class Chief_Editor {
      * Call AI Router microservice
      */
     private function call_ai_router($system_prompt, $user_message) {
-        if (empty($this->ai_router_url)) {
-            return ['success' => false, 'error' => 'AI Router URL not configured'];
+        if (!Config::validate_ai_router_url($this->ai_router_url)) {
+            return ['success' => false, 'error' => 'AI Router URL not configured or invalid (must be https or localhost http)'];
         }
 
         $response = wp_remote_post($this->ai_router_url, [
