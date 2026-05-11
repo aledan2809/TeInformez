@@ -263,28 +263,47 @@ class Config {
     }
 
     /**
-     * Get client IP address considering proxies
+     * Get client IP address (M-06).
      *
-     * Checks X-Forwarded-For first (for reverse proxies / load balancers),
-     * then falls back to REMOTE_ADDR.
+     * Only consults X-Forwarded-For when REMOTE_ADDR is a known local proxy
+     * (loopback or RFC-1918 range), preventing IP spoofing by public clients.
+     * When behind a proxy, takes the rightmost valid IP — the entry appended
+     * by our nginx, not any attacker-injected leftmost values.
      *
-     * @return string Sanitized IP address
+     * @return string Validated IP address, or '' if indeterminate.
      */
-    public static function get_client_ip() {
-        $ip = '';
+    public static function get_client_ip(): string {
+        $remote = $_SERVER['REMOTE_ADDR'] ?? '';
 
-        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            // X-Forwarded-For can contain multiple IPs; the first is the client
-            $forwarded_ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-            $ip = trim($forwarded_ips[0]);
-        } elseif (!empty($_SERVER['REMOTE_ADDR'])) {
-            $ip = $_SERVER['REMOTE_ADDR'];
+        if (self::is_trusted_proxy($remote) && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            // Iterate from rightmost to leftmost; first valid IP wins.
+            $candidates = array_reverse(array_map('trim', explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])));
+            foreach ($candidates as $candidate) {
+                if (filter_var($candidate, FILTER_VALIDATE_IP)) {
+                    return $candidate;
+                }
+            }
         }
 
-        // Validate and sanitize
-        $ip = filter_var($ip, FILTER_VALIDATE_IP);
+        $ip = filter_var($remote, FILTER_VALIDATE_IP);
+        return $ip ?: '';
+    }
 
-        return $ip ? $ip : '';
+    /**
+     * Returns true when $ip is a loopback or RFC-1918 private address,
+     * meaning the direct connection comes from a local reverse proxy we trust.
+     */
+    private static function is_trusted_proxy(string $ip): bool {
+        if (empty($ip)) {
+            return false;
+        }
+        // ::1 is IPv6 loopback — FILTER_FLAG_NO_RES_RANGE misses it on some PHP builds
+        if ($ip === '::1') {
+            return true;
+        }
+        // FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE rejects private/reserved.
+        // If the flag-check returns false, $ip IS private/reserved = trusted proxy.
+        return !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
     }
 
     /**
