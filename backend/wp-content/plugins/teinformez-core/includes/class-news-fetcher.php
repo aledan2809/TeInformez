@@ -98,7 +98,8 @@ class News_Fetcher {
     private function fetch_rss($source) {
         $response = wp_remote_get($source['url'], [
             'timeout' => 30,
-            'user-agent' => 'TeInformez News Aggregator/1.0'
+            'user-agent' => 'TeInformez News Aggregator/1.0',
+            'reject_unsafe_urls' => true,
         ]);
 
         if (is_wp_error($response)) {
@@ -123,7 +124,7 @@ class News_Fetcher {
         // Suppress XML errors
         libxml_use_internal_errors(true);
 
-        $xml = simplexml_load_string($xml_string);
+        $xml = simplexml_load_string($xml_string, 'SimpleXMLElement', LIBXML_NONET);
         if ($xml === false) {
             $errors = libxml_get_errors();
             libxml_clear_errors();
@@ -264,6 +265,7 @@ class News_Fetcher {
         $response = wp_remote_get($url, [
             'timeout' => 15,
             'user-agent' => 'Mozilla/5.0 (compatible; TeInformez/1.0)',
+            'reject_unsafe_urls' => true,
             'headers' => [
                 'Accept' => 'text/html',
                 'Accept-Language' => 'ro,en;q=0.9',

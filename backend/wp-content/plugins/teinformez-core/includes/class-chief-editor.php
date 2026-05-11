@@ -99,17 +99,17 @@ class Chief_Editor {
 
         if (!empty($review['title']) && $review['title'] !== $article->processed_title) {
             $changes['title'] = ['old' => $article->processed_title, 'new' => $review['title']];
-            $update_data['processed_title'] = $review['title'];
+            $update_data['processed_title'] = sanitize_text_field($review['title']);
         }
 
         if (!empty($review['summary']) && $review['summary'] !== $article->processed_summary) {
             $changes['summary'] = ['old' => mb_substr($article->processed_summary, 0, 100) . '...', 'new' => mb_substr($review['summary'], 0, 100) . '...'];
-            $update_data['processed_summary'] = $review['summary'];
+            $update_data['processed_summary'] = sanitize_textarea_field($review['summary']);
         }
 
         if (!empty($review['content']) && $review['content'] !== $article->processed_content) {
             $changes['content'] = ['modified' => true];
-            $update_data['processed_content'] = $review['content'];
+            $update_data['processed_content'] = wp_kses_post($review['content']);
         }
 
         if (!empty($review['categories']) && is_array($review['categories'])) {

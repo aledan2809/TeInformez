@@ -123,9 +123,9 @@ class AI_Processor {
 
             // Update item with processed data
             $wpdb->update($table, [
-                'processed_title' => $result['data']['title'],
-                'processed_summary' => $result['data']['summary'],
-                'processed_content' => $result['data']['content'],
+                'processed_title' => sanitize_text_field($result['data']['title']),
+                'processed_summary' => sanitize_textarea_field($result['data']['summary']),
+                'processed_content' => wp_kses_post($result['data']['content']),
                 'target_language' => $target_language,
                 'categories' => json_encode($result['data']['categories']),
                 'tags' => json_encode($result['data']['tags']),

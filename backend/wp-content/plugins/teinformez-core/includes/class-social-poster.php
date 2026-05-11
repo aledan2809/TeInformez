@@ -239,7 +239,7 @@ class Social_Poster {
         $news_table = $wpdb->prefix . 'teinformez_news_queue';
 
         // Get failed social posts from last 24h, max 3 retries
-        $failed = $wpdb->get_results(
+        $failed = $wpdb->get_results($wpdb->prepare(
             "SELECT dl.id, dl.news_id, dl.channel, dl.metadata,
                     (SELECT COUNT(*) FROM {$table} dl2
                      WHERE dl2.news_id = dl.news_id AND dl2.channel = dl.channel) as attempt_count
@@ -247,8 +247,9 @@ class Social_Poster {
              WHERE dl.status = 'failed'
                AND dl.channel IN ('facebook_post', 'twitter_post')
                AND dl.created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)
-             HAVING attempt_count < " . Config::SOCIAL_MAX_RETRY
-        );
+             HAVING attempt_count < %d",
+            Config::SOCIAL_MAX_RETRY
+        ));
 
         foreach ($failed as $post) {
             $item = $wpdb->get_row($wpdb->prepare(

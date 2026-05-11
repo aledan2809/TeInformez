@@ -38,14 +38,11 @@ class Config {
         'bg' => 'Български'
     ];
 
-    // Allowed frontend origins (CORS)
+    // Allowed frontend origins (CORS) — production only; localhost added at runtime in non-production
     const ALLOWED_ORIGINS = [
-        'http://localhost:3000',           // Local development
-        'http://localhost:3002',           // Local development (alt port)
         'https://teinformez.eu',           // Production
         'https://www.teinformez.eu',       // Production (www)
         'https://teinformez.vercel.app',   // Vercel production
-        'https://*.vercel.app',            // Vercel preview deployments
     ];
 
     // === API CONFIGURATION ===
@@ -230,6 +227,12 @@ class Config {
      */
     public static function get_allowed_origins() {
         $origins = self::ALLOWED_ORIGINS;
+
+        // Add localhost origins only in non-production environments
+        if (function_exists('wp_get_environment_type') && wp_get_environment_type() !== 'production') {
+            $origins[] = 'http://localhost:3000';
+            $origins[] = 'http://localhost:3002';
+        }
 
         // Allow custom domains from settings
         $custom_origins = self::get('custom_origins', []);

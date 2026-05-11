@@ -3,7 +3,7 @@
 **Date:** 2026-04-16 (updated 2026-05-12)
 **Plugin:** TeInformez Core v1.0.0
 **Scope:** Static code analysis of `backend/wp-content/plugins/teinformez-core/`
-**Mode:** AUDIT-ONLY → DIRECT FIX (H-01–H-08 fixed 2026-05-11; Sprint 1 fixed 2026-05-11; Sprint 2 fixed 2026-05-12; Sprint 3 fixed 2026-05-12)
+**Mode:** AUDIT-ONLY → DIRECT FIX (H-01–H-08 fixed 2026-05-11; Sprint 1 fixed 2026-05-11; Sprint 2 fixed 2026-05-12; Sprint 3 fixed 2026-05-12; Sprint 4 fixed 2026-05-12)
 **Target:** WordPress 6.0+ / PHP 8.0+
 
 ---
@@ -27,6 +27,12 @@
 | M-14 | Eliminated | Sprint 2 — `check_cookie_csrf()` wired on all POST/PUT/DELETE endpoints incl. bulk_add_subscriptions | 2026-05-12 |
 | M-15 | Eliminated | Sprint 2 — `count() > 50` cap + 400 error in bulk_add_subscriptions() | 2026-05-12 |
 | M-16 | Eliminated | Sprint 3 — full double opt-in: change_email() stores pending_email/token/expires in user_meta + sends confirmation email; new GET confirm-email-change route validates hash_equals token + expiry + re-checks email availability before applying wp_update_user | 2026-05-12 |
+| M-05 | Eliminated | Sprint 4 — `*.vercel.app` wildcard removed from ALLOWED_ORIGINS; only `teinformez.vercel.app` specific URL retained | 2026-05-12 |
+| M-09 | Eliminated | Sprint 4 — `'reject_unsafe_urls' => true` added to both `wp_remote_get()` calls in fetch_rss() and fetch_page_html(); blocks private IPs, loopback, link-local (169.254.x.x) | 2026-05-12 |
+| M-10 | Eliminated | Sprint 4 — `simplexml_load_string()` now uses `LIBXML_NONET` flag; blocks network access during XML entity resolution | 2026-05-12 |
+| M-11 | Eliminated | Sprint 4 — AI-generated title/summary/content sanitized via `sanitize_text_field()` / `sanitize_textarea_field()` / `wp_kses_post()` in both class-ai-processor.php and class-chief-editor.php (6 call-sites) | 2026-05-12 |
+| M-13 | Eliminated | Sprint 4 — HAVING clause in social-poster retry query wrapped in `$wpdb->prepare()` with `%d` placeholder | 2026-05-12 |
+| M-17 | Eliminated | Sprint 4 — localhost:3000 and localhost:3002 removed from ALLOWED_ORIGINS const; added conditionally in get_allowed_origins() only when `wp_get_environment_type() !== 'production'` | 2026-05-12 |
 
 **Evidence H-04–H-08**: E8 test (2026-05-11): unauthenticated GET /admin/analytics → HTTP 401; reader → HTTP 403; admin → HTTP 200.
 **Note M-07 partial**: `send_via_brevo()` line 44 still logs `$to_email` for all email types — tracked as backlog item (low risk, no token exposure).
