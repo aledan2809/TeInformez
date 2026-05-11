@@ -42,8 +42,9 @@ const nextConfig = {
   },
   async redirects() {
     return [
-      { source: '/profile', destination: '/dashboard/settings', permanent: false },
-      { source: '/settings', destination: '/dashboard/settings', permanent: false },
+      { source: '/profile', destination: '/dashboard/settings', permanent: true },
+      { source: '/settings', destination: '/dashboard/settings', permanent: true },
+      { source: '/account', destination: '/dashboard/settings', permanent: true },
     ];
   },
   async rewrites() {
