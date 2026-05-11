@@ -16,28 +16,34 @@ async function fetchItem(id: string) {
   }
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const item = await fetchItem(params.id);
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const item = await fetchItem(id);
   if (!item) {
     return { title: 'Intrebare juridica' };
   }
 
   const title = item.question.length > 60 ? item.question.slice(0, 57) + '...' : item.question;
+  const description = item.answer_summary || item.question;
 
   return {
     title: `${title} - Juridic cu Alina`,
-    description: item.answer_summary || item.question,
+    description,
     openGraph: {
       title: `${title} - Juridic cu Alina`,
-      description: item.answer_summary || item.question,
-      url: `${SITE_URL}/juridic/${params.id}`,
+      description,
+      url: `${SITE_URL}/juridic/${id}`,
       type: 'article',
+    },
+    alternates: {
+      canonical: `${SITE_URL}/juridic/${id}`,
     },
   };
 }
 
-export default async function JuridicDetailPage({ params }: { params: { id: string } }) {
-  const item = await fetchItem(params.id);
+export default async function JuridicDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const item = await fetchItem(id);
 
   // QAPage schema for SEO
   const qaJsonLd = item ? {

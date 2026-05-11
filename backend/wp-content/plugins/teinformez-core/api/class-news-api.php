@@ -111,6 +111,18 @@ class News_API extends REST_API {
         $search = $request->get_param('search');
         $include_archive = (bool) $request->get_param('archive');
 
+        // Cache the hot path (page 1, no filters). $is_cacheable is used again at the
+        // bottom of this function to set the transient — keep any early returns above
+        // this point and avoid inserting early returns between here and the set_transient call.
+        $is_cacheable = ($page === 1 && !$category && !$search && !$include_archive);
+        $news_cache_key = 'teinformez_news_p1_pp' . $per_page;
+        if ($is_cacheable) {
+            $cached = get_transient($news_cache_key);
+            if ($cached !== false) {
+                return $this->success($cached);
+            }
+        }
+
         $queue = $wpdb->prefix . 'teinformez_news_queue';
         $archive = $wpdb->prefix . 'teinformez_news_archive';
 
@@ -188,13 +200,19 @@ class News_API extends REST_API {
 
         $formatted = array_map([$this, 'format_news_item'], $items);
 
-        return $this->success([
-            'news' => array_values($formatted),
-            'total' => $total,
-            'page' => $page,
-            'per_page' => $per_page,
-            'total_pages' => ceil($total / max($per_page, 1))
-        ]);
+        $result = [
+            'news'        => array_values($formatted),
+            'total'       => $total,
+            'page'        => $page,
+            'per_page'    => $per_page,
+            'total_pages' => ceil($total / max($per_page, 1)),
+        ];
+
+        if ($is_cacheable) {
+            set_transient($news_cache_key, $result, 2 * MINUTE_IN_SECONDS);
+        }
+
+        return $this->success($result);
     }
 
     /**
@@ -346,6 +364,12 @@ class News_API extends REST_API {
         global $wpdb;
         $table = $wpdb->prefix . 'teinformez_news_queue';
 
+        $cache_key = 'teinformez_homepage_data';
+        $cached = get_transient($cache_key);
+        if ($cached !== false) {
+            return $this->success($cached);
+        }
+
         // Get articles from the last 3 days only (homepage = fresh content)
         $items = $wpdb->get_results(
             "SELECT id, processed_title, original_title, processed_summary,
@@ -426,11 +450,15 @@ class News_API extends REST_API {
             ];
         }
 
-        return $this->success([
-            'hero' => $hero,
-            'sections' => $sections,
+        $payload = [
+            'hero'           => $hero,
+            'sections'       => $sections,
             'total_articles' => count($items),
-        ]);
+        ];
+
+        set_transient($cache_key, $payload, 5 * MINUTE_IN_SECONDS);
+
+        return $this->success($payload);
     }
 
     /**

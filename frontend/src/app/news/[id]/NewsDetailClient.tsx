@@ -346,6 +346,11 @@ export default function NewsDetailClient() {
               <img
                 src={news.image}
                 alt={news.title}
+                width={1200}
+                height={630}
+                fetchPriority="high"
+                loading="eager"
+                decoding="async"
                 className="w-full h-auto"
               />
             </motion.div>
@@ -415,6 +420,10 @@ export default function NewsDetailClient() {
                       <img
                         src={article.image}
                         alt={article.title}
+                        width={400}
+                        height={144}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>

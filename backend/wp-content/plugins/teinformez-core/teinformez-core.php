@@ -157,6 +157,15 @@ add_action('teinformez_news_published', function($item) {
     $social->post_on_publish($item);
 });
 
+// Cache invalidation: bust news + homepage transients when a new article is published
+add_action('teinformez_news_published', function() {
+    delete_transient('teinformez_homepage_data');
+    // Invalidate common per-page variants
+    foreach ([10, 20, 50] as $pp) {
+        delete_transient('teinformez_news_p1_pp' . $pp);
+    }
+}, 20);
+
 // Social media posting: auto-post when juridic Q&A is published
 add_action('teinformez_juridic_published', function($item) {
     $social = new TeInformez\Social_Poster();

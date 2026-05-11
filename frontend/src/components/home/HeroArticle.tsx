@@ -25,6 +25,11 @@ export default function HeroArticle({ id, title, summary, image, imageSource, so
           <img
             src={image}
             alt={title}
+            width={1200}
+            height={630}
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
             className="w-full h-64 sm:h-80 md:h-96 object-cover opacity-80 group-hover:opacity-70 group-hover:scale-105 transition-all duration-500"
           />
         ) : (
