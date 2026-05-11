@@ -145,12 +145,11 @@ class Auth_API extends REST_API {
             );
         }
 
-        // Check if user exists
+        // Check if user exists — return generic success to prevent email enumeration
         if (email_exists($email)) {
-            return $this->error(
-                __('This email is already registered.', 'teinformez'),
-                'email_exists',
-                409
+            return $this->success(
+                null,
+                __('Dacă adresa de email nu este înregistrată, vei primi un email de confirmare.', 'teinformez')
             );
         }
 

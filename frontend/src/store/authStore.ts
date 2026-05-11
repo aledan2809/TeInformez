@@ -72,15 +72,20 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           const response = await api.register(data);
-          set({
-            user: response.user,
-            isAuthenticated: true,
-            isLoading: false,
-          });
+          if (response?.user) {
+            set({
+              user: response.user,
+              isAuthenticated: true,
+              isLoading: false,
+            });
 
-          // Sync reading data and bookmarks with backend after registration
-          useBookmarkStore.getState().syncWithBackend();
-          useReadingStore.getState().syncWithBackend();
+            // Sync reading data and bookmarks with backend after registration
+            useBookmarkStore.getState().syncWithBackend();
+            useReadingStore.getState().syncWithBackend();
+          } else {
+            // Generic path: email may already exist — backend returns null data
+            set({ isLoading: false });
+          }
         } catch (error: unknown) {
           set({
             error: getErrorMessage(error, 'Registration failed'),
