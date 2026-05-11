@@ -98,12 +98,12 @@ class Chief_Editor {
         $update_data = [];
 
         if (!empty($review['title']) && $review['title'] !== $article->processed_title) {
-            $changes['title'] = ['old' => $article->processed_title, 'new' => $review['title']];
+            $changes['title'] = ['old' => $article->processed_title, 'new' => sanitize_text_field($review['title'])];
             $update_data['processed_title'] = sanitize_text_field($review['title']);
         }
 
         if (!empty($review['summary']) && $review['summary'] !== $article->processed_summary) {
-            $changes['summary'] = ['old' => mb_substr($article->processed_summary, 0, 100) . '...', 'new' => mb_substr($review['summary'], 0, 100) . '...'];
+            $changes['summary'] = ['old' => mb_substr($article->processed_summary, 0, 100) . '...', 'new' => mb_substr(sanitize_textarea_field($review['summary']), 0, 100) . '...'];
             $update_data['processed_summary'] = sanitize_textarea_field($review['summary']);
         }
 

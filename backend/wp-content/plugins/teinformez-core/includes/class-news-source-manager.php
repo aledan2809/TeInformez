@@ -51,13 +51,18 @@ class News_Source_Manager {
      * Add a new source
      */
     public function add_source($source_data) {
+        $url = esc_url_raw($source_data['url'] ?? '');
+        if (!wp_http_validate_url($url)) {
+            return new \WP_Error('invalid_url', 'RSS source URL is invalid or points to a private/unsafe address.');
+        }
+
         $sources = $this->get_sources();
 
         $new_source = [
             'id' => uniqid('src_'),
             'name' => sanitize_text_field($source_data['name']),
             'type' => sanitize_text_field($source_data['type'] ?? 'rss'),
-            'url' => esc_url_raw($source_data['url']),
+            'url' => $url,
             'language' => sanitize_text_field($source_data['language'] ?? 'en'),
             'categories' => array_map('sanitize_text_field', $source_data['categories'] ?? []),
             'is_active' => (bool)($source_data['is_active'] ?? true),
@@ -77,13 +82,20 @@ class News_Source_Manager {
      * Update a source
      */
     public function update_source($source_id, $source_data) {
+        if (isset($source_data['url'])) {
+            $new_url = esc_url_raw($source_data['url']);
+            if (!wp_http_validate_url($new_url)) {
+                return new \WP_Error('invalid_url', 'RSS source URL is invalid or points to a private/unsafe address.');
+            }
+        }
+
         $sources = $this->get_sources();
 
         foreach ($sources as $key => $source) {
             if ($source['id'] === $source_id) {
                 $sources[$key] = array_merge($source, [
                     'name' => sanitize_text_field($source_data['name'] ?? $source['name']),
-                    'url' => esc_url_raw($source_data['url'] ?? $source['url']),
+                    'url' => isset($new_url) ? $new_url : $source['url'],
                     'language' => sanitize_text_field($source_data['language'] ?? $source['language']),
                     'categories' => array_map('sanitize_text_field', $source_data['categories'] ?? $source['categories']),
                     'is_active' => (bool)($source_data['is_active'] ?? $source['is_active']),

@@ -254,21 +254,8 @@ class Config {
         $allowed_origins = self::get_allowed_origins();
 
         foreach ($allowed_origins as $allowed) {
-            // Exact match
             if ($origin === $allowed) {
                 return true;
-            }
-
-            // Wildcard match (e.g., https://*.vercel.app)
-            if (strpos($allowed, '*') !== false) {
-                // Convert wildcard pattern to regex using # delimiter (URLs contain /)
-                $pattern = preg_quote($allowed, '#');
-                $pattern = str_replace('\\*', '.*', $pattern);
-                $pattern = '#^' . $pattern . '$#';
-
-                if (preg_match($pattern, $origin)) {
-                    return true;
-                }
             }
         }
 
