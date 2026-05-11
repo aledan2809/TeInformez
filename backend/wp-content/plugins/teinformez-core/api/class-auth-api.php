@@ -21,7 +21,7 @@ class Auth_API extends REST_API {
      * all backends (DB, Redis, Memcached) — no reliance on _transient_timeout_ option.
      * Returns WP_REST_Response error on limit exceeded, null when OK.
      */
-    private function check_rate_limit(string $action): ?\WP_REST_Response {
+    private function check_rate_limit(string $action): ?\WP_Error {
         $ip  = Config::get_client_ip() ?: 'unknown';
         $key = 'teinformez_rl_' . $action . '_' . md5($ip);
 
