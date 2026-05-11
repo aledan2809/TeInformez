@@ -16,7 +16,7 @@ export default function SharedHeader() {
           <span className="text-lg font-bold">TeInformez.eu</span>
         </Link>
 
-        <nav className="flex items-center space-x-3">
+        <nav aria-label="Navigare principală" className="flex items-center space-x-3">
           <Link href="/news" className="text-sm font-medium hover:text-primary-600 hidden sm:block">
             Toate știrile
           </Link>

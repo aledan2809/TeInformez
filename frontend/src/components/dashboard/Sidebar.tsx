@@ -54,7 +54,7 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav aria-label="Navigare panou" className="flex-1 p-4 space-y-1">
         {MENU_ITEMS.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
