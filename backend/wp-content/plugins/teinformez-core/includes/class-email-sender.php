@@ -188,6 +188,24 @@ class Email_Sender {
     }
 
     /**
+     * Send email-change double opt-in confirmation (M-16).
+     * Sent to the NEW address — change is not applied until confirmed.
+     */
+    public function send_email_change_confirmation($to_email, $confirm_link, $display_name) {
+        $subject = 'Confirmare schimbare adresă email - TeInformez';
+
+        $html_content = $this->get_email_template('email_change_confirmation', [
+            'display_name' => $display_name,
+            'confirm_link' => $confirm_link,
+        ]);
+        $html_content .= $this->get_unsubscribe_footer($to_email, 'registered');
+
+        error_log('TeInformez: Sending email-change confirmation. Brevo key: ' . (!empty($this->api_key) ? 'YES' : 'NO'));
+
+        return $this->send($to_email, $subject, $html_content);
+    }
+
+    /**
      * Generate unsubscribe footer HTML
      *
      * @param string $email  The recipient email address
@@ -285,6 +303,45 @@ class Email_Sender {
                             <p>Sau copiază acest link în browser:</p>
                             <p style="word-break: break-all; background: #e5e7eb; padding: 10px; border-radius: 4px; font-size: 14px;">{{confirm_link}}</p>
                             <p>Dacă nu ai solicitat abonarea, poți ignora acest email.</p>
+                        </div>
+                        <div class="footer">
+                            <p>&copy; ' . date('Y') . ' TeInformez. Toate drepturile rezervate.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            ',
+            'email_change_confirmation' => '
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                        .header { background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+                        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+                        .button { display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+                        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #6b7280; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>TeInformez</h1>
+                        </div>
+                        <div class="content">
+                            <h2>Confirmare schimbare adresă email</h2>
+                            <p>Salut, {{display_name}}!</p>
+                            <p>Ai solicitat schimbarea adresei de email a contului tău TeInformez.</p>
+                            <p>Apasă pe butonul de mai jos pentru a confirma noua adresă:</p>
+                            <p style="text-align: center;">
+                                <a href="{{confirm_link}}" class="button" style="color: white;">Confirmă noua adresă</a>
+                            </p>
+                            <p>Sau copiază acest link în browser:</p>
+                            <p style="word-break: break-all; background: #e5e7eb; padding: 10px; border-radius: 4px; font-size: 14px;">{{confirm_link}}</p>
+                            <p><strong>Acest link este valid pentru 24 de ore.</strong></p>
+                            <p>Dacă nu ai solicitat această schimbare, poți ignora acest email. Adresa ta actuală rămâne neschimbată.</p>
                         </div>
                         <div class="footer">
                             <p>&copy; ' . date('Y') . ' TeInformez. Toate drepturile rezervate.</p>

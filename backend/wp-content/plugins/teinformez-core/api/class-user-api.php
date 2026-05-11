@@ -226,11 +226,16 @@ class User_API extends REST_API {
      * Bulk add subscriptions (onboarding)
      */
     public function bulk_add_subscriptions($request) {
+        $csrf = $this->check_cookie_csrf($request); if ($csrf) return $csrf;
         $user_id = $this->get_current_user_id();
         $params = $request->get_json_params();
 
         if (empty($params['subscriptions']) || !is_array($params['subscriptions'])) {
             return $this->error(__('Invalid subscriptions data.', 'teinformez'), 'invalid_data', 400);
+        }
+
+        if (count($params['subscriptions']) > 50) {
+            return $this->error(__('Maximum 50 subscriptions per request.', 'teinformez'), 'too_many_subscriptions', 400);
         }
 
         $sub_manager = new Subscription_Manager();
