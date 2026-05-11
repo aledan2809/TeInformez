@@ -103,11 +103,11 @@ class Auth_API extends REST_API {
             'permission_callback' => '__return_true'
         ]);
 
-        // Set secure httpOnly cookie (security enhancement)
+        // Set secure httpOnly cookie — M-03: requires authentication
         register_rest_route($this->namespace, '/auth/set-secure-cookie', [
             'methods' => 'POST',
             'callback' => [$this, 'set_secure_cookie'],
-            'permission_callback' => '__return_true'
+            'permission_callback' => [$this, 'is_authenticated']
         ]);
     }
 
@@ -503,7 +503,8 @@ class Auth_API extends REST_API {
 
     /**
      * Set secure httpOnly cookie
-     * Security enhancement: store JWT in httpOnly cookie instead of accessible JavaScript
+     * M-03: Requires authentication. Validates the submitted token cryptographically
+     * and verifies it belongs to the authenticated user before setting the cookie.
      */
     public function set_secure_cookie($request) {
         $params = $request->get_json_params();
@@ -517,14 +518,26 @@ class Auth_API extends REST_API {
             );
         }
 
-        $token = sanitize_text_field($params['token']);
+        // M-03: Use wp_unslash only — sanitize_text_field strips base64 chars (+/=)
+        $token = wp_unslash($params['token']);
 
-        // Verify token is valid (basic validation)
-        if (!preg_match('/^[A-Za-z0-9\-_\.]+$/', $token)) {
+        // M-03: Full cryptographic validation — reject tokens that fail signature/expiry check
+        $token_user_id = self::validate_auth_token($token);
+        if (!$token_user_id) {
             return $this->error(
-                __('Invalid token format.', 'teinformez'),
+                __('Invalid or expired token.', 'teinformez'),
                 'invalid_token',
-                400
+                401
+            );
+        }
+
+        // M-03: Token must belong to the authenticated user — prevents setting another user's token
+        $authenticated_user_id = $this->get_current_user_id();
+        if ((int) $token_user_id !== (int) $authenticated_user_id) {
+            return $this->error(
+                __('Token does not belong to the authenticated user.', 'teinformez'),
+                'token_mismatch',
+                403
             );
         }
 

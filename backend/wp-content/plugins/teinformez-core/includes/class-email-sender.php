@@ -146,9 +146,8 @@ class Email_Sender {
         ]);
         $html_content .= $this->get_unsubscribe_footer($user_email, 'registered');
 
-        error_log('TeInformez: Attempting to send password reset email to: ' . $user_email);
-        error_log('TeInformez: Reset link: ' . $reset_link);
-        error_log('TeInformez: Brevo API key configured: ' . (!empty($this->api_key) ? 'YES' : 'NO'));
+        // M-07: Do NOT log reset link or full email — token exposure risk
+        error_log('TeInformez: Sending password reset email. Brevo key: ' . (!empty($this->api_key) ? 'YES' : 'NO'));
 
         $result = $this->send($user_email, $subject, $html_content);
 

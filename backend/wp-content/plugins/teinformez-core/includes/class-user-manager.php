@@ -68,6 +68,14 @@ class User_Manager {
     public function update_preferences($user_id, $data) {
         global $wpdb;
 
+        // M-08: Whitelist allowed fields — prevents overwriting gdpr_consent, gdpr_ip_address, etc.
+        $allowed = ['preferred_language', 'delivery_channels', 'delivery_schedule'];
+        $data = array_intersect_key($data, array_flip($allowed));
+
+        if (empty($data)) {
+            return false;
+        }
+
         // Encode JSON fields if they're arrays
         if (isset($data['delivery_channels']) && is_array($data['delivery_channels'])) {
             $data['delivery_channels'] = json_encode($data['delivery_channels']);
