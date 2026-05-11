@@ -15,44 +15,6 @@ if (!defined('ABSPATH')) {
  */
 class Auth_API extends REST_API {
 
-    /**
-     * H-02: Rate limiter — max 5 attempts per IP per 15-minute sliding window.
-     * Stores {count, start} in a single transient so the window is preserved on
-     * all backends (DB, Redis, Memcached) — no reliance on _transient_timeout_ option.
-     * Returns WP_REST_Response error on limit exceeded, null when OK.
-     */
-    private function check_rate_limit(string $action): ?\WP_Error {
-        $ip  = Config::get_client_ip() ?: 'unknown';
-        $key = 'teinformez_rl_' . $action . '_' . md5($ip);
-
-        $data = get_transient($key);
-
-        if ($data === false) {
-            set_transient($key, ['count' => 1, 'start' => time()], 15 * MINUTE_IN_SECONDS);
-            return null;
-        }
-
-        if ((int) $data['count'] >= 5) {
-            header('Retry-After: 900');
-            return $this->error(
-                __('Too many attempts. Please try again later.', 'teinformez'),
-                'rate_limit_exceeded',
-                429
-            );
-        }
-
-        // Preserve original window start — remaining TTL = 15 min minus elapsed
-        $remaining = max(1, 15 * MINUTE_IN_SECONDS - (time() - (int) $data['start']));
-        set_transient($key, ['count' => $data['count'] + 1, 'start' => $data['start']], $remaining);
-
-        return null;
-    }
-
-    private function clear_rate_limit(string $action): void {
-        $ip  = Config::get_client_ip() ?: 'unknown';
-        delete_transient('teinformez_rl_' . $action . '_' . md5($ip));
-    }
-
     public function register_routes() {
         // Register new user
         register_rest_route($this->namespace, '/auth/register', [

@@ -1,6 +1,8 @@
 <?php
 namespace TeInformez\API;
 
+use TeInformez\Config;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -171,5 +173,44 @@ class REST_API {
             }
         }
         return $array;
+    }
+
+    /**
+     * Transient-based per-IP rate limiter (M-04).
+     * Sliding window: max $max requests per $window_minutes minutes per IP.
+     * Returns WP_Error on limit exceeded, null when OK.
+     */
+    protected function check_rate_limit(string $action, int $max = 5, int $window_minutes = 15): ?\WP_Error {
+        $ip  = Config::get_client_ip() ?: 'unknown';
+        $key = 'teinformez_rl_' . $action . '_' . md5($ip);
+
+        $data = get_transient($key);
+
+        if ($data === false) {
+            set_transient($key, ['count' => 1, 'start' => time()], $window_minutes * MINUTE_IN_SECONDS);
+            return null;
+        }
+
+        if ((int) $data['count'] >= $max) {
+            header('Retry-After: ' . ($window_minutes * 60));
+            return $this->error(
+                __('Too many attempts. Please try again later.', 'teinformez'),
+                'rate_limit_exceeded',
+                429
+            );
+        }
+
+        $remaining = max(1, $window_minutes * MINUTE_IN_SECONDS - (time() - (int) $data['start']));
+        set_transient($key, ['count' => $data['count'] + 1, 'start' => $data['start']], $remaining);
+
+        return null;
+    }
+
+    /**
+     * Clear a rate limit bucket for the current IP.
+     */
+    protected function clear_rate_limit(string $action): void {
+        $ip  = Config::get_client_ip() ?: 'unknown';
+        delete_transient('teinformez_rl_' . $action . '_' . md5($ip));
     }
 }

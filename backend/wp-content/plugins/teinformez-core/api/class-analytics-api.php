@@ -20,6 +20,10 @@ class Analytics_API extends REST_API {
     }
 
     public function track_event($request) {
+        // M-04: 60 events per IP per minute — blocks flood abuse, allows normal browsing
+        $rl = $this->check_rate_limit('analytics_track', 60, 1);
+        if ($rl) return $rl;
+
         $ok = Visitor_Analytics::track_event([
             'visitor_id' => $request->get_param('visitor_id'),
             'session_id' => $request->get_param('session_id'),
