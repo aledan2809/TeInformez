@@ -3,12 +3,12 @@
 **Date:** 2026-04-16 (updated 2026-05-11)
 **Plugin:** TeInformez Core v1.0.0
 **Scope:** Static code analysis of `backend/wp-content/plugins/teinformez-core/`
-**Mode:** AUDIT-ONLY → DIRECT FIX (H-01–H-08 fixed 2026-05-11)
+**Mode:** AUDIT-ONLY → DIRECT FIX (H-01–H-08 fixed 2026-05-11; Sprint 1 fixed 2026-05-11)
 **Target:** WordPress 6.0+ / PHP 8.0+
 
 ---
 
-## Eliminated Gaps (H-01–H-08)
+## Eliminated Gaps
 
 | Gap | Status | Commit | Date |
 |-----|--------|--------|------|
@@ -21,8 +21,12 @@
 | H-06 | Eliminated | `is_admin()` on all 5 telegram endpoints | 2026-05-11 |
 | H-07 | Eliminated | AES-256-CBC encrypt/decrypt_token() in class-telegram-api.php | 2026-05-11 |
 | H-08 | Eliminated | `current_user_can('manage_options')` in juridic-queue.php + news-queue.php | 2026-05-11 |
+| M-03 | Eliminated | `a6ed79d` — is_authenticated required + validate_auth_token() + user ownership check | 2026-05-11 |
+| M-07 | Eliminated | `a6ed79d` — reset link removed from error_log in send_password_reset() | 2026-05-11 |
+| M-08 | Eliminated | `a6ed79d` — field whitelist in update_preferences() blocks GDPR column overwrite | 2026-05-11 |
 
-**Evidence**: E8 test (2026-05-11): unauthenticated GET /admin/analytics → HTTP 401; reader → HTTP 403; admin → HTTP 200.
+**Evidence H-04–H-08**: E8 test (2026-05-11): unauthenticated GET /admin/analytics → HTTP 401; reader → HTTP 403; admin → HTTP 200.
+**Note M-07 partial**: `send_via_brevo()` line 44 still logs `$to_email` for all email types — tracked as backlog item (low risk, no token exposure).
 
 ---
 
