@@ -1,6 +1,56 @@
 # TODO Persistent — TeInformez
 > Items rămân până marcate DONE cu dată + commit.
-> Last updated: 2026-05-11
+> Last updated: 2026-05-12
+
+---
+
+## 🚀 Soft Launch & Monetization
+
+> Sesiune dedicată. Toate itemele de mai jos sunt **neatastate** — de atacat în ordine faza cu faza.
+
+---
+
+### Faza 1 — Soft Launch Prep (înainte de anunțul public)
+
+- [ ] **SL-01** — SEO meta tags: `<title>` dinamic, `<meta description>`, OG tags + Twitter Cards pe toate paginile publice (`/`, `/news`, `/news/[id]`, `/juridic`, `/juridic/[id]`, `/register`) — folosind `next/head` sau `generateMetadata` App Router
+- [ ] **SL-02** — Sitemap XML: endpoint `/sitemap.xml` generat din news-urile published + articolele juridic; ping Google Search Console la fiecare publish batch
+- [ ] **SL-03** — Robots.txt: `public/robots.txt` cu `Disallow: /dashboard`, `Disallow: /admin`, `Allow: /` — previne indexarea paginilor autentificate
+- [ ] **SL-04** — Canonical URLs: `<link rel="canonical">` pe paginile de listing cu paginare (`/news?page=2` → canonical `/news`) — previne duplicate content penalty
+- [ ] **SL-05** — Analytics: integrare Plausible sau GA4 — events minime: `page_view`, `register`, `newsletter_subscribe`, `article_read`, `juridic_view`
+- [ ] **SL-06** — Core Web Vitals baseline: LCP <2.5s, CLS <0.1 pe mobile (390×844) și desktop; lazy load imagini pe news list; măsurat cu Lighthouse CLI pre-launch
+- [ ] **SL-07** — Error monitoring: Sentry DSN în Next.js + `error.tsx` boundary care capturează 5xx; alertă email pe admin la spike (>5 erori/10min)
+- [ ] **SL-08** — Homepage / landing copy review: value proposition clar pentru vizitator anonim ("Ce este TeInformez?"), CTA proeminent spre `/register`; A/B test headline opțional
+- [ ] **SL-09** — Email welcome sequence: email D+1 post-înregistrare dacă userul nu a citit nicio știre → "Ai ratat ieri: TOP 3 știri din categoriile tale" (Brevo automation trigger via webhook)
+- [ ] **SL-10** — Social sharing: OG image generată dinamic per articol (titlu + sursă + logo TeInformez) — endpoint `/api/og?id=<newsId>` cu `@vercel/og` sau `satori`
+
+---
+
+### Faza 2 — Growth (achiziție utilizatori post-launch)
+
+- [ ] **GR-01** — Newsletter public: landing page `/newsletter` cu formular simplu (email + categorii de interes) — distinct de contul de utilizator, targhet non-registered visitors
+- [ ] **GR-02** — Referral tracking: `utm_source` / `utm_medium` persisted în localStorage la primul visit → trimis la înregistrare → admin analytics arată sursa fiecărui user nou
+- [ ] **GR-03** — Share widget pe articol: butoane "Share to WhatsApp / Telegram / LinkedIn" cu `utm_source=share&utm_medium=article` pre-fill — cresc reach organic
+- [ ] **GR-04** — SEO articole: schema markup `NewsArticle` (JSON-LD) pe `/news/[id]` cu `datePublished`, `author`, `image`, `headline` — Google News eligibility
+- [ ] **GR-05** — Push notifications web (PWA optional): `service-worker.js` + permission prompt la a 3-a vizită — notificare la breaking news în categoriile abonate
+
+---
+
+### Faza 3 — Monetization
+
+- [ ] **MN-01** — **Feature matrix Premium vs Free**: definit clar ce e gated (draft propus: Free = ultimele 24h știri, 3 categorii max; Premium = feed nelimitat, toate categoriile, export, Telegram push, statistici avansate) — decizie business înainte de orice cod
+- [ ] **MN-02** — **Stripe subscriptions**: integrare `@aledan/stripe` — planuri Lunar (X RON) + Anual (Y RON cu discount); checkout flow din `/dashboard/upgrade`; webhook `customer.subscription.updated` → setează `role=premium` în WP user_meta
+- [ ] **MN-03** — **Paywall soft**: articolele premium (gated) arată primele 3 paragrafe + blur + CTA "Continuă cu contul Premium" — implementat în `/news/[id]` pe baza `user.role`
+- [ ] **MN-04** — **Juridic cu Alina — premium**: întrebările juridic din `/juridic` vizibile gratuit; funcția "Trimite întrebarea ta" (nouă) → gated Premium sau pay-per-question (5 RON via Stripe one-time); admin răspunde prin interfața existentă
+- [ ] **MN-05** — **Newsletter sponsorizat**: template email cu slot "Partener" opțional (banner HTML 600×100px); admin UI în WordPress `/wp-admin` → `TeInformez → Newsletter Ads` — câmp sponsor_name + banner_html + campanie_start/end; injectat în newsletter-urile din intervalul campaniei
+- [ ] **MN-06** — **Admin revenue dashboard**: pagină `/wp-admin/admin.php?page=teinformez-revenue` — abonați activi (Free/Premium), MRR, newsletter ads bookings active, conversion rate înregistrare→Premium
+
+---
+
+### Faza 4 — Optimizări post-monetization
+
+- [ ] **OP-01** — Churn prevention: email la 3 zile înainte de expirarea subscripției Premium ("Reînnoiește acum — ofertă 10% dacă reînnoiești azi")
+- [ ] **OP-02** — Onboarding Premium: după upgrade, wizard scurt (1 pas) care activează Telegram push + setează toate categoriile → reduce time-to-value
+- [ ] **OP-03** — Affiliate links: admin poate taga categorii cu `affiliate_provider` (ex: Bancă X pentru categoria Finanțe) → articolele din acea categorie includ un link de tip "Deschide cont" în sidebar — separat de conținut editorial
 
 ---
 
@@ -75,3 +125,4 @@
 |------|-------|
 | 2026-05-11 | Phase A+B complete; [7] CODE audit 68/100; TRUE FULL E2E scope defined |
 | 2026-05-11 | TRUE FULL E2E 92% complete — E1-E11 ✅, F1-F2 ✅, G1-G2 ✅, H1-H2 ✅, I1-I2 ✅; G3+G4 deferred. Report: `Reports/TRUE-E2E-FULL-2026-05-11.md` |
+| 2026-05-12 | Security hardening complete — Sprint 1-5 + review fixes all eliminated. G3+G4 done. M-07 fully closed. Soft Launch & Monetization scope added (SL-01–SL-10, GR-01–GR-05, MN-01–MN-06, OP-01–OP-03). |
