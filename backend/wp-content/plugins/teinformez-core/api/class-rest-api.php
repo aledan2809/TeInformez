@@ -26,9 +26,12 @@ class REST_API {
      */
     public function is_admin($request) {
         if (!$this->is_authenticated($request)) {
-            return false;
+            return new \WP_Error('rest_not_logged_in', __('Authentication required.', 'teinformez'), ['status' => 401]);
         }
-        return current_user_can('manage_options');
+        if (!current_user_can('manage_options')) {
+            return new \WP_Error('rest_forbidden', __('Administrator access required.', 'teinformez'), ['status' => 403]);
+        }
+        return true;
     }
 
     /**

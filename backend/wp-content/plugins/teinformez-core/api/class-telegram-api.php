@@ -296,7 +296,7 @@ class Telegram_API extends REST_API {
         if ($token === '') {
             return '';
         }
-        $key = hash('sha256', AUTH_KEY . 'teinformez_telegram', true);
+        $key = hash('sha256', (defined('AUTH_KEY') ? AUTH_KEY : 'fallback-' . DB_NAME) . 'teinformez_telegram', true);
         $iv  = random_bytes(16);
         $ciphertext = openssl_encrypt($token, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
         if ($ciphertext === false) {
