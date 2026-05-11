@@ -492,6 +492,8 @@ export default function NewsListClient() {
                       <img
                         src={heroItem.image}
                         alt={heroItem.title}
+                        fetchPriority="high"
+                        loading="eager"
                         className="w-full h-64 md:h-full object-cover"
                       />
                     </div>
@@ -570,7 +572,7 @@ export default function NewsListClient() {
 
                     {item.image && (
                       <div className="-mx-6 -mt-6 mb-4">
-                        <img src={item.image} alt={item.title} className="w-full h-52 object-cover" />
+                        <img src={item.image} alt={item.title} loading="lazy" className="w-full h-52 object-cover" />
                       </div>
                     )}
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -639,7 +641,7 @@ export default function NewsListClient() {
 
                     {item.image && (
                       <div className="-mx-6 -mt-6 mb-4">
-                        <img src={item.image} alt={item.title} className="w-full h-48 object-cover" />
+                        <img src={item.image} alt={item.title} loading="lazy" className="w-full h-48 object-cover" />
                       </div>
                     )}
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -854,7 +856,7 @@ function TrendingSidebar({ items, onArticleClick }: { items: NewsItem[]; onArtic
                 </div>
                 {item.image && (
                   <div className="flex-shrink-0 w-16 h-12 rounded overflow-hidden">
-                    <img src={item.image} alt="" className="w-full h-full object-cover" />
+                    <img src={item.image} alt="" loading="lazy" className="w-full h-full object-cover" />
                   </div>
                 )}
               </motion.div>
