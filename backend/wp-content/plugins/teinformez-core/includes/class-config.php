@@ -328,7 +328,8 @@ class Config {
             return false;
         }
         if ($scheme === 'http') {
-            $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+            // parse_url returns '[::1]' with brackets for IPv6 literals — strip them.
+            $host = strtolower(trim((string) parse_url($url, PHP_URL_HOST), '[]'));
             return $host === 'localhost' || $host === '127.0.0.1' || $host === '::1';
         }
         return true; // https is acceptable for any external host

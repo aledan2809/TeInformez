@@ -134,7 +134,7 @@ class REST_API {
      * Validate password strength (M-02)
      * Returns true on success, WP_Error on failure.
      */
-    protected function validate_password_strength($password) {
+    protected function validate_password_strength(string $password) {
         $errors = [];
         if (strlen($password) < 8) {
             $errors[] = __('minimum 8 characters', 'teinformez');
@@ -192,11 +192,10 @@ class REST_API {
         }
 
         if ((int) $data['count'] >= $max) {
-            header('Retry-After: ' . ($window_minutes * 60));
-            return $this->error(
-                __('Too many attempts. Please try again later.', 'teinformez'),
-                'rate_limit_exceeded',
-                429
+            return new \WP_REST_Response(
+                ['code' => 'rate_limit_exceeded', 'message' => __('Too many attempts. Please try again later.', 'teinformez')],
+                429,
+                ['Retry-After' => (string) ($window_minutes * 60)]
             );
         }
 

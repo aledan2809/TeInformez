@@ -83,7 +83,6 @@ export const useAuthStore = create<AuthState>()(
             useBookmarkStore.getState().syncWithBackend();
             useReadingStore.getState().syncWithBackend();
           } else {
-            // Generic path: email may already exist — backend returns null data
             set({ isLoading: false });
           }
         } catch (error: unknown) {
