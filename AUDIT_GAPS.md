@@ -51,10 +51,10 @@
 
 | Gap | Severity | Description | Status |
 |-----|----------|-------------|--------|
-| G-TI-NEW-001 | LOW | `/profile` and `/settings` frontend routes return 404 — not implemented | OPEN |
-| G-TI-NEW-002 | INFO | Dashboard SSR delivers 112-byte loading skeleton — journey audit tooling sees EMPTY | INFO |
-| G-TI-NEW-003 | INFO | Journey audit `/terms` GATED false positive — onboarding marker matches word in content | INFO |
-| G-TI-NEW-004 | INFO | Journey audit `/news` HAS_ERRORS false positive — Next.js RSC JSON payload | INFO |
+| G-TI-NEW-001 | LOW | `/profile` and `/settings` frontend routes return 404 — not implemented | Eliminated — redirects added in `next.config.js` (see commit below) |
+| G-TI-NEW-002 | INFO | Dashboard SSR delivers 112-byte loading skeleton — journey audit tooling sees EMPTY | Accepted — authenticated-only page; SSR skeleton is correct behaviour, not a content gap |
+| G-TI-NEW-003 | INFO | Journey audit `/terms` GATED false positive — onboarding marker matches word in content | Accepted — `/terms` is publicly accessible; tooling pattern match on "Setările Contului" text inside page |
+| G-TI-NEW-004 | INFO | Journey audit `/news` HAS_ERRORS false positive — Next.js RSC JSON payload | Accepted — RSC payload in Next.js App Router is expected, not an application error |
 
 ---
 

@@ -40,6 +40,12 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      { source: '/profile', destination: '/dashboard/settings', permanent: false },
+      { source: '/settings', destination: '/dashboard/settings', permanent: false },
+    ];
+  },
   async rewrites() {
     const wpApiUrl = process.env.NEXT_PUBLIC_WP_API_URL || 'http://localhost/wp-json';
     return [
