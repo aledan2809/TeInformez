@@ -17,6 +17,8 @@ if (isset($_POST['action']) && isset($_POST['_wpnonce'])) {
     if (!wp_verify_nonce($_POST['_wpnonce'], 'teinformez_queue_action')) {
         $message = __('Security check failed.', 'teinformez');
         $message_type = 'error';
+    } elseif (!current_user_can('manage_options')) {
+        wp_die(__('You do not have permission to perform this action.', 'teinformez'), 403);
     } else {
         $item_id = isset($_POST['item_id']) ? (int)$_POST['item_id'] : 0;
         $notes = isset($_POST['admin_notes']) ? sanitize_textarea_field($_POST['admin_notes']) : '';

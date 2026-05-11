@@ -17,31 +17,31 @@ class Telegram_API extends REST_API {
         register_rest_route($this->namespace, '/telegram/config', [
             'methods' => 'GET',
             'callback' => [$this, 'get_config'],
-            'permission_callback' => [$this, 'is_authenticated'],
+            'permission_callback' => [$this, 'is_admin'],
         ]);
 
         register_rest_route($this->namespace, '/telegram/config', [
             'methods' => 'PUT',
             'callback' => [$this, 'save_config'],
-            'permission_callback' => [$this, 'is_authenticated'],
+            'permission_callback' => [$this, 'is_admin'],
         ]);
 
         register_rest_route($this->namespace, '/telegram/groups/discover', [
             'methods' => 'POST',
             'callback' => [$this, 'discover_groups'],
-            'permission_callback' => [$this, 'is_authenticated'],
+            'permission_callback' => [$this, 'is_admin'],
         ]);
 
         register_rest_route($this->namespace, '/telegram/messages/read', [
             'methods' => 'POST',
             'callback' => [$this, 'read_messages'],
-            'permission_callback' => [$this, 'is_authenticated'],
+            'permission_callback' => [$this, 'is_admin'],
         ]);
 
         register_rest_route($this->namespace, '/telegram/messages/send', [
             'methods' => 'POST',
             'callback' => [$this, 'send_message'],
-            'permission_callback' => [$this, 'is_authenticated'],
+            'permission_callback' => [$this, 'is_admin'],
         ]);
     }
 
@@ -78,7 +78,7 @@ class Telegram_API extends REST_API {
                 );
             }
 
-            update_user_meta($user_id, self::TOKEN_META_KEY, $token);
+            update_user_meta($user_id, self::TOKEN_META_KEY, $this->encrypt_token($token));
         }
 
         if (is_array($params['groups'] ?? null)) {
@@ -281,8 +281,48 @@ class Telegram_API extends REST_API {
     }
 
     private function get_user_token($user_id) {
-        $token = get_user_meta($user_id, self::TOKEN_META_KEY, true);
-        return is_string($token) ? trim($token) : '';
+        $stored = get_user_meta($user_id, self::TOKEN_META_KEY, true);
+        if (!is_string($stored) || $stored === '') {
+            return '';
+        }
+        return trim($this->decrypt_token($stored));
+    }
+
+    /**
+     * Encrypt Telegram bot token at rest with AES-256-CBC (H-07)
+     * Storage: base64(iv_16 + ciphertext)
+     */
+    private function encrypt_token(string $token): string {
+        if ($token === '') {
+            return '';
+        }
+        $key = hash('sha256', AUTH_KEY . 'teinformez_telegram', true);
+        $iv  = random_bytes(16);
+        $ciphertext = openssl_encrypt($token, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+        if ($ciphertext === false) {
+            return $token;
+        }
+        return base64_encode($iv . $ciphertext);
+    }
+
+    /**
+     * Decrypt stored Telegram bot token (H-07)
+     * Legacy plaintext tokens contain ':', which is outside the base64 alphabet —
+     * base64_decode($plaintext, true) returns false, so we return it as-is.
+     */
+    private function decrypt_token(string $stored): string {
+        if ($stored === '') {
+            return '';
+        }
+        $decoded = base64_decode($stored, true);
+        if ($decoded === false || strlen($decoded) < 17) {
+            return $stored; // plaintext legacy token
+        }
+        $key        = hash('sha256', AUTH_KEY . 'teinformez_telegram', true);
+        $iv         = substr($decoded, 0, 16);
+        $ciphertext = substr($decoded, 16);
+        $plaintext  = openssl_decrypt($ciphertext, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+        return $plaintext !== false ? $plaintext : $stored;
     }
 
     private function get_user_groups($user_id) {

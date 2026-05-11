@@ -22,6 +22,16 @@ class REST_API {
     }
 
     /**
+     * Check if authenticated user has administrator capability (H-04/H-05/H-06)
+     */
+    public function is_admin($request) {
+        if (!$this->is_authenticated($request)) {
+            return false;
+        }
+        return current_user_can('manage_options');
+    }
+
+    /**
      * Check if user is authenticated via Bearer token or WordPress session
      */
     public function is_authenticated($request) {

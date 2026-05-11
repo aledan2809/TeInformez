@@ -6,6 +6,9 @@ $table = $wpdb->prefix . 'teinformez_juridic_qa';
 
 // Handle form submission
 if (isset($_POST['juridic_action']) && wp_verify_nonce($_POST['_juridic_nonce'], 'juridic_save')) {
+    if (!current_user_can('manage_options')) {
+        wp_die(__('You do not have permission to perform this action.', 'teinformez'), 403);
+    }
     $action = sanitize_text_field($_POST['juridic_action']);
 
     if ($action === 'save') {

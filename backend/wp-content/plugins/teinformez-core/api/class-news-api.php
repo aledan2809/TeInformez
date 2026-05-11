@@ -95,7 +95,7 @@ class News_API extends REST_API {
         register_rest_route($this->namespace, '/admin/analytics', [
             'methods' => 'GET',
             'callback' => [$this, 'get_analytics'],
-            'permission_callback' => [$this, 'is_authenticated']
+            'permission_callback' => [$this, 'is_admin']
         ]);
     }
 

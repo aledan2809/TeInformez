@@ -29,7 +29,7 @@ Cloneable architecture: configurable language/country/sources for replication to
 - [x] Phase A: User registration, onboarding, dashboard — COMPLETE
 - [x] Phase B: News aggregation, AI processing, admin review, news pages — COMPLETE
 - [x] Phase C: Email delivery system (scheduled digests, Brevo + wp_mail fallback) — COMPLETE
-- [~] Phase D: Analytics done (view tracking, admin analytics, SEO), optimization pending — PARTIAL
+- [x] Phase D: Analytics, SEO canonical/JSON-LD, LCP image priority, WP transient caching, security H-04–H-08 — COMPLETE
 - [x] Phase E: Juridic section, Telegram integration, social posting — COMPLETE
 
 ## Constraints

@@ -43,21 +43,21 @@ class Juridic_API extends REST_API {
         register_rest_route($this->namespace, '/juridic', [
             'methods' => 'POST',
             'callback' => [$this, 'create'],
-            'permission_callback' => [$this, 'is_authenticated']
+            'permission_callback' => [$this, 'is_admin']
         ]);
 
         // Admin: update Q&A
         register_rest_route($this->namespace, '/juridic/(?P<id>\d+)', [
             'methods' => 'PUT',
             'callback' => [$this, 'update'],
-            'permission_callback' => [$this, 'is_authenticated']
+            'permission_callback' => [$this, 'is_admin']
         ]);
 
         // Admin: delete Q&A
         register_rest_route($this->namespace, '/juridic/(?P<id>\d+)', [
             'methods' => 'DELETE',
             'callback' => [$this, 'delete'],
-            'permission_callback' => [$this, 'is_authenticated']
+            'permission_callback' => [$this, 'is_admin']
         ]);
 
         // Public: track view
@@ -71,14 +71,14 @@ class Juridic_API extends REST_API {
         register_rest_route($this->namespace, '/juridic/import/facebook', [
             'methods' => 'POST',
             'callback' => [$this, 'import_facebook_case'],
-            'permission_callback' => [$this, 'is_authenticated']
+            'permission_callback' => [$this, 'is_admin']
         ]);
 
         // Admin: publish juridic entry on social platforms
         register_rest_route($this->namespace, '/juridic/(?P<id>\d+)/publish-social', [
             'methods' => 'POST',
             'callback' => [$this, 'publish_social'],
-            'permission_callback' => [$this, 'is_authenticated']
+            'permission_callback' => [$this, 'is_admin']
         ]);
     }
 
