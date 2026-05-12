@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { Newspaper, Loader2, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { gtagEvent } from '@/lib/gtag';
 
 interface RegisterForm {
   email: string;
@@ -42,7 +43,7 @@ export default function RegisterPage() {
         gdpr_consent: data.gdprConsent,
       });
 
-      // Redirect to onboarding
+      gtagEvent('register', { method: 'email' });
       router.push('/onboarding');
     } catch (err) {
       // Error is handled by store

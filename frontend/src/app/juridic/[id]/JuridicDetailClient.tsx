@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, Eye, Share2, Facebook, Mail } from 'lucide-react';
 import SharedHeader from '@/components/SharedHeader';
 import { JURIDIC_CATEGORIES, type JuridicQA } from '@/types';
 import { createTimeSpentTracker, trackPageView } from '@/lib/visitorAnalytics';
+import { gtagEvent } from '@/lib/gtag';
 
 const CATEGORY_COLORS: Record<string, string> = {
   'dreptul-muncii': 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
@@ -28,6 +29,10 @@ export default function JuridicDetailClient({ item }: Props) {
     }
 
     trackPageView('juridic', item.id);
+    gtagEvent('juridic_view', {
+      juridic_id: item.id,
+      juridic_category: item.category ?? 'unknown',
+    });
     const flushTimeSpent = createTimeSpentTracker('juridic', item.id);
     return () => {
       flushTimeSpent();

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { createTimeSpentTracker, trackArticleClick, trackPageView } from '@/lib/visitorAnalytics';
+import { gtagEvent } from '@/lib/gtag';
 import { useBookmarkStore } from '@/store/bookmarkStore';
 import { useReadingStore } from '@/store/readingStore';
 import ReadingProgressBar from '@/components/ReadingProgressBar';
@@ -63,6 +64,12 @@ export default function NewsDetailClient() {
       setNews(data);
       markAsRead(newsId);
       api.trackView(newsId).catch(() => {});
+      gtagEvent('article_read', {
+        article_id: newsId,
+        article_title: data.title,
+        article_source: data.source,
+        article_category: data.categories?.[0] ?? 'unknown',
+      });
 
       // Fetch related articles by same category
       if (data.categories && data.categories.length > 0) {
