@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Calendar, ExternalLink } from 'lucide-react';
 import { CATEGORY_COLORS, getCategoryLabel } from '@/lib/categories';
 import { trackArticleClick } from '@/lib/visitorAnalytics';
@@ -44,13 +45,12 @@ export default function ArticleCard({
     <Link href={`/news/${id}`} className="group block card hover:shadow-md transition-shadow overflow-hidden" onClick={() => trackArticleClick(id, { source: 'article_card' })}>
       {showImage && image && (
         <div className="aspect-video overflow-hidden bg-gray-100 dark:bg-gray-800">
-          <img
+          <Image
             src={image}
             alt={title}
             width={640}
             height={360}
-            loading="lazy"
-            decoding="async"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         </div>

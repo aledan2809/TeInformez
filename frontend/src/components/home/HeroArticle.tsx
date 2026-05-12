@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Calendar, ExternalLink } from 'lucide-react';
 import { CATEGORY_COLORS, getCategoryLabel } from '@/lib/categories';
 import { trackArticleClick } from '@/lib/visitorAnalytics';
@@ -22,14 +23,13 @@ export default function HeroArticle({ id, title, summary, image, imageSource, so
     <Link href={`/news/${id}`} className="group block" onClick={() => trackArticleClick(id, { source: 'hero_article' })}>
       <div className="relative rounded-xl overflow-hidden bg-gray-900">
         {image ? (
-          <img
+          <Image
             src={image}
             alt={title}
             width={1200}
             height={630}
-            fetchPriority="high"
-            loading="eager"
-            decoding="async"
+            priority
+            sizes="100vw"
             className="w-full h-64 sm:h-80 md:h-96 object-cover opacity-80 group-hover:opacity-70 group-hover:scale-105 transition-all duration-500"
           />
         ) : (

@@ -7,16 +7,12 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'teinformez.eu',
+        hostname: '**',
       },
       {
         protocol: 'http',
         hostname: 'localhost',
         port: '',  // dev-only: allow any port for local WP (MAMP/XAMPP/Docker)
-      },
-      {
-        protocol: 'https',
-        hostname: '**.openai.com',
       },
     ],
   },

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Newspaper, Calendar, Tag, ExternalLink, Loader2, Clock,
@@ -489,11 +490,13 @@ export default function NewsListClient() {
                 <div className="md:flex">
                   {heroItem.image && (
                     <div className="md:w-1/2 flex-shrink-0">
-                      <img
+                      <Image
                         src={heroItem.image}
                         alt={heroItem.title}
-                        fetchPriority="high"
-                        loading="eager"
+                        width={800}
+                        height={600}
+                        priority
+                        sizes="(max-width: 768px) 100vw, 50vw"
                         className="w-full h-64 md:h-full object-cover"
                       />
                     </div>
@@ -572,7 +575,7 @@ export default function NewsListClient() {
 
                     {item.image && (
                       <div className="-mx-6 -mt-6 mb-4">
-                        <img src={item.image} alt={item.title} loading="lazy" className="w-full h-52 object-cover" />
+                        <Image src={item.image} alt={item.title} width={640} height={208} sizes="(max-width: 640px) 100vw, 50vw" className="w-full h-52 object-cover" />
                       </div>
                     )}
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -641,7 +644,7 @@ export default function NewsListClient() {
 
                     {item.image && (
                       <div className="-mx-6 -mt-6 mb-4">
-                        <img src={item.image} alt={item.title} loading="lazy" className="w-full h-48 object-cover" />
+                        <Image src={item.image} alt={item.title} width={640} height={192} sizes="(max-width: 640px) 100vw, 50vw" className="w-full h-48 object-cover" />
                       </div>
                     )}
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -856,7 +859,7 @@ function TrendingSidebar({ items, onArticleClick }: { items: NewsItem[]; onArtic
                 </div>
                 {item.image && (
                   <div className="flex-shrink-0 w-16 h-12 rounded overflow-hidden">
-                    <img src={item.image} alt="" loading="lazy" className="w-full h-full object-cover" />
+                    <Image src={item.image} alt="" width={64} height={48} sizes="64px" className="w-full h-full object-cover" />
                   </div>
                 )}
               </motion.div>
