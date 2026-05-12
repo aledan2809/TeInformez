@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Newspaper, CheckCircle2, Loader2, Mail } from 'lucide-react';
 import { api } from '@/lib/api';
+import { captureUTM, getStoredUTM } from '@/lib/utm';
 
 export default function NewsletterPage() {
   const [email, setEmail] = useState('');
@@ -11,6 +12,10 @@ export default function NewsletterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    captureUTM();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +25,8 @@ export default function NewsletterPage() {
     setError('');
 
     try {
-      await api.newsletterSubscribe(email.trim());
+      const utm = getStoredUTM();
+      await api.newsletterSubscribe(email.trim(), gdprConsent, utm || undefined);
       setSuccess(true);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;

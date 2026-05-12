@@ -557,6 +557,9 @@ class News_API extends REST_API {
         $visitor_id = sanitize_text_field((string) $request->get_param('visitor_id'));
         $session_id = sanitize_text_field((string) $request->get_param('session_id'));
         $ip_address = $request->get_header('x-forwarded-for') ?: ($_SERVER['REMOTE_ADDR'] ?? '');
+        $utm_source = sanitize_text_field((string) $request->get_param('utm_source'));
+        $utm_medium = sanitize_text_field((string) $request->get_param('utm_medium'));
+        $utm_campaign = sanitize_text_field((string) $request->get_param('utm_campaign'));
 
         if (empty($email) || !is_email($email)) {
             return $this->error('Adresa de email nu este validă.', 'invalid_email', 400);
@@ -582,24 +585,32 @@ class News_API extends REST_API {
 
             // Re-subscribe: generate new token, reset confirmation
             $token = bin2hex(random_bytes(32));
-            $wpdb->update($table, [
+            $update_data = [
                 'token' => $token,
                 'confirmed' => 0,
                 'confirmed_at' => null,
                 'unsubscribed_at' => null,
                 'subscribed_at' => current_time('mysql'),
                 'ip_address' => sanitize_text_field($ip_address),
-            ], ['id' => $existing->id]);
+            ];
+            if ($utm_source) $update_data['utm_source'] = $utm_source;
+            if ($utm_medium) $update_data['utm_medium'] = $utm_medium;
+            if ($utm_campaign) $update_data['utm_campaign'] = $utm_campaign;
+            $wpdb->update($table, $update_data, ['id' => $existing->id]);
         } else {
             // New subscriber
             $token = bin2hex(random_bytes(32));
-            $wpdb->insert($table, [
+            $insert_data = [
                 'email' => $email,
                 'token' => $token,
                 'confirmed' => 0,
                 'subscribed_at' => current_time('mysql'),
                 'ip_address' => sanitize_text_field($ip_address),
-            ]);
+            ];
+            if ($utm_source) $insert_data['utm_source'] = $utm_source;
+            if ($utm_medium) $insert_data['utm_medium'] = $utm_medium;
+            if ($utm_campaign) $insert_data['utm_campaign'] = $utm_campaign;
+            $wpdb->insert($table, $insert_data);
         }
 
         // Send confirmation email
