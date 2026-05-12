@@ -494,8 +494,15 @@ class ApiClient {
     return response.data.data!;
   }
 
-  async newsletterSubscribe(email: string, categories: string[]): Promise<void> {
-    await this.client.post('/newsletter/subscribe', { email, categories });
+  async newsletterSubscribe(email: string): Promise<void> {
+    await this.client.post('/newsletter/subscribe', { email, gdpr_consent: true });
+  }
+
+  async newsletterConfirm(token: string): Promise<string> {
+    const response = await this.client.get<APIResponse<{ message?: string }>>('/newsletter/confirm', {
+      params: { token },
+    });
+    return response.data.message || response.data.data?.message || '';
   }
 }
 

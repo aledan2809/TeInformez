@@ -6,12 +6,11 @@ import { Newspaper, CheckCircle2, Loader2, Mail } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Categories } from '@/types';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://teinformez.eu';
-
 export default function NewsletterPage() {
   const [email, setEmail] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [categories, setCategories] = useState<Categories>({});
+  const [gdprConsent, setGdprConsent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -28,13 +27,13 @@ export default function NewsletterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || !gdprConsent) return;
 
     setIsLoading(true);
     setError('');
 
     try {
-      await api.newsletterSubscribe(email.trim(), selectedCategories);
+      await api.newsletterSubscribe(email.trim());
       setSuccess(true);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -51,16 +50,16 @@ export default function NewsletterPage() {
       <main className="min-h-screen bg-gradient-to-b from-primary-50 to-white dark:from-gray-900 dark:to-gray-950 flex flex-col justify-center py-12 px-4">
         <div className="max-w-md mx-auto text-center">
           <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Abonare reușită!</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Verifică inbox-ul!</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Vei primi zilnic un rezumat cu cele mai importante știri din categoriile alese, sintetizate de AI.
+            Ți-am trimis un email de confirmare. Dă clic pe linkul din email pentru a activa abonamentul.
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
-            Verifică-ți inbox-ul pentru emailul de confirmare. Dacă vrei mai mult control,{' '}
+            Vrei mai mult control?{' '}
             <Link href="/register" className="text-primary-600 hover:underline">
-              creează un cont gratuit
-            </Link>
-            .
+              Creează un cont gratuit
+            </Link>{' '}
+            și alegi categorii, frecvență și canal de livrare.
           </p>
           <Link href="/" className="btn-primary">
             Mergi la știri
@@ -114,12 +113,19 @@ export default function NewsletterPage() {
             </div>
           </div>
 
-          {/* Categories */}
+          {/* Categories (UX only — not sent to simple newsletter endpoint) */}
           {categoryEntries.length > 0 && (
             <div>
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Categorii de interes{' '}
-                <span className="font-normal text-gray-500">(opțional — alegi ce te interesează)</span>
+                <span className="font-normal text-gray-500">(opțional)</span>
+              </p>
+              <p className="text-xs text-gray-400 mb-3">
+                Pentru filtrare avansată pe categorii,{' '}
+                <Link href="/register" className="text-primary-600 hover:underline">
+                  creează cont gratuit
+                </Link>
+                .
               </p>
               <div className="flex flex-wrap gap-2">
                 {categoryEntries.map(([slug, cat]) => (
@@ -138,13 +144,27 @@ export default function NewsletterPage() {
                   </button>
                 ))}
               </div>
-              {selectedCategories.length === 0 && (
-                <p className="text-xs text-gray-400 mt-2">
-                  Dacă nu alegi nicio categorie, vei primi știri din toate domeniile.
-                </p>
-              )}
             </div>
           )}
+
+          {/* GDPR consent */}
+          <div className="flex items-start gap-3">
+            <input
+              id="gdpr"
+              type="checkbox"
+              required
+              checked={gdprConsent}
+              onChange={(e) => setGdprConsent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+            />
+            <label htmlFor="gdpr" className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
+              Am citit și sunt de acord cu{' '}
+              <Link href="/privacy" className="underline hover:text-gray-800 dark:hover:text-gray-200">
+                Politica de confidențialitate
+              </Link>
+              . Îmi pot retrage consimțământul oricând prin dezabonare.
+            </label>
+          </div>
 
           {error && (
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -152,7 +172,7 @@ export default function NewsletterPage() {
 
           <button
             type="submit"
-            disabled={isLoading || !email.trim()}
+            disabled={isLoading || !email.trim() || !gdprConsent}
             className="w-full btn-primary py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
@@ -166,11 +186,7 @@ export default function NewsletterPage() {
           </button>
 
           <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-            Prin abonare ești de acord cu{' '}
-            <Link href="/privacy" className="underline hover:text-gray-700 dark:hover:text-gray-300">
-              Politica de confidențialitate
-            </Link>
-            . Te poți dezabona oricând.{' '}
+            Vei primi un email de confirmare. Te poți dezabona oricând.{' '}
             <Link href="/register" className="text-primary-600 hover:underline">
               Creează cont pentru mai mult control →
             </Link>
