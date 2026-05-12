@@ -224,7 +224,17 @@ class REST_API {
             return null; // Bearer token — CSRF not applicable
         }
 
-        $nonce = $request->get_header('X-WP-Nonce') ?: $request->get_param('_wpnonce');
+        /*
+         * Invariant: Bearer token auth and cookie auth must remain in sync to prevent CSRF bypass.
+         * If a request reaches this point without an Authorization: Bearer header, it is assumed
+         * to be cookie-authenticated and therefore requires a valid WP nonce.
+         * Accepted tradeoff: mark_as_read, add_bookmark, remove_bookmark carry CSRF overhead
+         * (one nonce verify per write request) in exchange for protection against cross-origin
+         * forged requests on cookie sessions. Bearer-token clients are exempt (CSRF-safe by design).
+         * _wpnonce is read exclusively from the request body to prevent nonce leakage in server
+         * access logs or browser history via query string exposure.
+         */
+        $nonce = $request->get_header('X-WP-Nonce') ?: ($request->get_body_params()['_wpnonce'] ?? null);
         if ($nonce && wp_verify_nonce($nonce, 'wp_rest')) {
             return null; // Valid nonce
         }
