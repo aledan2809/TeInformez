@@ -42,19 +42,17 @@ class MA_Client {
             ], $data),
         ]);
 
-        $result = wp_remote_post($endpoint, [
+        // blocking=false → WordPress returns true immediately and never a WP_Error;
+        // the request is dispatched async by the HTTP transport layer.
+        wp_remote_post($endpoint, [
             'method'   => 'POST',
             'timeout'  => self::TIMEOUT_SECONDS,
-            'blocking' => false,   // fire-and-forget — does not wait for MA response
+            'blocking' => false,
             'headers'  => [
-                'Content-Type' => 'application/json',
+                'Content-Type'   => 'application/json',
                 'X-Internal-Key' => $key,
             ],
             'body' => $payload,
         ]);
-
-        if ( is_wp_error($result) ) {
-            error_log('TeInformez MA_Client: wp_remote_post error for ' . $event_name . ': ' . $result->get_error_message());
-        }
     }
 }

@@ -659,7 +659,7 @@ class News_API extends REST_API {
 
         // Notify MA — newsletter welcome email
         $entity_id = 'nl_' . substr(hash('sha256', $subscriber->email), 0, 16);
-        $unsub_url = Config::FRONTEND_URL . '/newsletter/unsubscribe?email=' . urlencode($subscriber->email);
+        $unsub_url = rtrim(Config::FRONTEND_URL, '/') . '/newsletter/unsubscribe?email=' . urlencode($subscriber->email);
         MA_Client::send_event('newsletter_confirmed', $entity_id, [
             'recipientEmail'  => $subscriber->email,
             'unsubscribeUrl'  => $unsub_url,
