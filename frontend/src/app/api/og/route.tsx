@@ -25,15 +25,9 @@ export async function GET(request: NextRequest) {
       >
         {/* Top bar: brand + category badge */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '48px' }}>
-          <div
-            style={{
-              fontSize: '28px',
-              fontWeight: '700',
-              color: '#3b82f6',
-              letterSpacing: '-0.5px',
-            }}
-          >
-            TeInformez
+          {/* satori: multiple children → display:flex required */}
+          <div style={{ display: 'flex', fontSize: '28px', fontWeight: '700', letterSpacing: '-0.5px' }}>
+            <span style={{ color: '#3b82f6' }}>TeInformez</span>
             <span style={{ color: '#64748b' }}>.eu</span>
           </div>
           {category && (
