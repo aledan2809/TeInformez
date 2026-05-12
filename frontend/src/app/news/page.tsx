@@ -11,6 +11,14 @@ export const metadata: Metadata = {
     title: 'Știri - TeInformez.eu',
     description: 'Ultimele știri personalizate de AI din România și din lume.',
     type: 'website',
+    url: `${SITE_URL}/news`,
+    siteName: 'TeInformez.eu',
+    locale: 'ro_RO',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Știri - TeInformez.eu',
+    description: 'Ultimele știri personalizate de AI din România și din lume.',
   },
   alternates: {
     canonical: `${SITE_URL}/news`,

@@ -13,6 +13,13 @@ export const metadata: Metadata = {
     description: 'Raspunsuri la intrebari juridice frecvente de la specialiștii noștri.',
     url: `${SITE_URL}/juridic`,
     type: 'website',
+    siteName: 'TeInformez.eu',
+    locale: 'ro_RO',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Juridic cu Alina - TeInformez.eu',
+    description: 'Raspunsuri la intrebari juridice frecvente de la specialiștii noștri.',
   },
   alternates: {
     canonical: `${SITE_URL}/juridic`,
