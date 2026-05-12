@@ -155,6 +155,10 @@ class Auth_API extends REST_API {
         $client_ip = Config::get_client_ip();
         $gdpr_handler->record_consent($user_id, $client_ip, Config::PRIVACY_POLICY_VERSION);
 
+        // Schedule D+1 welcome email — fires 24h after registration
+        // Callback checks for article engagement and skips if user is already active
+        wp_schedule_single_event(time() + DAY_IN_SECONDS, 'teinformez_welcome_d1_email', [$user_id]);
+
         // Auto-login
         wp_set_current_user($user_id);
         wp_set_auth_cookie($user_id, true);

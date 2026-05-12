@@ -182,6 +182,32 @@ add_action('teinformez_daily_cleanup', function() {
     $publisher->cleanup_old_items(30);
 });
 
+// D+1 welcome email: fires 24h after registration, sends only if user hasn't clicked any article
+add_action('teinformez_welcome_d1_email', function($user_id) {
+    global $wpdb;
+
+    $user = get_user_by('id', $user_id);
+    if (!$user) {
+        return;
+    }
+
+    // Check engagement: any article_click event logged against this user_id in the past 25h
+    $table = $wpdb->prefix . 'teinformez_visitor_events';
+    $engaged = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND event_type = 'article_click' AND created_at > DATE_SUB(NOW(), INTERVAL 25 HOUR)",
+        $user_id
+    ));
+
+    if ($engaged > 0) {
+        error_log('TeInformez D+1: user ' . $user_id . ' already engaged, skipping welcome email.');
+        return;
+    }
+
+    $email_sender = new TeInformez\Email_Sender();
+    $email_sender->send_welcome($user->user_email, $user->display_name ?: $user->user_login);
+    error_log('TeInformez D+1: welcome email sent to user ' . $user_id);
+});
+
 // Custom cron intervals (must be registered early, before scheduling)
 add_filter('cron_schedules', function($schedules) {
     $schedules['every_15_minutes'] = [
