@@ -24,7 +24,7 @@
 | M-03 | Eliminated | `a6ed79d` — is_authenticated required + validate_auth_token() + user ownership check | 2026-05-11 |
 | M-07 | Eliminated | `a6ed79d` — reset link removed from error_log in send_password_reset() | 2026-05-11 |
 | M-08 | Eliminated | `a6ed79d` — field whitelist blocks GDPR column overwrite; Sprint 3 — null vs false semantic: empty-after-whitelist now returns null→400 instead of false→500 | 2026-05-12 |
-| M-14 | Eliminated | Sprint 2 — `check_cookie_csrf()` wired on all POST/PUT/DELETE endpoints incl. bulk_add_subscriptions | 2026-05-12 |
+| M-14 | Eliminated | Sprint 2 — `check_cookie_csrf()` defined + wired on all 12 write endpoints; review fix `7953260` — nonce read from body only (`get_body_params()`) + Bearer/cookie invariant doc | 2026-05-12 |
 | M-15 | Eliminated | Sprint 2 — `count() > 50` cap + 400 error in bulk_add_subscriptions() | 2026-05-12 |
 | M-16 | Eliminated | Sprint 3 — full double opt-in: change_email() stores pending_email/token/expires in user_meta + sends confirmation email; new GET confirm-email-change route validates hash_equals token + expiry + re-checks email availability before applying wp_update_user | 2026-05-12 |
 | M-05 | Eliminated | Sprint 4 — `*.vercel.app` wildcard removed from ALLOWED_ORIGINS; only `teinformez.vercel.app` specific URL retained | 2026-05-12 |
@@ -52,6 +52,7 @@
 | Gap | Severity | Description | Status |
 |-----|----------|-------------|--------|
 | G-TI-NEW-001 | LOW | `/profile` and `/settings` frontend routes return 404 — not implemented | Eliminated — redirects added in `next.config.js` (see commit below) |
+| G-TI-NEW-005 | MEDIUM | `dangerouslySetInnerHTML` without DOMPurify in 4 frontend files: `page.tsx:52,56`, `news/[id]/NewsDetailClient.tsx:404`, `juridic/page.tsx:79`, `juridic/[id]/JuridicDetailClient.tsx:105` — WordPress content rendered raw, no client-side sanitization | Open |
 | G-TI-NEW-002 | INFO | Dashboard SSR delivers 112-byte loading skeleton — journey audit tooling sees EMPTY | Accepted — authenticated-only page; SSR skeleton is correct behaviour, not a content gap |
 | G-TI-NEW-003 | INFO | Journey audit `/terms` GATED false positive — onboarding marker matches word in content | Accepted — `/terms` is publicly accessible; tooling pattern match on "Setările Contului" text inside page |
 | G-TI-NEW-004 | INFO | Journey audit `/news` HAS_ERRORS false positive — Next.js RSC JSON payload | Accepted — RSC payload in Next.js App Router is expected, not an application error |
