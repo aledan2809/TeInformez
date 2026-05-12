@@ -170,6 +170,13 @@ class Auth_API extends REST_API {
         // Callback checks for article engagement and skips if user is already active
         wp_schedule_single_event(time() + DAY_IN_SECONDS, 'teinformez_welcome_d1_email', [$user_id]);
 
+        // Notify MA — immediate welcome email (distinct from D+1 re-engagement above)
+        $display_name = !empty($params['name']) ? sanitize_text_field($params['name']) : '';
+        MA_Client::send_event('user_registered', 'user_' . $user_id, [
+            'recipientEmail' => $email,
+            'recipientName'  => $display_name ?: null,
+        ]);
+
         // Auto-login
         wp_set_current_user($user_id);
         wp_set_auth_cookie($user_id, true);
