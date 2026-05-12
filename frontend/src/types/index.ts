@@ -154,6 +154,9 @@ export interface RegisterData {
   name?: string;
   preferred_language?: string;
   gdpr_consent: boolean;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
 }
 
 export interface AuthResponse {

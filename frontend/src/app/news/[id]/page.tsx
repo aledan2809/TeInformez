@@ -107,7 +107,14 @@ export default async function NewsDetailPage({
           '@type': 'Organization',
           name: 'TeInformez.eu',
           url: SITE_URL,
+          logo: {
+            '@type': 'ImageObject',
+            url: `${SITE_URL}/api/og`,
+            width: 1200,
+            height: 630,
+          },
         },
+        dateModified: news.published_at,
         mainEntityOfPage: {
           '@type': 'WebPage',
           '@id': `${SITE_URL}/news/${news.id}`,

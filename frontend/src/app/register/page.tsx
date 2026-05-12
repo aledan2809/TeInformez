@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { Newspaper, Loader2, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { gtagEvent } from '@/lib/gtag';
+import { captureUTM, getStoredUTM, clearUTM } from '@/lib/utm';
 
 interface RegisterForm {
   email: string;
@@ -30,20 +31,30 @@ export default function RegisterPage() {
 
   const password = watch('password');
 
+  // Capture UTM params from current URL on mount
+  useEffect(() => {
+    captureUTM();
+  }, []);
+
   const onSubmit = async (data: RegisterForm) => {
     clearError();
     setIsLoading(true);
 
     try {
+      const utm = getStoredUTM();
       await registerUser({
         email: data.email,
         password: data.password,
         name: data.name || undefined,
         preferred_language: 'ro',
         gdpr_consent: data.gdprConsent,
+        utm_source: utm?.utm_source,
+        utm_medium: utm?.utm_medium,
+        utm_campaign: utm?.utm_campaign,
       });
 
-      gtagEvent('register', { method: 'email' });
+      clearUTM();
+      gtagEvent('register', { method: 'email', utm_source: getStoredUTM()?.utm_source });
       router.push('/onboarding');
     } catch (err) {
       // Error is handled by store
