@@ -182,6 +182,7 @@ class User_API extends REST_API {
      * Update user preferences
      */
     public function update_preferences($request) {
+        $csrf = $this->check_cookie_csrf($request); if ($csrf) return $csrf;
         $user_id = $this->get_current_user_id();
         $params = $request->get_json_params();
 
@@ -219,6 +220,7 @@ class User_API extends REST_API {
      * Add subscription
      */
     public function add_subscription($request) {
+        $csrf = $this->check_cookie_csrf($request); if ($csrf) return $csrf;
         $user_id = $this->get_current_user_id();
         $params = $request->get_json_params();
 
@@ -266,6 +268,7 @@ class User_API extends REST_API {
      * Update subscription
      */
     public function update_subscription($request) {
+        $csrf = $this->check_cookie_csrf($request); if ($csrf) return $csrf;
         $user_id = $this->get_current_user_id();
         $subscription_id = $request->get_param('id');
         $params = $request->get_json_params();
@@ -284,6 +287,7 @@ class User_API extends REST_API {
      * Delete subscription
      */
     public function delete_subscription($request) {
+        $csrf = $this->check_cookie_csrf($request); if ($csrf) return $csrf;
         $user_id = $this->get_current_user_id();
         $subscription_id = $request->get_param('id');
 
@@ -301,6 +305,7 @@ class User_API extends REST_API {
      * Toggle subscription active status
      */
     public function toggle_subscription($request) {
+        $csrf = $this->check_cookie_csrf($request); if ($csrf) return $csrf;
         $user_id = $this->get_current_user_id();
         $subscription_id = $request->get_param('id');
 
@@ -340,6 +345,7 @@ class User_API extends REST_API {
      * Delete account (GDPR right to be forgotten)
      */
     public function delete_account($request) {
+        $csrf = $this->check_cookie_csrf($request); if ($csrf) return $csrf;
         $user_id = $this->get_current_user_id();
 
         // Anonymize data
@@ -364,6 +370,7 @@ class User_API extends REST_API {
      * Change password (requires current password)
      */
     public function change_password($request) {
+        $csrf = $this->check_cookie_csrf($request); if ($csrf) return $csrf;
         $user_id = $this->get_current_user_id();
         $params = $request->get_json_params();
 
@@ -544,6 +551,7 @@ class User_API extends REST_API {
      * Mark article as read
      */
     public function mark_as_read($request) {
+        $csrf = $this->check_cookie_csrf($request); if ($csrf) return $csrf;
         global $wpdb;
 
         $user_id = $this->get_current_user_id();
@@ -719,6 +727,7 @@ class User_API extends REST_API {
      * Add bookmark
      */
     public function add_bookmark($request) {
+        $csrf = $this->check_cookie_csrf($request); if ($csrf) return $csrf;
         global $wpdb;
 
         $user_id = $this->get_current_user_id();
@@ -748,6 +757,7 @@ class User_API extends REST_API {
      * Remove bookmark by news_id
      */
     public function remove_bookmark($request) {
+        $csrf = $this->check_cookie_csrf($request); if ($csrf) return $csrf;
         global $wpdb;
 
         $user_id = $this->get_current_user_id();

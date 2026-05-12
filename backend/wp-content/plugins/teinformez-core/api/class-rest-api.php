@@ -212,4 +212,26 @@ class REST_API {
         $ip  = Config::get_client_ip() ?: 'unknown';
         delete_transient('teinformez_rl_' . $action . '_' . md5($ip));
     }
+
+    /**
+     * CSRF guard for cookie-authenticated requests (M-14).
+     * Bearer-authenticated requests are inherently CSRF-safe — skipped.
+     * Cookie-authenticated requests must supply a valid WP nonce via X-WP-Nonce header.
+     */
+    protected function check_cookie_csrf(\WP_REST_Request $request): ?\WP_REST_Response {
+        $auth_header = $request->get_header('Authorization');
+        if ($auth_header && preg_match('/\bBearer\s+\S+/i', $auth_header)) {
+            return null; // Bearer token — CSRF not applicable
+        }
+
+        $nonce = $request->get_header('X-WP-Nonce') ?: $request->get_param('_wpnonce');
+        if ($nonce && wp_verify_nonce($nonce, 'wp_rest')) {
+            return null; // Valid nonce
+        }
+
+        return new \WP_REST_Response(
+            ['code' => 'csrf_verification_failed', 'message' => __('CSRF verification failed.', 'teinformez')],
+            403
+        );
+    }
 }
