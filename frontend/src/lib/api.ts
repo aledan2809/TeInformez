@@ -493,6 +493,10 @@ class ApiClient {
     const response = await this.client.post<APIResponse<{ order: string[]; hidden: string[] }>>('/settings/category-order', { order, hidden });
     return response.data.data!;
   }
+
+  async newsletterSubscribe(email: string, categories: string[]): Promise<void> {
+    await this.client.post('/newsletter/subscribe', { email, categories });
+  }
 }
 
 export const api = new ApiClient();

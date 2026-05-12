@@ -465,19 +465,15 @@ export default function NewsDetailClient() {
 
 /* ── Social Share Buttons ── */
 function ShareButtons({ title, onShare }: { title: string; onShare: () => void }) {
-  const getUrl = () => typeof window !== 'undefined' ? window.location.href : '';
+  const getUrl = () => {
+    if (typeof window === 'undefined') return '';
+    const u = new URL(window.location.href);
+    u.searchParams.set('utm_source', 'share');
+    u.searchParams.set('utm_medium', 'article');
+    return u.toString();
+  };
 
   const shareLinks = [
-    {
-      label: 'Facebook',
-      href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getUrl())}`,
-      className: 'bg-blue-600 hover:bg-blue-700 text-white',
-    },
-    {
-      label: 'X',
-      href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(getUrl())}`,
-      className: 'bg-black hover:bg-gray-800 text-white',
-    },
     {
       label: 'WhatsApp',
       href: `https://wa.me/?text=${encodeURIComponent(title + ' ' + getUrl())}`,
@@ -492,6 +488,16 @@ function ShareButtons({ title, onShare }: { title: string; onShare: () => void }
       label: 'LinkedIn',
       href: `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(getUrl())}&title=${encodeURIComponent(title)}`,
       className: 'bg-blue-800 hover:bg-blue-900 text-white',
+    },
+    {
+      label: 'Facebook',
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getUrl())}`,
+      className: 'bg-blue-600 hover:bg-blue-700 text-white',
+    },
+    {
+      label: 'X',
+      href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(getUrl())}`,
+      className: 'bg-black hover:bg-gray-800 text-white',
     },
   ];
 
