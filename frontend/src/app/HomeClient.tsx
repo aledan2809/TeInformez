@@ -49,6 +49,21 @@ export default function HomeClient({ hero, sections }: HomeClientProps) {
       <CategoryNavBar activeSections={activeSlugs} />
 
       <main className="container-custom py-6">
+        {/* Value proposition banner */}
+        <div className="mb-5 rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-primary-700 dark:text-primary-300">
+              📰 TeInformez — știri din România și lume, sintetizate de AI
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Primești zilnic un rezumat personalizat pe email, fără reclame.
+            </p>
+          </div>
+          <Link href="/register" className="btn-primary text-sm px-4 py-2 whitespace-nowrap self-start sm:self-auto">
+            Înregistrare gratuită
+          </Link>
+        </div>
+
         {/* Hero */}
         {hero ? (
           <HeroArticle
@@ -64,7 +79,7 @@ export default function HomeClient({ hero, sections }: HomeClientProps) {
         ) : (
           <div className="text-center py-20 text-gray-500 dark:text-gray-400">
             <Newspaper className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg">Se incarca știrile...</p>
+            <p className="text-lg">Se încarcă știrile...</p>
           </div>
         )}
 
@@ -82,12 +97,12 @@ export default function HomeClient({ hero, sections }: HomeClientProps) {
 
         {/* Newsletter CTA for non-logged */}
         <section className="my-8 text-center py-10 rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800">
-          <h3 className="text-xl font-bold mb-2">Primește știri pe email</h3>
+          <h3 className="text-xl font-bold mb-2">Primește un rezumat personalizat pe email</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 max-w-md mx-auto">
-            Aboneaza-te gratuit și primește cele mai importante știri direct in inbox.
+            Alegi categoriile care te interesează și primești zilnic un digest cu cele mai importante știri, rezumate de AI. Gratuit, fără reclame.
           </p>
           <Link href="/register" className="btn-primary px-6 py-2.5">
-            Inscrie-te gratuit
+            Înregistrează-te gratuit
           </Link>
         </section>
       </main>
