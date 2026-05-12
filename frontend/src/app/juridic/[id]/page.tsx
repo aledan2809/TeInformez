@@ -36,11 +36,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       type: 'article',
       siteName: 'TeInformez.eu',
       locale: 'ro_RO',
+      images: [{ url: '/api/og', width: 1200, height: 630, alt: `${title} — Juridic cu Alina` }],
     },
     twitter: {
       card: 'summary_large_image',
       title: `${title} — Juridic cu Alina`,
       description,
+      images: ['/api/og'],
     },
     alternates: {
       canonical: `${SITE_URL}/juridic/${id}`,

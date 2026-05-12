@@ -618,7 +618,7 @@ class News_API extends REST_API {
 
         // Send confirmation email
         $email_sender = new \TeInformez\Email_Sender();
-        $confirm_link = rtrim(\TeInformez\Config::FRONTEND_URL, '/') . '/newsletter/confirm?token=' . urlencode($token);
+        $confirm_link = rtrim(Config::FRONTEND_URL, '/') . '/newsletter/confirm?token=' . urlencode($token);
         $email_sender->send_newsletter_confirmation($email, $confirm_link);
 
         $this->track_newsletter_analytics_event($visitor_id, $session_id, $email);

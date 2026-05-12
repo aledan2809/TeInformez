@@ -49,7 +49,7 @@ export default async function JuridicPage() {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
     name: 'Juridic cu Alina',
-    description: 'Raspunsuri la intrebari juridice frecvente',
+    description: 'Răspunsuri la întrebări juridice frecvente',
     url: `${SITE_URL}/juridic`,
     publisher: {
       '@type': 'Organization',
