@@ -109,9 +109,9 @@ export default async function NewsDetailPage({
           url: SITE_URL,
           logo: {
             '@type': 'ImageObject',
-            url: `${SITE_URL}/api/og`,
-            width: 1200,
-            height: 630,
+            url: `${SITE_URL}/logo.svg`,
+            width: 280,
+            height: 60,
           },
         },
         dateModified: news.published_at,

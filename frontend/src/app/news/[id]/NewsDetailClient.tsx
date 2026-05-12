@@ -465,38 +465,38 @@ export default function NewsDetailClient() {
 
 /* ── Social Share Buttons ── */
 function ShareButtons({ title, onShare }: { title: string; onShare: () => void }) {
-  const getUrl = () => {
+  const url = (() => {
     if (typeof window === 'undefined') return '';
     const u = new URL(window.location.href);
     u.searchParams.set('utm_source', 'share');
     u.searchParams.set('utm_medium', 'article');
     return u.toString();
-  };
+  })();
 
   const shareLinks = [
     {
       label: 'WhatsApp',
-      href: `https://wa.me/?text=${encodeURIComponent(title + ' ' + getUrl())}`,
+      href: `https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`,
       className: 'bg-green-600 hover:bg-green-700 text-white',
     },
     {
       label: 'Telegram',
-      href: `https://t.me/share/url?url=${encodeURIComponent(getUrl())}&text=${encodeURIComponent(title)}`,
+      href: `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
       className: 'bg-sky-500 hover:bg-sky-600 text-white',
     },
     {
       label: 'LinkedIn',
-      href: `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(getUrl())}&title=${encodeURIComponent(title)}`,
+      href: `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`,
       className: 'bg-blue-800 hover:bg-blue-900 text-white',
     },
     {
       label: 'Facebook',
-      href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getUrl())}`,
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
       className: 'bg-blue-600 hover:bg-blue-700 text-white',
     },
     {
       label: 'X',
-      href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(getUrl())}`,
+      href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`,
       className: 'bg-black hover:bg-gray-800 text-white',
     },
   ];
