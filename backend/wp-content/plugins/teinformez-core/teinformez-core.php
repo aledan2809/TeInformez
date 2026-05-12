@@ -194,7 +194,7 @@ add_action('teinformez_welcome_d1_email', function($user_id) {
     // Check engagement: any article_click event logged against this user_id in the past 25h
     $table = $wpdb->prefix . 'teinformez_visitor_events';
     $engaged = (int) $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND event_type = 'article_click' AND created_at > DATE_SUB(NOW(), INTERVAL 25 HOUR)",
+        "SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND event_type = 'article_click' AND created_at > DATE_SUB(NOW(), INTERVAL 48 HOUR)",
         $user_id
     ));
 
