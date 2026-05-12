@@ -53,8 +53,8 @@ export default function RegisterPage() {
         utm_campaign: utm?.utm_campaign,
       });
 
+      gtagEvent('register', { method: 'email', utm_source: utm?.utm_source });
       clearUTM();
-      gtagEvent('register', { method: 'email', utm_source: getStoredUTM()?.utm_source });
       router.push('/onboarding');
     } catch (err) {
       // Error is handled by store
