@@ -7,20 +7,22 @@ const API_BASE = process.env.NEXT_PUBLIC_WP_API_URL || 'http://localhost/wp-json
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://teinformez.eu';
 
 export const metadata: Metadata = {
-  title: 'Juridic cu Alina - Intrebari și raspunsuri juridice',
-  description: 'Raspunsuri la intrebari juridice frecvente. Dreptul muncii, dreptul familiei, drept comercial și multe altele.',
+  title: 'Juridic cu Alina — Întrebări și răspunsuri juridice',
+  description: 'Răspunsuri la întrebări juridice frecvente. Dreptul muncii, dreptul familiei, drept comercial și multe altele.',
   openGraph: {
-    title: 'Juridic cu Alina - TeInformez.eu',
-    description: 'Raspunsuri la intrebari juridice frecvente de la specialiștii noștri.',
+    title: 'Juridic cu Alina — TeInformez.eu',
+    description: 'Răspunsuri la întrebări juridice frecvente de la specialiștii noștri.',
     url: `${SITE_URL}/juridic`,
     type: 'website',
     siteName: 'TeInformez.eu',
     locale: 'ro_RO',
+    images: [{ url: '/api/og', width: 1200, height: 630, alt: 'Juridic cu Alina — TeInformez.eu' }],
   },
   twitter: {
-    card: 'summary',
-    title: 'Juridic cu Alina - TeInformez.eu',
-    description: 'Raspunsuri la intrebari juridice frecvente de la specialiștii noștri.',
+    card: 'summary_large_image',
+    title: 'Juridic cu Alina — TeInformez.eu',
+    description: 'Răspunsuri la întrebări juridice frecvente de la specialiștii noștri.',
+    images: ['/api/og'],
   },
   alternates: {
     canonical: `${SITE_URL}/juridic`,

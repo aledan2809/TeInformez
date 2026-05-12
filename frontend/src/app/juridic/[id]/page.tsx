@@ -20,20 +20,27 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const item = await fetchItem(id);
   if (!item) {
-    return { title: 'Intrebare juridica' };
+    return { title: 'Întrebare juridică' };
   }
 
   const title = item.question.length > 60 ? item.question.slice(0, 57) + '...' : item.question;
   const description = item.answer_summary || item.question;
 
   return {
-    title: `${title} - Juridic cu Alina`,
+    title: `${title} — Juridic cu Alina`,
     description,
     openGraph: {
-      title: `${title} - Juridic cu Alina`,
+      title: `${title} — Juridic cu Alina`,
       description,
       url: `${SITE_URL}/juridic/${id}`,
       type: 'article',
+      siteName: 'TeInformez.eu',
+      locale: 'ro_RO',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${title} — Juridic cu Alina`,
+      description,
     },
     alternates: {
       canonical: `${SITE_URL}/juridic/${id}`,
