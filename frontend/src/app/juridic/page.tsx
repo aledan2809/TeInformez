@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import SharedFooter from '@/components/SharedFooter';
+import { JsonLd } from '@/components/JsonLd';
 import JuridicListClient from './JuridicListClient';
 
 const API_BASE = process.env.NEXT_PUBLIC_WP_API_URL || 'http://localhost/wp-json';
@@ -74,10 +75,7 @@ export default async function JuridicPage() {
 
   return (
     <div className="min-h-screen">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
-      />
+      <JsonLd data={faqJsonLd} />
       <JuridicListClient />
       <SharedFooter />
     </div>

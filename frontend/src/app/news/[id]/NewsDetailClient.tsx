@@ -1,5 +1,6 @@
 'use client';
 
+import DOMPurify from 'isomorphic-dompurify';
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -401,7 +402,7 @@ export default function NewsDetailClient() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.5 }}
             className="prose prose-lg dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: news.content }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(news.content) }}
           />
         </div>
 

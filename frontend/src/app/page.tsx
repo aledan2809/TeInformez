@@ -1,4 +1,5 @@
 import SharedFooter from '@/components/SharedFooter';
+import { JsonLd } from '@/components/JsonLd';
 import HomeClient from './HomeClient';
 
 const API_BASE = process.env.NEXT_PUBLIC_WP_API_URL || 'http://localhost/wp-json';
@@ -47,14 +48,8 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
-      />
+      <JsonLd data={organizationJsonLd} />
+      <JsonLd data={websiteJsonLd} />
 
       <HomeClient
         hero={data?.hero}

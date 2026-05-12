@@ -1,5 +1,6 @@
 'use client';
 
+import DOMPurify from 'isomorphic-dompurify';
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Eye, Share2, Facebook, Mail } from 'lucide-react';
@@ -102,7 +103,7 @@ export default function JuridicDetailClient({ item }: Props) {
           </p>
           <div
             className="prose dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: item.answer }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.answer) }}
           />
         </div>
 
