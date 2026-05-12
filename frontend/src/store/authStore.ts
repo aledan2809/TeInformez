@@ -25,6 +25,9 @@ interface AuthState {
     name?: string;
     preferred_language?: string;
     gdpr_consent: boolean;
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
   fetchUser: () => Promise<void>;

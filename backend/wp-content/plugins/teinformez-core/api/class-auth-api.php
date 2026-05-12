@@ -155,6 +155,17 @@ class Auth_API extends REST_API {
         $client_ip = Config::get_client_ip();
         $gdpr_handler->record_consent($user_id, $client_ip, Config::PRIVACY_POLICY_VERSION);
 
+        // Save UTM attribution if provided
+        if (!empty($params['utm_source'])) {
+            update_user_meta($user_id, 'teinformez_utm_source', sanitize_text_field($params['utm_source']));
+        }
+        if (!empty($params['utm_medium'])) {
+            update_user_meta($user_id, 'teinformez_utm_medium', sanitize_text_field($params['utm_medium']));
+        }
+        if (!empty($params['utm_campaign'])) {
+            update_user_meta($user_id, 'teinformez_utm_campaign', sanitize_text_field($params['utm_campaign']));
+        }
+
         // Schedule D+1 welcome email — fires 24h after registration
         // Callback checks for article engagement and skips if user is already active
         wp_schedule_single_event(time() + DAY_IN_SECONDS, 'teinformez_welcome_d1_email', [$user_id]);
