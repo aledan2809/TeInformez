@@ -5,6 +5,7 @@ use TeInformez\User_Manager;
 use TeInformez\GDPR_Handler;
 use TeInformez\Email_Sender;
 use TeInformez\Config;
+use TeInformez\MA_Client;
 
 if (!defined('ABSPATH')) {
     exit;

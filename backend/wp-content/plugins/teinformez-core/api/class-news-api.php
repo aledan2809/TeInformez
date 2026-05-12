@@ -1,6 +1,9 @@
 <?php
 namespace TeInformez\API;
 
+use TeInformez\MA_Client;
+use TeInformez\Config;
+
 if (!defined('ABSPATH')) {
     exit;
 }
