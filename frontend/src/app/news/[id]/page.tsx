@@ -51,6 +51,10 @@ export async function generateMetadata({
   const description = news.summary?.slice(0, 160) || news.title;
   const url = `${SITE_URL}/news/${news.id}`;
 
+  const ogImage = news.image
+    ? news.image
+    : `${SITE_URL}/api/og?title=${encodeURIComponent(news.title.slice(0, 100))}&source=${encodeURIComponent(news.source)}&category=${encodeURIComponent(news.categories?.[0] || '')}`;
+
   return {
     title: news.title,
     description,
@@ -65,13 +69,13 @@ export async function generateMetadata({
       publishedTime: news.published_at,
       authors: [news.source],
       tags: news.tags,
-      ...(news.image ? { images: [{ url: news.image, alt: news.title }] } : {}),
+      images: [{ url: ogImage, width: 1200, height: 630, alt: news.title }],
     },
     twitter: {
-      card: news.image ? 'summary_large_image' : 'summary',
+      card: 'summary_large_image',
       title: news.title,
       description,
-      ...(news.image ? { images: [news.image] } : {}),
+      images: [ogImage],
     },
     alternates: {
       canonical: url,
