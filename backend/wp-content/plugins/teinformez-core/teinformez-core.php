@@ -182,7 +182,7 @@ add_action('teinformez_daily_cleanup', function() {
     $publisher->cleanup_old_items(30);
 });
 
-// D+1 welcome email: fires 24h after registration, sends only if user hasn't clicked any article
+// D+1 re-engagement: fires 24h after registration, sends TOP 3 articles if user hasn't read any
 add_action('teinformez_welcome_d1_email', function($user_id) {
     global $wpdb;
 
@@ -191,21 +191,66 @@ add_action('teinformez_welcome_d1_email', function($user_id) {
         return;
     }
 
-    // Check engagement: any article_click event logged against this user_id in the past 25h
-    $table = $wpdb->prefix . 'teinformez_visitor_events';
+    // Skip if user already clicked any article in the past 48h
+    $events_table = $wpdb->prefix . 'teinformez_visitor_events';
     $engaged = (int) $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND event_type = 'article_click' AND created_at > DATE_SUB(NOW(), INTERVAL 48 HOUR)",
+        "SELECT COUNT(*) FROM {$events_table} WHERE user_id = %d AND event_type = 'article_click' AND created_at > DATE_SUB(NOW(), INTERVAL 48 HOUR)",
         $user_id
     ));
 
     if ($engaged > 0) {
-        error_log('TeInformez D+1: user ' . $user_id . ' already engaged, skipping welcome email.');
+        error_log('TeInformez D+1: user ' . $user_id . ' already engaged, skipping re-engagement email.');
         return;
     }
 
+    // Get user's subscribed categories
+    $subscription_manager = new TeInformez\Subscription_Manager();
+    $subscriptions = $subscription_manager->get_user_subscriptions($user_id);
+    $subscribed_categories = [];
+    foreach ($subscriptions as $sub) {
+        if (!empty($sub['category_slug'])) {
+            $subscribed_categories[] = $sub['category_slug'];
+        }
+    }
+
+    // Fetch up to 50 recent published articles (last 24h) to filter from
+    $news_table = $wpdb->prefix . 'teinformez_news_queue';
+    $candidates = $wpdb->get_results(
+        "SELECT id, processed_title, processed_summary, source_name, categories
+         FROM {$news_table}
+         WHERE status = 'published'
+           AND published_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+         ORDER BY view_count DESC, published_at DESC
+         LIMIT 50",
+        ARRAY_A
+    );
+
+    // Filter by subscribed categories; fallback to all if no matches or no subscriptions
+    $top3 = [];
+    if (!empty($subscribed_categories) && !empty($candidates)) {
+        foreach ($candidates as $row) {
+            $cats = json_decode($row['categories'] ?? '[]', true);
+            if (count(array_intersect((array) $cats, $subscribed_categories)) > 0) {
+                $top3[] = $row;
+                if (count($top3) >= 3) break;
+            }
+        }
+    }
+    // Fill remainder with latest articles regardless of category
+    if (count($top3) < 3 && !empty($candidates)) {
+        $used_ids = array_column($top3, 'id');
+        foreach ($candidates as $row) {
+            if (!in_array($row['id'], $used_ids, true)) {
+                $top3[] = $row;
+                if (count($top3) >= 3) break;
+            }
+        }
+    }
+
     $email_sender = new TeInformez\Email_Sender();
-    $email_sender->send_welcome($user->user_email, $user->display_name ?: $user->user_login);
-    error_log('TeInformez D+1: welcome email sent to user ' . $user_id);
+    $display_name = $user->display_name ?: $user->user_login;
+    $email_sender->send_d1_reengagement($user->user_email, $display_name, $top3);
+    error_log('TeInformez D+1: re-engagement email sent to user ' . $user_id . ' with ' . count($top3) . ' articles.');
 });
 
 // Custom cron intervals (must be registered early, before scheduling)

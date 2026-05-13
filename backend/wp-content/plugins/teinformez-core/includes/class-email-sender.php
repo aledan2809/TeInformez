@@ -157,6 +157,78 @@ class Email_Sender {
     }
 
     /**
+     * Send D+1 re-engagement email with TOP 3 articles from user's categories
+     *
+     * @param string $user_email
+     * @param string $user_name
+     * @param array  $articles   Array of rows from teinformez_news_queue (id, processed_title, processed_summary, source_name)
+     */
+    public function send_d1_reengagement($user_email, $user_name, $articles) {
+        $subject = 'Ai ratat ieri: TOP 3 știri din categoriile tale';
+        $frontend_url = Config::get('frontend_url', Config::FRONTEND_URL);
+
+        $articles_html = '';
+        foreach (array_slice($articles, 0, 3) as $article) {
+            $article_url  = esc_url($frontend_url . '/news/' . (int) $article['id']);
+            $title        = esc_html($article['processed_title'] ?? '');
+            $summary_full = $article['processed_summary'] ?? '';
+            // Trim to ~30 words for email preview
+            $words   = explode(' ', strip_tags($summary_full));
+            $summary = implode(' ', array_slice($words, 0, 30)) . (count($words) > 30 ? '...' : '');
+            $summary = esc_html($summary);
+            $source  = esc_html($article['source_name'] ?? '');
+
+            $articles_html .= '
+                <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:16px;">
+                    <h3 style="margin:0 0 8px;font-size:15px;color:#111827;line-height:1.4;">
+                        <a href="' . $article_url . '" style="color:#2563eb;text-decoration:none;">' . $title . '</a>
+                    </h3>
+                    <p style="margin:0 0 12px;font-size:13px;color:#4b5563;line-height:1.5;">' . $summary . '</p>
+                    <div style="font-size:12px;color:#9ca3af;">' . $source . ' &nbsp;·&nbsp;
+                        <a href="' . $article_url . '" style="color:#2563eb;text-decoration:none;font-weight:500;">Citește mai mult →</a>
+                    </div>
+                </div>';
+        }
+
+        if (empty($articles_html)) {
+            $articles_html = '<p style="color:#6b7280;">Nu am găsit știri recente în categoriile tale. Intră pe site pentru cele mai noi știri.</p>';
+        }
+
+        $dashboard_url = esc_url($frontend_url . '/dashboard');
+
+        $html = '<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background:#f3f4f6;">
+<div style="max-width:600px;margin:0 auto;padding:20px;">
+    <div style="background:#2563eb;color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">
+        <h1 style="margin:0;font-size:22px;">TeInformez</h1>
+        <p style="margin:6px 0 0;font-size:13px;opacity:.85;">Știri din România, rezumate de AI</p>
+    </div>
+    <div style="background:#f9fafb;padding:28px;border-radius:0 0 8px 8px;">
+        <h2 style="margin:0 0 6px;color:#111827;font-size:18px;">Bună, ' . esc_html($user_name) . '!</h2>
+        <p style="margin:0 0 22px;font-size:14px;color:#6b7280;">
+            Iată cele mai importante știri din categoriile tale din ultimele 24 de ore — rezumate de AI în 30 de secunde:
+        </p>
+        ' . $articles_html . '
+        <p style="text-align:center;margin-top:24px;">
+            <a href="' . $dashboard_url . '" style="display:inline-block;background:#2563eb;color:white;padding:12px 28px;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;">
+                Accesează feed-ul tău →
+            </a>
+        </p>
+    </div>
+</div>
+</body>
+</html>';
+
+        $html .= $this->get_unsubscribe_footer($user_email, 'registered');
+
+        error_log('TeInformez D+1: sending re-engagement to *' . strstr($user_email, '@') . ' with ' . count($articles) . ' articles.');
+
+        return $this->send($user_email, $subject, $html);
+    }
+
+    /**
      * Send welcome email after registration
      */
     public function send_welcome($user_email, $user_name) {
