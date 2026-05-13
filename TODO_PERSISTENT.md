@@ -1,6 +1,6 @@
 # TODO Persistent — TeInformez
 > Items rămân până marcate DONE cu dată + commit.
-> Last updated: 2026-05-12
+> Last updated: 2026-05-13
 
 ---
 
@@ -27,11 +27,11 @@
 
 ### Faza 2 — Growth (achiziție utilizatori post-launch)
 
-- [ ] **GR-01** — Newsletter public: landing page `/newsletter` cu formular simplu (email + categorii de interes) — distinct de contul de utilizator, targhet non-registered visitors
-- [ ] **GR-02** — Referral tracking: `utm_source` / `utm_medium` persisted în localStorage la primul visit → trimis la înregistrare → admin analytics arată sursa fiecărui user nou
-- [ ] **GR-03** — Share widget pe articol: butoane "Share to WhatsApp / Telegram / LinkedIn" cu `utm_source=share&utm_medium=article` pre-fill — cresc reach organic
-- [ ] **GR-04** — SEO articole: schema markup `NewsArticle` (JSON-LD) pe `/news/[id]` cu `datePublished`, `author`, `image`, `headline` — Google News eligibility
-- [ ] **GR-05** — Push notifications web (PWA optional): `service-worker.js` + permission prompt la a 3-a vizită — notificare la breaking news în categoriile abonate
+- [x] **GR-01** — Newsletter public: landing page `/newsletter` cu formular simplu (email + categorii de interes) — DONE (pre-existing, confirmed 2026-05-13; `/newsletter` page + backend `/newsletter/subscribe` fully implemented)
+- [x] **GR-02** — Referral tracking: `utm_source` / `utm_medium` persisted în localStorage la primul visit → trimis la înregistrare → admin analytics arată sursa fiecărui user nou — DONE (pre-existing, confirmed 2026-05-13; `utm.ts` + `register/page.tsx` captureUTM + backend saves to `user_meta`)
+- [x] **GR-03** — Share widget pe articol: butoane "Share to WhatsApp / Telegram / LinkedIn" cu `utm_source=share&utm_medium=article` pre-fill — DONE (pre-existing, confirmed 2026-05-13; `ShareButtons` component în `NewsDetailClient.tsx` cu WhatsApp/Telegram/LinkedIn/Facebook + UTM tags)
+- [x] **GR-04** — SEO articole: schema markup `NewsArticle` (JSON-LD) pe `/news/[id]` cu `datePublished`, `author`, `image`, `headline` — DONE (pre-existing, confirmed 2026-05-13; JSON-LD în `/news/[id]/page.tsx` lines 95-101)
+- [x] **GR-05** — Push notifications web (PWA optional): `service-worker.js` + permission prompt la a 3-a vizită — notificare la breaking news în categoriile abonate — DONE 2026-05-13 (`4756012`; `public/sw.js` + `PushPrompt.tsx` + `pushNotifications.ts` + backend `/push/subscribe` 201 verified; TRWG-GW: 3 OK / 3 GATED / 3 EMPTY — baseline parity, no regressions)
 
 ---
 
@@ -126,3 +126,4 @@
 | 2026-05-11 | TRUE FULL E2E 92% complete — E1-E11 ✅, F1-F2 ✅, G1-G2 ✅, H1-H2 ✅, I1-I2 ✅; G3+G4 deferred. Report: `Reports/TRUE-E2E-FULL-2026-05-11.md` |
 | 2026-05-12 | Security hardening complete — Sprint 1-5 + review fixes all eliminated. G3+G4 done. M-07 fully closed. Soft Launch & Monetization scope added (SL-01–SL-10, GR-01–GR-05, MN-01–MN-06, OP-01–OP-03). |
 | 2026-05-13 | Faza 1 Soft Launch COMPLETE — SL-01 through SL-10 all done. SL-04 canonical/noindex, SL-05 GA4 SPA tracking, SL-06 Core Web Vitals, SL-07 error monitoring, SL-08 homepage copy, SL-09 D+1 re-engagement email with TOP 3 articles, SL-10 /api/og dynamic OG images (HTTP 200 image/png verified). TRWG-GW baseline: 2/49 pre-existing console errors (React hydration #425 + GTM headless), no regressions from SL work. |
+| 2026-05-13 | Faza 2 Growth COMPLETE — Task 1 (duplicate dedup: title similarity 75%/12h + image uniqueness/24h in class-news-fetcher.php `9382f00`), Task 2 (MN-04 removed), Task 3 (Biziday-style UI: ArticleCard rewrite + InFeedAd carousel + feed injection + email promo block `9382f00`), Task 4 (thumbnail_budget 4→1 `9382f00`). GR-01/02/03/04 confirmed pre-existing. GR-05 implemented: sw.js + PushPrompt (3-visit threshold) + /push/subscribe endpoint (`4756012`). TRWG-GW post-GR-05: 3 OK / 3 GATED / 3 EMPTY — baseline parity. All Faza 2 items DONE. |
