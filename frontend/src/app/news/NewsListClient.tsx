@@ -17,6 +17,7 @@ import { CATEGORIES, CategoryDef, CATEGORY_COLORS as SHARED_CATEGORY_COLORS } fr
 import { useBookmarkStore } from '@/store/bookmarkStore';
 import { useReadingStore } from '@/store/readingStore';
 import ScrollToTop from '@/components/ScrollToTop';
+import InFeedAd from '@/components/home/InFeedAd';
 import type { ApiErrorShape, PublicNewsItem } from '@/types';
 
 type NewsItem = PublicNewsItem;
@@ -616,72 +617,91 @@ export default function NewsListClient() {
               </div>
             )}
 
-            {/* Grid (rest) */}
+            {/* Grid (rest) with InFeedAd injected every 5th item */}
             {gridItems.length > 0 && (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {gridItems.map((item, i) => (
-                  <motion.article
-                    key={item.id}
-                    variants={cardVariants}
-                    initial="hidden"
-                    animate="visible"
-                    custom={i}
-                    className="card hover:shadow-lg transition-shadow cursor-pointer overflow-hidden relative group"
-                    onClick={() => handleArticleClick(item)}
-                  >
-                    {/* Bookmark */}
-                    <button
-                      onClick={(e) => handleToggleBookmark(e, item)}
-                      className="absolute top-4 right-4 z-10 p-1.5 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                      aria-label={isBookmarked(item.id) ? 'Elimină din salvate' : 'Salvează'}
+                {gridItems.flatMap((item, i) => {
+                  const card = (
+                    <motion.article
+                      key={item.id}
+                      variants={cardVariants}
+                      initial="hidden"
+                      animate="visible"
+                      custom={i}
+                      className="card hover:shadow-lg transition-shadow cursor-pointer overflow-hidden relative group"
+                      onClick={() => handleArticleClick(item)}
                     >
-                      {isBookmarked(item.id) ? (
-                        <BookmarkCheck className="h-4 w-4 text-primary-600" />
-                      ) : (
-                        <Bookmark className="h-4 w-4 text-gray-500" />
-                      )}
-                    </button>
+                      {/* Bookmark */}
+                      <button
+                        onClick={(e) => handleToggleBookmark(e, item)}
+                        className="absolute top-4 right-4 z-10 p-1.5 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label={isBookmarked(item.id) ? 'Elimină din salvate' : 'Salvează'}
+                      >
+                        {isBookmarked(item.id) ? (
+                          <BookmarkCheck className="h-4 w-4 text-primary-600" />
+                        ) : (
+                          <Bookmark className="h-4 w-4 text-gray-500" />
+                        )}
+                      </button>
 
-                    {item.image && (
-                      <div className="-mx-6 -mt-6 mb-4">
-                        <Image src={item.image} alt={item.title} width={640} height={192} sizes="(max-width: 640px) 100vw, 50vw" className="w-full h-48 object-cover" />
+                      {/* Show image only on every other card (index % 2 === 0) */}
+                      {item.image && i % 2 === 0 && (
+                        <div className="-mx-6 -mt-6 mb-4">
+                          <Image src={item.image} alt={item.title} width={640} height={192} sizes="(max-width: 640px) 100vw, 50vw" className="w-full h-48 object-cover" />
+                        </div>
+                      )}
+                      {/* Source name at top — Biziday style */}
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{item.source}</p>
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <BadgesRow item={item} />
                       </div>
-                    )}
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <BadgesRow item={item} />
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">{item.title}</h2>
+                      <p className="text-gray-600 dark:text-gray-400 mb-3 line-clamp-2 text-sm">{item.summary}</p>
+                      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center space-x-2">
+                          <span className="flex items-center"><Clock className="h-3 w-3 mr-1" />{estimateReadingTime(item.content)} min</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {item.youtube_url && (
+                            <a href={item.youtube_url} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-700" onClick={(e) => e.stopPropagation()}>
+                              <PlayCircle className="h-3.5 w-3.5" />
+                            </a>
+                          )}
+                          {item.original_url && (
+                            <a href={item.original_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700" onClick={(e) => e.stopPropagation()}>
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      {item.image_source && (
+                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Foto: {item.image_source}</p>
+                      )}
+                      {item.categories.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {item.categories.slice(0, 2).map((category) => (
+                            <CategoryBadge key={category} category={category} size="sm" />
+                          ))}
+                        </div>
+                      )}
+                    </motion.article>
+                  );
+
+                  // After every 5th item (i=4,9,14,...) inject InFeedAd spanning full row
+                  const adAfter = (i + 1) % 5 === 0 ? (
+                    <div key={`ad-${i}`} className="md:col-span-2 lg:col-span-3">
+                      <InFeedAd />
                     </div>
-                    <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">{item.title}</h2>
-                    <p className="text-gray-600 dark:text-gray-400 mb-3 line-clamp-2 text-sm">{item.summary}</p>
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                      <div className="flex items-center space-x-2">
-                        <span className="flex items-center"><Clock className="h-3 w-3 mr-1" />{estimateReadingTime(item.content)} min</span>
-                        <span>· {item.source}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        {item.youtube_url && (
-                          <a href={item.youtube_url} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-700" onClick={(e) => e.stopPropagation()}>
-                            <PlayCircle className="h-3.5 w-3.5" />
-                          </a>
-                        )}
-                        {item.original_url && (
-                          <a href={item.original_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700" onClick={(e) => e.stopPropagation()}>
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                    {item.image_source && (
-                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Foto: {item.image_source}</p>
-                    )}
-                    {item.categories.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {item.categories.slice(0, 2).map((category) => (
-                          <CategoryBadge key={category} category={category} size="sm" />
-                        ))}
-                      </div>
-                    )}
-                  </motion.article>
-                ))}
+                  ) : null;
+
+                  return adAfter ? [card, adAfter] : [card];
+                })}
+                {/* Minimum 1 InFeedAd at end if total articles < 5 (no ad was injected above) */}
+                {gridItems.length < 5 && (
+                  <div className="md:col-span-2 lg:col-span-3">
+                    <InFeedAd />
+                  </div>
+                )}
               </div>
             )}
           </>

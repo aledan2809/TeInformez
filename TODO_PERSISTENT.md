@@ -40,7 +40,6 @@
 - [ ] **MN-01** — **Feature matrix Premium vs Free**: definit clar ce e gated (draft propus: Free = ultimele 24h știri, 3 categorii max; Premium = feed nelimitat, toate categoriile, export, Telegram push, statistici avansate) — decizie business înainte de orice cod
 - [ ] **MN-02** — **Stripe subscriptions**: integrare `@aledan/stripe` — planuri Lunar (X RON) + Anual (Y RON cu discount); checkout flow din `/dashboard/upgrade`; webhook `customer.subscription.updated` → setează `role=premium` în WP user_meta
 - [ ] **MN-03** — **Paywall soft**: articolele premium (gated) arată primele 3 paragrafe + blur + CTA "Continuă cu contul Premium" — implementat în `/news/[id]` pe baza `user.role`
-- [ ] **MN-04** — **Juridic cu Alina — premium**: întrebările juridic din `/juridic` vizibile gratuit; funcția "Trimite întrebarea ta" (nouă) → gated Premium sau pay-per-question (5 RON via Stripe one-time); admin răspunde prin interfața existentă
 - [ ] **MN-05** — **Newsletter sponsorizat**: template email cu slot "Partener" opțional (banner HTML 600×100px); admin UI în WordPress `/wp-admin` → `TeInformez → Newsletter Ads` — câmp sponsor_name + banner_html + campanie_start/end; injectat în newsletter-urile din intervalul campaniei
 - [ ] **MN-06** — **Admin revenue dashboard**: pagină `/wp-admin/admin.php?page=teinformez-revenue` — abonați activi (Free/Premium), MRR, newsletter ads bookings active, conversion rate înregistrare→Premium
 

@@ -492,12 +492,40 @@ class News_Fetcher {
     }
 
     /**
+     * Normalize a title for similarity comparison: lowercase, strip punctuation.
+     */
+    private function normalize_title_for_dedup($title) {
+        $title = mb_strtolower((string)$title, 'UTF-8');
+        // Strip punctuation (keep letters, digits, spaces)
+        $title = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $title);
+        // Collapse whitespace
+        $title = preg_replace('/\s+/', ' ', $title);
+        return trim($title);
+    }
+
+    /**
      * Store fetched items in news queue
      */
     private function store_items($items, $source) {
         global $wpdb;
         $table = $wpdb->prefix . 'teinformez_news_queue';
         $stored = 0;
+
+        // Layer A: Pre-load recent titles for similarity check (last 12h)
+        $recent_titles = $wpdb->get_col(
+            "SELECT original_title FROM {$table}
+             WHERE status IN ('fetched','approved','published')
+             AND fetched_at > DATE_SUB(NOW(), INTERVAL 12 HOUR)
+             AND original_title IS NOT NULL AND original_title <> ''"
+        );
+
+        // Layer B: Pre-load recent image URLs (last 24h)
+        $recent_images = $wpdb->get_col(
+            "SELECT ai_generated_image_url FROM {$table}
+             WHERE fetched_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+             AND ai_generated_image_url IS NOT NULL AND ai_generated_image_url <> ''"
+        );
+        $recent_images_set = array_flip($recent_images); // for O(1) lookup
 
         foreach ($items as $item) {
             // Skip if URL already exists (deduplication)
@@ -508,6 +536,20 @@ class News_Fetcher {
 
             if ($exists) {
                 continue;
+            }
+
+            // Layer A: Title similarity dedup — skip if ≥75% similar to any recent article
+            $normalized_new = $this->normalize_title_for_dedup($item['title'] ?? '');
+            if (!empty($normalized_new)) {
+                foreach ($recent_titles as $existing_title) {
+                    $normalized_existing = $this->normalize_title_for_dedup($existing_title);
+                    if (empty($normalized_existing)) continue;
+                    $similarity = 0;
+                    similar_text($normalized_new, $normalized_existing, $similarity);
+                    if ($similarity >= 75.0) {
+                        continue 2; // skip this item
+                    }
+                }
             }
 
             // Scrape full article + og:image in one request
@@ -551,6 +593,16 @@ class News_Fetcher {
                 continue;
             }
 
+            // Layer B: Image uniqueness — if image_url already used by another article in last 24h,
+            // clear it (allow insertion without image if youtube_embed exists, or skip via existing logic)
+            if (!empty($image_url) && isset($recent_images_set[$image_url])) {
+                $image_url = '';
+                // After nulling, re-check: if BOTH empty now, existing skip logic below will handle it
+                if (empty($image_url) && empty($youtube_embed)) {
+                    continue;
+                }
+            }
+
             // Insert new item
             $result = $wpdb->insert($table, [
                 'original_url' => $item['url'],
@@ -570,6 +622,13 @@ class News_Fetcher {
 
             if ($result) {
                 $stored++;
+                // Update in-memory sets to catch duplicates within the same batch
+                if (!empty($item['title'])) {
+                    $recent_titles[] = $item['title'];
+                }
+                if (!empty($image_url)) {
+                    $recent_images_set[$image_url] = true;
+                }
             }
         }
 

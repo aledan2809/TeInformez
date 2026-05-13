@@ -405,7 +405,7 @@ class Delivery_Handler {
 
         // Track used image IDs to avoid duplicates
         $used_image_ids = [];
-        $thumbnail_budget = 4; // thumbnails in category sections (hero image is separate, total ~5)
+        $thumbnail_budget = 1; // thumbnails in category sections (hero image is separate, total max 2)
 
         // === HERO SECTION ===
         $hero_html = '';
@@ -585,6 +585,27 @@ class Delivery_Handler {
             }
         }
 
+        // === EMAIL PROMO BLOCK (day-of-week rotation, always included) ===
+        $email_promos = [
+            1 => ['label' => '4pro.io', 'title' => 'Gestionează afacerea ta cu 4PRO', 'desc' => 'Platformă all-in-one pentru fitness, nutriție și scheduling. Înregistrare gratuită.', 'url' => 'https://4pro.io?utm_source=teinformez&utm_medium=email&utm_campaign=promo', 'cta' => 'Descoperă 4PRO'],
+            2 => ['label' => 'AVE AI', 'title' => 'Auditează-ți site-ul cu AVE AI', 'desc' => 'Analiză completă: performanță, SEO, securitate, UX. Raport detaliat în 2 minute.', 'url' => 'https://app.techbiz.ae?utm_source=teinformez&utm_medium=email&utm_campaign=promo', 'cta' => 'Testează gratuit'],
+            3 => ['label' => 'eat.4pro.io', 'title' => 'Nutriție personalizată cu AI', 'desc' => 'Fotografiezi mâncarea, AI-ul calculează macronutrienții și îți oferă recomandări zilnice.', 'url' => 'https://eat.4pro.io?utm_source=teinformez&utm_medium=email&utm_campaign=promo', 'cta' => 'Încearcă gratuit'],
+            4 => ['label' => '4pro.io', 'title' => 'Gestionează afacerea ta cu 4PRO', 'desc' => 'Platformă all-in-one pentru fitness, nutriție și scheduling. Înregistrare gratuită.', 'url' => 'https://4pro.io?utm_source=teinformez&utm_medium=email&utm_campaign=promo', 'cta' => 'Descoperă 4PRO'],
+            5 => ['label' => 'AVE AI', 'title' => 'Auditează-ți site-ul cu AVE AI', 'desc' => 'Analiză completă: performanță, SEO, securitate, UX. Raport detaliat în 2 minute.', 'url' => 'https://app.techbiz.ae?utm_source=teinformez&utm_medium=email&utm_campaign=promo', 'cta' => 'Testează gratuit'],
+            6 => ['label' => 'eat.4pro.io', 'title' => 'Nutriție personalizată cu AI', 'desc' => 'Fotografiezi mâncarea, AI-ul calculează macronutrienții și îți oferă recomandări zilnice.', 'url' => 'https://eat.4pro.io?utm_source=teinformez&utm_medium=email&utm_campaign=promo', 'cta' => 'Încearcă gratuit'],
+            7 => ['label' => 'ProcuChain', 'title' => 'Optimizează lanțul de aprovizionare', 'desc' => 'ProcuChain conectează cumpărători și furnizori. Automatizează comenzile și livrările.', 'url' => 'https://procuchain.com?utm_source=teinformez&utm_medium=email&utm_campaign=promo', 'cta' => 'Descoperă ProcuChain'],
+        ];
+        $day_of_week = (int) date('N'); // 1=Mon ... 7=Sun
+        $promo = $email_promos[$day_of_week] ?? $email_promos[1];
+        $promo_html = '
+        <div style="background:#ffffff;border:2px solid #e5e7eb;border-radius:8px;padding:16px 24px;margin-top:16px;">
+            <p style="margin:0 0 4px;font-size:10px;font-weight:bold;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">(Partener) &nbsp;&middot;&nbsp; ' . esc_html($promo['label']) . '</p>
+            <h3 style="margin:0 0 6px;font-size:15px;font-weight:bold;color:#111827;">' . esc_html($promo['title']) . '</h3>
+            <p style="margin:0 0 12px;font-size:13px;color:#4b5563;line-height:1.4;">' . esc_html($promo['desc']) . '</p>
+            <a href="' . esc_url($promo['url']) . '" style="display:inline-block;background:#2563eb;color:#ffffff;padding:8px 18px;text-decoration:none;border-radius:6px;font-size:13px;font-weight:bold;">' . esc_html($promo['cta']) . '</a>
+            <p style="margin:8px 0 0;font-size:10px;color:#d1d5db;font-style:italic;">(Promovat) — conținut independent, nu editorial</p>
+        </div>';
+
         $unsubscribe_link = esc_url($frontend_url . '/dashboard/settings');
         $today_date = date_i18n('j F Y'); // e.g. "3 martie 2026"
 
@@ -619,6 +640,9 @@ class Delivery_Handler {
 
         <!-- Hero article -->
         ' . $hero_html . '
+
+        <!-- Partner promo block (day-of-week rotation, always included) -->
+        ' . $promo_html . '
 
         <!-- Category sections -->
         ' . $sections_html . '
