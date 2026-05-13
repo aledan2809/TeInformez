@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
+import { WebVitals } from '@/components/WebVitals';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -66,6 +67,7 @@ export default function RootLayout({
     <html lang="ro" className={inter.variable} suppressHydrationWarning>
       <body className="min-h-screen bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
         <GoogleAnalytics />
+        <WebVitals />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
