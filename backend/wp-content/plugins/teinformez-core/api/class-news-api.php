@@ -284,9 +284,45 @@ class News_API extends REST_API {
             );
         }
 
+        $formatted = $this->format_news_item($item);
+        $affiliate = $this->get_affiliate_for_categories($formatted['categories']);
+
         return $this->success([
-            'news' => $this->format_news_item($item)
+            'news'      => $formatted,
+            'affiliate' => $affiliate,
         ]);
+    }
+
+    /**
+     * Return the first active affiliate config that matches any of the given category slugs.
+     * Config stored in wp_options as JSON array of objects:
+     *   [{category_slug, provider_name, cta_label, url, logo_url, active}]
+     */
+    private function get_affiliate_for_categories(array $categories): ?array {
+        if (empty($categories)) {
+            return null;
+        }
+        $config = get_option('teinformez_affiliate_config', '[]');
+        $entries = json_decode($config, true);
+        if (!is_array($entries)) {
+            return null;
+        }
+        foreach ($entries as $entry) {
+            if (empty($entry['active'])) {
+                continue;
+            }
+            $slug = sanitize_key($entry['category_slug'] ?? '');
+            if ($slug && in_array($slug, $categories, true)) {
+                return [
+                    'provider_name' => (string) ($entry['provider_name'] ?? ''),
+                    'cta_label'     => (string) ($entry['cta_label'] ?? 'Deschide cont'),
+                    'url'           => (string) ($entry['url'] ?? ''),
+                    'logo_url'      => (string) ($entry['logo_url'] ?? '') ?: null,
+                    'category'      => $slug,
+                ];
+            }
+        }
+        return null;
     }
 
     /**

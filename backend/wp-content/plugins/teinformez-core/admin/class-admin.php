@@ -87,6 +87,15 @@ class Admin {
 
         add_submenu_page(
             'teinformez',
+            __('Affiliate Links', 'teinformez'),
+            __('Affiliate Links', 'teinformez'),
+            'manage_options',
+            'teinformez-affiliates',
+            [$this, 'render_affiliates']
+        );
+
+        add_submenu_page(
+            'teinformez',
             __('Revenue Dashboard', 'teinformez'),
             __('Revenue Dashboard', 'teinformez'),
             'manage_options',
@@ -168,6 +177,13 @@ class Admin {
      */
     public function render_newsletter_ads() {
         require_once TEINFORMEZ_PLUGIN_DIR . 'admin/views/newsletter-ads.php';
+    }
+
+    /**
+     * Render affiliate links management page
+     */
+    public function render_affiliates() {
+        require_once TEINFORMEZ_PLUGIN_DIR . 'admin/views/affiliates.php';
     }
 
     /**

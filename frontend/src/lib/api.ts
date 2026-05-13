@@ -326,9 +326,9 @@ class ApiClient {
     return response.data.data!;
   }
 
-  async getNewsItem(id: number): Promise<PublicNewsItem> {
-    const response = await this.client.get<APIResponse<{ news: PublicNewsItem }>>(`/news/${id}`);
-    return response.data.data!.news;
+  async getNewsItem(id: number): Promise<{ news: PublicNewsItem; affiliate: import('@/types').AffiliateInfo | null }> {
+    const response = await this.client.get<APIResponse<{ news: PublicNewsItem; affiliate: import('@/types').AffiliateInfo | null }>>(`/news/${id}`);
+    return { news: response.data.data!.news, affiliate: response.data.data!.affiliate ?? null };
   }
 
   async trackView(id: number): Promise<void> {

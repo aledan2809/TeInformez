@@ -17,7 +17,8 @@ import { useBookmarkStore } from '@/store/bookmarkStore';
 import { useReadingStore } from '@/store/readingStore';
 import ReadingProgressBar from '@/components/ReadingProgressBar';
 import ScrollToTop from '@/components/ScrollToTop';
-import type { ApiErrorShape, PublicNewsItem } from '@/types';
+import AffiliateWidget from '@/components/AffiliateWidget';
+import type { ApiErrorShape, PublicNewsItem, AffiliateInfo } from '@/types';
 
 type NewsItem = PublicNewsItem;
 
@@ -30,6 +31,7 @@ function estimateReadingTime(content: string): number {
 export default function NewsDetailClient() {
   const params = useParams();
   const [news, setNews] = useState<NewsItem | null>(null);
+  const [affiliate, setAffiliate] = useState<AffiliateInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -61,8 +63,9 @@ export default function NewsDetailClient() {
 
     try {
       const newsId = parseInt(params.id as string);
-      const data = await api.getNewsItem(newsId);
+      const { news: data, affiliate: aff } = await api.getNewsItem(newsId);
       setNews(data);
+      setAffiliate(aff);
       markAsRead(newsId);
       api.trackView(newsId).catch(() => {});
       gtagEvent('article_read', {
@@ -404,6 +407,9 @@ export default function NewsDetailClient() {
             className="prose prose-lg dark:prose-invert max-w-none"
             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(news.content) }}
           />
+
+          {/* Affiliate Widget */}
+          {affiliate && <AffiliateWidget affiliate={affiliate} />}
         </div>
 
         {/* Related Articles */}

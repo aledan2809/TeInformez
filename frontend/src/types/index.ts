@@ -77,6 +77,14 @@ export interface NewsItem {
   published_at: string;
 }
 
+export interface AffiliateInfo {
+  provider_name: string;
+  cta_label: string;
+  url: string;
+  logo_url: string | null;
+  category: string;
+}
+
 export interface PublicNewsItem {
   id: number;
   title: string;
