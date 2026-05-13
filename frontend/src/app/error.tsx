@@ -13,6 +13,17 @@ export default function ErrorBoundary({
 }) {
   useEffect(() => {
     Sentry.captureException(error);
+    // local spike tracker — fallback when Sentry DSN is not set
+    fetch('/api/errors/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: error.message,
+        digest: error.digest,
+        url: window.location.href,
+        ts: new Date().toISOString(),
+      }),
+    }).catch(() => {});
   }, [error]);
 
   return (

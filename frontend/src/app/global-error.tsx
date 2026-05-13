@@ -12,6 +12,17 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     Sentry.captureException(error);
+    fetch('/api/errors/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: error.message,
+        digest: error.digest,
+        url: typeof window !== 'undefined' ? window.location.href : 'unknown',
+        ts: new Date().toISOString(),
+        level: 'critical',
+      }),
+    }).catch(() => {});
   }, [error]);
 
   return (
