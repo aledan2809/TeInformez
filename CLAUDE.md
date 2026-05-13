@@ -19,7 +19,7 @@
 ### Deployment
 - **Frontend** (standalone output — `output: 'standalone'` in next.config.js):
   ```bash
-  ssh root@72.62.155.74 "cd /var/www/teinformez-repo && git pull origin master && cd frontend && npm run build && cp -r .next/static .next/standalone/.next/ && rsync -a --delete .next/standalone/ /var/www/teinformez-frontend/ && PORT=3002 pm2 restart teinformez"
+  ssh root@72.62.155.74 "cd /var/www/teinformez-repo && git pull origin master && cd frontend && npm run build && cp -r .next/static .next/standalone/.next/ && cp -r public/ .next/standalone/public/ && rsync -a --delete .next/standalone/ /var/www/teinformez-frontend/ && PORT=3002 pm2 restart teinformez"
   ```
   **PM2 process**: `teinformez` (id 17) runs `node /var/www/teinformez-frontend/server.js` — NOT `next start` (incompatible with standalone)
 - **Backend**: `ssh root@72.62.155.74 "/var/www/deploy.sh teinformez"` (git pull + PHP-FPM restart)
