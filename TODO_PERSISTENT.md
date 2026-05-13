@@ -12,16 +12,16 @@
 
 ### Faza 1 — Soft Launch Prep (înainte de anunțul public)
 
-- [ ] **SL-01** — SEO meta tags: `<title>` dinamic, `<meta description>`, OG tags + Twitter Cards pe toate paginile publice (`/`, `/news`, `/news/[id]`, `/juridic`, `/juridic/[id]`, `/register`) — folosind `next/head` sau `generateMetadata` App Router
-- [ ] **SL-02** — Sitemap XML: endpoint `/sitemap.xml` generat din news-urile published + articolele juridic; ping Google Search Console la fiecare publish batch
-- [ ] **SL-03** — Robots.txt: `public/robots.txt` cu `Disallow: /dashboard`, `Disallow: /admin`, `Allow: /` — previne indexarea paginilor autentificate
-- [ ] **SL-04** — Canonical URLs: `<link rel="canonical">` pe paginile de listing cu paginare (`/news?page=2` → canonical `/news`) — previne duplicate content penalty
-- [ ] **SL-05** — Analytics: integrare Plausible sau GA4 — events minime: `page_view`, `register`, `newsletter_subscribe`, `article_read`, `juridic_view`
-- [ ] **SL-06** — Core Web Vitals baseline: LCP <2.5s, CLS <0.1 pe mobile (390×844) și desktop; lazy load imagini pe news list; măsurat cu Lighthouse CLI pre-launch
-- [ ] **SL-07** — Error monitoring: Sentry DSN în Next.js + `error.tsx` boundary care capturează 5xx; alertă email pe admin la spike (>5 erori/10min)
-- [ ] **SL-08** — Homepage / landing copy review: value proposition clar pentru vizitator anonim ("Ce este TeInformez?"), CTA proeminent spre `/register`; A/B test headline opțional
-- [ ] **SL-09** — Email welcome sequence: email D+1 post-înregistrare dacă userul nu a citit nicio știre → "Ai ratat ieri: TOP 3 știri din categoriile tale" (Brevo automation trigger via webhook)
-- [ ] **SL-10** — Social sharing: OG image generată dinamic per articol (titlu + sursă + logo TeInformez) — endpoint `/api/og?id=<newsId>` cu `@vercel/og` sau `satori`
+- [x] **SL-01** — SEO meta tags: `<title>` dinamic, `<meta description>`, OG tags + Twitter Cards pe toate paginile publice — DONE 2026-05-12 (`176ed16`)
+- [x] **SL-02** — Sitemap XML: `/sitemap.xml` index + generateSitemaps pentru acoperire completă articole — DONE 2026-05-12 (`cf9b009` + `b457f63`)
+- [x] **SL-03** — Robots.txt: disallow private routes + SITE_URL env — DONE 2026-05-13 (`0bac42f`)
+- [x] **SL-04** — Canonical URLs + noindex metadata pe 5 pagini (newsletter, onboarding, news/saved, newsletter/confirm, reset-password) — DONE 2026-05-13 (`b9f7924`)
+- [x] **SL-05** — GA4 SPA tracking: `PageViewTracker` cu usePathname+useSearchParams+Suspense — DONE 2026-05-13 (`d4fc41d`)
+- [x] **SL-06** — Core Web Vitals → GA4 via `useReportWebVitals`; CLS×1000, non_interaction:true — DONE 2026-05-13 (`486c65e`)
+- [x] **SL-07** — Error monitoring: `/api/errors/report` sliding window + spike alert via Brevo (gated `BREVO_API_KEY`+`ADMIN_ALERT_EMAIL`); error.tsx+global-error.tsx raportează local + Sentry — DONE 2026-05-13 (`05ae6b3`). Note: Sentry DSN neactivat (add `NEXT_PUBLIC_SENTRY_DSN` în .env.local VPS când disponibil)
+- [x] **SL-08** — Homepage copy: headline "Știri din România, rezumate de AI. Zero zgomot." + 3 trust signals + CTA "Înregistrare gratuită →"; bottom CTA cu 3 benefit icons + "2 minute" urgency; diacritice fixate — DONE 2026-05-13 (`06fa2d3`)
+- [x] **SL-09** — Email welcome sequence: email D+1 post-înregistrare dacă userul nu a citit nicio știre → "Ai ratat ieri: TOP 3 știri din categoriile tale" (Brevo automation trigger via webhook) — DONE 2026-05-13 (`ff58ffd`)
+- [x] **SL-10** — Social sharing: OG image generată dinamic per articol (titlu + sursă + logo TeInformez) — endpoint `/api/og?title=&source=&category=` cu `next/og` (Node.js runtime pentru VPS) — DONE 2026-05-13 (`b8337da`, deployed + verified HTTP 200 image/png)
 
 ---
 
