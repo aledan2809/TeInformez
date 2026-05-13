@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin constants
-define('TEINFORMEZ_VERSION', '1.0.0');
+define('TEINFORMEZ_VERSION', '1.1.0');
 define('TEINFORMEZ_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('TEINFORMEZ_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('TEINFORMEZ_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -46,6 +46,15 @@ spl_autoload_register(function ($class) {
 register_activation_hook(__FILE__, function() {
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-activator.php';
     TeInformez\Activator::activate();
+});
+
+// Run DB migrations when plugin version changes (for already-activated installs)
+add_action('admin_init', function() {
+    if (get_option('teinformez_db_version') !== TEINFORMEZ_VERSION) {
+        require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-activator.php';
+        TeInformez\Activator::run_migrations();
+        update_option('teinformez_db_version', TEINFORMEZ_VERSION);
+    }
 });
 
 // Deactivation hook

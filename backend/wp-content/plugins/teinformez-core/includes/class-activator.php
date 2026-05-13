@@ -323,10 +323,33 @@ class Activator {
     }
 
     /**
-     * Run database migrations for existing installations
+     * Run database migrations for existing installations (public for admin_init hook)
      */
-    private static function run_migrations() {
+    public static function run_migrations() {
         global $wpdb;
+
+        // v1.1.0: newsletter ads table
+        $table_newsletter_ads = $wpdb->prefix . 'teinformez_newsletter_ads';
+        $ads_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_newsletter_ads));
+        if ($ads_exists !== $table_newsletter_ads) {
+            require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+            $charset_collate = $wpdb->get_charset_collate();
+            $sql_ads = "CREATE TABLE IF NOT EXISTS {$table_newsletter_ads} (
+                id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+                sponsor_name VARCHAR(150) NOT NULL,
+                banner_html LONGTEXT NOT NULL,
+                campaign_start DATE NOT NULL,
+                campaign_end DATE NOT NULL,
+                status VARCHAR(20) DEFAULT 'active',
+                impressions BIGINT(20) UNSIGNED DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                KEY status (status),
+                KEY campaign_start (campaign_start),
+                KEY campaign_end (campaign_end)
+            ) {$charset_collate};";
+            dbDelta($sql_ads);
+        }
 
         $table = $wpdb->prefix . 'teinformez_user_preferences';
 
