@@ -37,11 +37,11 @@
 
 ### Faza 3 — Monetization
 
-- [ ] **MN-01** — **Feature matrix Premium vs Free**: definit clar ce e gated (draft propus: Free = ultimele 24h știri, 3 categorii max; Premium = feed nelimitat, toate categoriile, export, Telegram push, statistici avansate) — decizie business înainte de orice cod
-- [ ] **MN-02** — **Stripe subscriptions**: integrare `@aledan/stripe` — planuri Lunar (X RON) + Anual (Y RON cu discount); checkout flow din `/dashboard/upgrade`; webhook `customer.subscription.updated` → setează `role=premium` în WP user_meta
-- [ ] **MN-03** — **Paywall soft**: articolele premium (gated) arată primele 3 paragrafe + blur + CTA "Continuă cu contul Premium" — implementat în `/news/[id]` pe baza `user.role`
-- [ ] **MN-05** — **Newsletter sponsorizat**: template email cu slot "Partener" opțional (banner HTML 600×100px); admin UI în WordPress `/wp-admin` → `TeInformez → Newsletter Ads` — câmp sponsor_name + banner_html + campanie_start/end; injectat în newsletter-urile din intervalul campaniei
-- [ ] **MN-06** — **Admin revenue dashboard**: pagină `/wp-admin/admin.php?page=teinformez-revenue` — abonați activi (Free/Premium), MRR, newsletter ads bookings active, conversion rate înregistrare→Premium
+- [x] **MN-01** — **Feature matrix**: DECIZIE 2026-05-13 — platformă 100% Free, monetizare ads only. Premium tier DEFER până crește baza de useri. MN-02/MN-03 DEFER corespunzător.
+- [~] **MN-02** — **Stripe subscriptions**: DEFER (fără tier Premium activ)
+- [~] **MN-03** — **Paywall soft**: DEFER (fără tier Premium activ)
+- [x] **MN-05** — **Newsletter sponsorizat**: DONE 2026-05-13 (`fef09fd`) — DB `wp_teinformez_newsletter_ads` + admin UI CRUD (sponsor_name, banner_html, campaign_start/end, status, impressions counter) + delivery handler inject (campanie activă azi → override promo intern, fallback rotație internă). TRWG-GW: toate checks OK.
+- [x] **MN-06** — **Admin revenue dashboard**: DONE 2026-05-13 (`b2fcfe3`) — `/wp-admin/?page=teinformez-revenue` — grid cards (useri, newsletter subscribers, articole, campanii ads active, total impressii), tabel campanii cu status azi, status AdSense (configurat/neconfigurat + instrucțiuni), strategia de monetizare curentă documentată. TRWG-GW: toate checks OK.
 
 ---
 
@@ -49,7 +49,7 @@
 
 - [ ] **OP-01** — Churn prevention: email la 3 zile înainte de expirarea subscripției Premium ("Reînnoiește acum — ofertă 10% dacă reînnoiești azi")
 - [ ] **OP-02** — Onboarding Premium: după upgrade, wizard scurt (1 pas) care activează Telegram push + setează toate categoriile → reduce time-to-value
-- [ ] **OP-03** — Affiliate links: admin poate taga categorii cu `affiliate_provider` (ex: Bancă X pentru categoria Finanțe) → articolele din acea categorie includ un link de tip "Deschide cont" în sidebar — separat de conținut editorial
+- [x] **OP-03** — Affiliate links: admin poate taga categorii cu `affiliate_provider` (ex: Bancă X pentru categoria Finanțe) → articolele din acea categorie includ un link de tip "Deschide cont" în sidebar — separat de conținut editorial — DONE 2026-05-13 (`759c1e0`)
 
 ---
 
@@ -126,4 +126,5 @@
 | 2026-05-11 | TRUE FULL E2E 92% complete — E1-E11 ✅, F1-F2 ✅, G1-G2 ✅, H1-H2 ✅, I1-I2 ✅; G3+G4 deferred. Report: `Reports/TRUE-E2E-FULL-2026-05-11.md` |
 | 2026-05-12 | Security hardening complete — Sprint 1-5 + review fixes all eliminated. G3+G4 done. M-07 fully closed. Soft Launch & Monetization scope added (SL-01–SL-10, GR-01–GR-05, MN-01–MN-06, OP-01–OP-03). |
 | 2026-05-13 | Faza 1 Soft Launch COMPLETE — SL-01 through SL-10 all done. SL-04 canonical/noindex, SL-05 GA4 SPA tracking, SL-06 Core Web Vitals, SL-07 error monitoring, SL-08 homepage copy, SL-09 D+1 re-engagement email with TOP 3 articles, SL-10 /api/og dynamic OG images (HTTP 200 image/png verified). TRWG-GW baseline: 2/49 pre-existing console errors (React hydration #425 + GTM headless), no regressions from SL work. |
+| 2026-05-13 | **Faza 2 COMPLETĂ** (GR-01–GR-04 pre-existente; GR-05 push notifications PWA livrat commit `4756012`, TRWG-GW 3OK/3GATED/3EMPTY, zero regresii). **MN-04 eliminat** complet. **Fixes livrate** (commit `9382f00`): (1) dedup articole dubluri — Layer A title similarity ≥75%/12h + Layer B image URL uniqueness/24h; (2) UI Biziday-style — source sus, titlu bold, imagini înjumătățite în list view, `InFeedAd` component (carusel intern 4 proiecte + AdSense fallback via `NEXT_PUBLIC_ADSENSE_CLIENT`+`NEXT_PUBLIC_ADSENSE_SLOT` env vars); (3) email promo bloc rotativ zilnic în digest (minim 1 indiferent de nr. articole); (4) `$thumbnail_budget` 4→1 în delivery handler. **NEXT**: Faza 3 — MN-01 (feature matrix decision) → MN-02 (Stripe) → MN-03 (paywall) → MN-05 (newsletter sponsorizat) → MN-06 (revenue dashboard). |
 | 2026-05-13 | Faza 2 Growth COMPLETE — Task 1 (duplicate dedup: title similarity 75%/12h + image uniqueness/24h in class-news-fetcher.php `9382f00`), Task 2 (MN-04 removed), Task 3 (Biziday-style UI: ArticleCard rewrite + InFeedAd carousel + feed injection + email promo block `9382f00`), Task 4 (thumbnail_budget 4→1 `9382f00`). GR-01/02/03/04 confirmed pre-existing. GR-05 implemented: sw.js + PushPrompt (3-visit threshold) + /push/subscribe endpoint (`4756012`). TRWG-GW post-GR-05: 3 OK / 3 GATED / 3 EMPTY — baseline parity. All Faza 2 items DONE. |
