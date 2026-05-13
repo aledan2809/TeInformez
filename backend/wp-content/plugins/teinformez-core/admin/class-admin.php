@@ -84,6 +84,15 @@ class Admin {
             'teinformez-newsletter-ads',
             [$this, 'render_newsletter_ads']
         );
+
+        add_submenu_page(
+            'teinformez',
+            __('Revenue Dashboard', 'teinformez'),
+            __('Revenue Dashboard', 'teinformez'),
+            'manage_options',
+            'teinformez-revenue',
+            [$this, 'render_revenue']
+        );
     }
 
     /**
@@ -159,6 +168,13 @@ class Admin {
      */
     public function render_newsletter_ads() {
         require_once TEINFORMEZ_PLUGIN_DIR . 'admin/views/newsletter-ads.php';
+    }
+
+    /**
+     * Render revenue dashboard page
+     */
+    public function render_revenue() {
+        require_once TEINFORMEZ_PLUGIN_DIR . 'admin/views/revenue-dashboard.php';
     }
 
     /**
