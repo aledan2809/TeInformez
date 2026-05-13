@@ -1,0 +1,11 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Resetare parolă',
+  description: 'Setează o nouă parolă pentru contul tău TeInformez.',
+  robots: { index: false, follow: false },
+};
+
+export default function ResetPasswordLayout({ children }: { children: React.ReactNode }) {
+  return children;
+}
