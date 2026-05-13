@@ -1,14 +1,24 @@
 import type { MetadataRoute } from 'next';
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://teinformez.eu';
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/dashboard/*', '/onboarding', '/admin/*', '/api/*'],
+        disallow: [
+          '/dashboard/',
+          '/onboarding',
+          '/admin/',
+          '/api/',
+          '/reset-password',
+          '/news/saved',
+          '/newsletter/confirm',
+        ],
       },
     ],
-    sitemap: 'https://teinformez.eu/sitemap.xml',
+    sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }
