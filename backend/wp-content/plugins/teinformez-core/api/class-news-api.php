@@ -100,6 +100,13 @@ class News_API extends REST_API {
             'callback' => [$this, 'get_analytics'],
             'permission_callback' => [$this, 'is_admin']
         ]);
+
+        // Push notification subscription (GR-05)
+        register_rest_route($this->namespace, '/push/subscribe', [
+            'methods' => 'POST',
+            'callback' => [$this, 'push_subscribe'],
+            'permission_callback' => '__return_true'
+        ]);
     }
 
     /**
@@ -796,5 +803,48 @@ class News_API extends REST_API {
         }
 
         return array_values(array_unique($variants));
+    }
+
+    /**
+     * GR-05 — Store a Web Push subscription from the browser.
+     * Payload: { endpoint, expirationTime, keys: { p256dh, auth } }
+     * Stores as WP option (keyed by endpoint hash) for later use by admin or cron.
+     */
+    public function push_subscribe($request) {
+        $rl = $this->check_rate_limit('push_sub');
+        if ($rl) return $rl;
+
+        $params = $request->get_json_params();
+
+        if (empty($params['endpoint']) || empty($params['keys']['p256dh']) || empty($params['keys']['auth'])) {
+            return $this->error('Missing required push subscription fields.', 'invalid_subscription', 400);
+        }
+
+        $endpoint  = esc_url_raw($params['endpoint']);
+        $p256dh    = sanitize_text_field($params['keys']['p256dh']);
+        $auth      = sanitize_text_field($params['keys']['auth']);
+        $expiry    = !empty($params['expirationTime']) ? (int) $params['expirationTime'] : null;
+
+        $key = 'teinformez_push_' . substr(md5($endpoint), 0, 16);
+
+        $subscription_data = [
+            'endpoint'  => $endpoint,
+            'p256dh'    => $p256dh,
+            'auth'      => $auth,
+            'expiry'    => $expiry,
+            'user_id'   => $this->get_current_user_id() ?: 0,
+            'created_at' => current_time('mysql'),
+        ];
+
+        update_option($key, $subscription_data, false);
+
+        // Keep a manifest of all active subscription keys for easy enumeration
+        $manifest = get_option('teinformez_push_manifest', []);
+        if (!in_array($key, $manifest, true)) {
+            $manifest[] = $key;
+            update_option('teinformez_push_manifest', $manifest, false);
+        }
+
+        return $this->success(['subscribed' => true], 'Push subscription saved.', 201);
     }
 }

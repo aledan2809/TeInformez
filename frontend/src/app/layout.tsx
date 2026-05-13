@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import { WebVitals } from '@/components/WebVitals';
+import PushPrompt from '@/components/PushPrompt';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -69,6 +70,7 @@ export default function RootLayout({
         <GoogleAnalytics />
         <WebVitals />
         <ThemeProvider>{children}</ThemeProvider>
+        <PushPrompt />
       </body>
     </html>
   );
