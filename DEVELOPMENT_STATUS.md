@@ -1,107 +1,107 @@
 # Project Status — TeInformez
-Last Updated: 2026-05-13
+Last Updated: 2026-05-14 (post-soft-launch prep)
 
 ## Current State
 
 ### Production
 - Live at `https://teinformez.eu` (VPS2 72.62.155.74)
-- WordPress + teinformez-core plugin (PHP)
+- WordPress + teinformez-core plugin (PHP) + Brevo API integration
 - Frontend: Next.js standalone on VPS2 (PM2 id 17, port 3002)
-- Last deploy: `933d97c` (Faza 1 SL-01–SL-10 all complete)
+- Last deploy: `82a0093` (TODO update); functional code: `80554dc` (pre-CAS cleanup)
 - PHP-FPM + Apache, MariaDB 10.11
+- Classification: **RESTRICT** per Master CLAUDE.md §2.3
 
-### Faza 1 — Soft Launch (ALL DONE 2026-05-13)
+### Faze 1-4 — All DONE (sept. 2026-05-13)
+- Faza 1 — Soft Launch Prep: SL-01..SL-10 ✅
+- Faza 2 — Growth: GR-01..GR-05 ✅
+- Faza 3 — Monetization: MN-01 (Free + ads decision) ✅, MN-05 newsletter sponsorizat ✅, MN-06 revenue dashboard ✅; MN-02/03 DEFER
+- Faza 4 — OP-03 affiliate links ✅; OP-01/02 DEFER (no Premium tier)
 
-SL-01 through SL-10 complete. Key items this session:
+### Email Infrastructure — LIVE 2026-05-14
+- **Brevo (transactional)**: `teinformez.eu` verified — DKIM brevo1/brevo2 CNAMEs + brevo-code TXT + DMARC live în Hostico DNS. Sender `TeInformez <noreply@teinformez.eu>` Verified.
+- **Resend (lifecycle)**: `techbiz.ae` verified — DKIM + SPF MX `send.techbiz.ae` + SPF TXT `send.techbiz.ae`. MA receives webhooks from TeInformez, sends D+1 re-engagement via Resend.
+- **Hostico mailbox**: `noreply@teinformez.eu` real mailbox (not alias), forward to `alexdanciulescu@gmail.com` for bounces.
+- **WP option**: `teinformez_from_email = noreply@teinformez.eu`
+- **Smoke test passed**: digest email arrived in Gmail Inbox, DKIM=pass (no SPF Brevo include yet, but DKIM alone was enough)
 
-**SL-09** ✅ D+1 re-engagement email (`ff58ffd`)
-- `teinformez_welcome_d1_email` WP-Cron hook fires 24h post-register
-- Skips if user clicked any article in past 48h (visitor_events table)
-- Filters TOP 3 articles by subscribed categories; fallback fills remainder with latest
-- `Email_Sender::send_d1_reengagement()` — branded HTML email with article cards
+### CAS — Carousel of Ads (PAUSED state, waiting MA dev)
+- Newsletter sends **HALTED** via `teinformez_newsletter_paused=1` WP option. Cron exits in 4ms with log `PAUSED via teinformez_newsletter_paused option`.
+- Admin can toggle via Newsletter Ads page banner (`/wp-admin/?page=teinformez-newsletter-ads`).
+- Internal 4PRO ecosystem rotation REMOVED from email digest + InFeedAd carousel pe `/news`. Slots empty until MA exposes CAS endpoint.
+- Reserved env vars (not set yet): `NEXT_PUBLIC_CAS_ENABLED`, `TEINFORMEZ_MA_API_URL`, `TEINFORMEZ_MA_API_KEY`
+- Resume sends after CAS-04 wiring (depends on MA dev session).
 
-**SL-10** ✅ Dynamic OG images via `/api/og` (`b8337da`, deployed `933d97c`)
-- `frontend/src/app/api/og/route.tsx` — ImageResponse (next/og, Node.js runtime)
-- Params: `?title=&source=&category=` (no extra API fetch)
-- 1200×630 dark gradient, adaptive font-size, TeInformez branding
-- `/news/[id]` already wired to use `/api/og` as fallback when no image
-- Verified: `curl https://teinformez.eu/api/og?title=Test&source=HotNews&category=actualitate` → HTTP 200 image/png
+### Critical Bug Fixed This Session
+**MN-05 regression** in `class-delivery-handler.php`: `build_digest_html` method used `$wpdb->prefix` + `$wpdb->get_row()` without declaring `global $wpdb;`. Caused PHP fatal error on every newsletter delivery cron run since 2026-05-13 deploy. **Zero newsletters were sent for ~24h before discovery** during today's smoke test. Fix: 1-line add `global $wpdb;` at start of method. Commit `b975c78`, deployed live, verified working.
 
-### Faza 2 — Growth Features (DONE 2026-05-12)
+## Recent Changes (this session — 2026-05-14)
 
-**GR-01** ✅ Newsletter public landing page + double opt-in
-- `/newsletter` — email form + GDPR checkbox
-- `/newsletter/confirm` — token confirmation (Suspense pattern)
-- Uses pre-existing double opt-in endpoint in `class-news-api.php`
-- Commits: `5217c72`, `f712dfe`
+| Commit | Scope |
+|---|---|
+| `b975c78` | fix(MN-05): add `global $wpdb` in build_digest_html — fixes silent cron crash |
+| `80554dc` | feat: pre-CAS cleanup — halt newsletter sends + remove 4PRO promos (3 files) |
+| `82a0093` | docs(TODO): add Post-soft-launch pending section |
 
-**GR-02** ✅ UTM referral tracking
-- `frontend/src/lib/utm.ts` — captureUTM / getStoredUTM / clearUTM
-- `register/page.tsx` — capture on mount, send at register, clear after
-- `class-auth-api.php` — utm_source/medium/campaign saved to user_meta
-- Commits: `9eac98e`, `9dc8e07`
+## Active TODO (post-launch, see `TODO_PERSISTENT.md`)
 
-**GR-03** ✅ Share widget UTM params
-- Share buttons (WhatsApp/Telegram/LinkedIn/Facebook/X) append `utm_source=share&utm_medium=article`
-- URL computed once via IIFE (not per-render)
-- Commits: `9eac98e`, `9dc8e07`
+### Pending USER actions (~10 min total)
+- [ ] **EMAIL-06** — Add `include:spf.brevo.com` to existing SPF TXT in Hostico DNS Zone (5 min)
+- [ ] **OP-SENTRY** — Create Sentry account + add `NEXT_PUBLIC_SENTRY_DSN` to `/var/www/teinformez-frontend/.env` (5 min)
 
-**GR-04** ✅ JSON-LD NewsArticle schema complete
-- `publisher.logo` → `/logo.svg` (280×60, stable static SVG)
-- `dateModified` added
-- Commits: `9eac98e`, `9dc8e07`
+### Deferred — depend on MA dev (separate session)
+- [ ] **CAS-04** — Wire CAS integration: fetch from `${MA_API}/api/cas/render?slot=newsletter|infeed`, inject in email digest + InFeedAd. ~2-3h here, but needs MA endpoint live first.
 
-**Review fixes** ✅ (commit `0c9c759`, 2026-05-12)
-- `newsletter/page.tsx`: captureUTM on mount + UTM passed to subscribe
-- `api.ts`: `newsletterSubscribe(email, gdprConsent, utm?)` — explicit params
-- `class-news-api.php`: utm_source/medium/campaign stored in INSERT/UPDATE
-- `class-activator.php`: UTM columns added to `teinformez_newsletter` table
-- DB migration applied on VPS: `ALTER TABLE wp_teinformez_newsletter ADD COLUMN utm_*`
+### Deferred — independent (when capacity allows)
+- [ ] **AN-01** — Analytics Phase 1: Headline cards (5 metrici cu ↑↓ trend) + 3 grafice SVG line charts 30d. Move 25 GA-style metrics + GA4 tab to `?view=advanced`. ~3-4h.
+- [ ] **AN-02** — Analytics Phase 2: "Ce a funcționat" — top 5 articles, top 5 sources, top 5 categories. Needs improved referrer tracking. ~2-3h.
+- [ ] **AN-03** — Analytics Phase 3 (post-CAS-04): Revenue mini-dashboard cu CAS impressions + sponsored active + slot click rate. ~1h.
 
-### Security Sprint Progress
-- **Sprint 1 DONE** (commit `a6ed79d`, deployed 2026-05-11)
-  - M-08: field whitelist in update_preferences() — GDPR columns protected
-  - M-07: reset link removed from error_log — token exposure closed
-  - M-03: set-secure-cookie requires auth + HMAC validation + ownership check
-- **H-01–H-08 DONE** (prior session, deployed 2026-05-11)
-
-### Open Backlog
-- M-07 partial: send_via_brevo() logs $to_email (low risk, no token)
-- G-TI-NEW-001: /profile and /settings frontend 404 routes
-
-## TODO — Sprints remaining
-
-### Sprint 2 (next session)
-- [ ] M-16: Email change without confirmation — account takeover risk
-- [ ] M-14: CSRF nonce verification for cookie-authenticated REST requests
-- [ ] M-15: Bulk subscriptions size cap (max 50 entries)
-
-### Sprint 3
-- [ ] M-11: Stored XSS via AI-generated content — sanitize title/summary/content
-- [ ] M-09 + M-10: SSRF + XXE in news fetcher
-- [ ] M-02: Unified password validation
-
-### Sprint 4
-- [ ] G-TI-NEW-001: /profile and /settings frontend 404 routes
-- [ ] M-01: Email enumeration (generic register response)
-- [ ] M-05: CORS wildcard fix (*.vercel.app → specific URLs)
-
-## Recent Changes (2026-05-13)
-- **Faza 1 COMPLETE**: SL-01–SL-10 all done and deployed
-- SL-09: D+1 re-engagement hook wired + email sender added (`ff58ffd`)
-- SL-10: `/api/og` deployed, HTTP 200 image/png confirmed live (`933d97c`)
-- TRWG-GW: 2/49 baseline unchanged (pre-existing React hydration + GTM headless — not a regression)
-
-## Recent Changes (2026-05-12)
-- Faza 2 GR-01–GR-04 implemented, reviewed (PR #1–3 on GitHub), and deployed
-- Review findings fixed: gtagEvent order, logo.svg, IIFE share URL, newsletter UTM capture
-- DB migration: utm_source/medium/campaign columns added to wp_teinformez_newsletter
-- PR branches: review/GR-01, review/GR-02-03, review/GR-04 on aledan2809/TeInformez
+### Future enhancements
+- [ ] **CAS-05** — Eventual: banner CAS on homepage `/` (between sections 2-3). Discuție when CAS live + real inventory signal.
 
 ## Technical Notes
-- `sanitize_text_field()` strips base64 chars — use `wp_unslash()` for token handling
-- Deploy frontend: `ssh root@72.62.155.74 "cd /var/www/teinformez-repo && git pull origin master && cd frontend && npm run build && cp -r .next/static .next/standalone/.next/ && cp -r public/ .next/standalone/public/ && rsync -a --delete .next/standalone/ /var/www/teinformez-frontend/ && PORT=3002 pm2 restart teinformez"`
+
+### Where things live
+- Plugin: `/var/www/teinformez/wp-content/plugins/teinformez-core/`
+- Frontend build: `/var/www/teinformez-frontend/` (rsync target from `.next/standalone/`)
+- Frontend repo: `/var/www/teinformez-repo/frontend/`
+- WP-CLI commands: `wp --path=/var/www/teinformez --allow-root <command>`
 - Deploy backend: `ssh root@72.62.155.74 "/var/www/deploy.sh teinformez"`
-- WP-CLI: `wp --path=/var/www/teinformez --allow-root <command>`
-- DB: `mysql -u root teinformez_wp`
-- Newsletter table: `wp_teinformez_newsletter` (columns: id, email, token, confirmed, confirmed_at, subscribed_at, unsubscribed_at, ip_address, utm_source, utm_medium, utm_campaign)
+- Deploy frontend: see CLAUDE.md "Deployment" section (rsync + pm2 restart teinformez)
+
+### Newsletter delivery flow
+- Cron `teinformez_check_deliveries` runs every 15 min via WP-Cron
+- Entry: `class-delivery-handler.php::process_deliveries()` — FIRST checks `teinformez_newsletter_paused` option, early-return if true
+- Per frequency (realtime/hourly/daily/weekly/monthly), fetches users due for delivery
+- `send_digest()` → `build_digest_html()` builds HTML cu hero + articles + promo slot + footer → `Email_Sender::send()` via Brevo API
+- Sponsored campaigns from `wp_teinformez_newsletter_ads` table override default empty slot
+- Internal 4PRO rotation REMOVED — slot now reserved for CAS HTML when wired
+
+### Admin views structure
+- `/wp-admin/?page=teinformez-newsletter-ads` — campaign CRUD + pause toggle banner (NEW)
+- `/wp-admin/?page=teinformez-affiliates` — affiliate links per category (OP-03)
+- `/wp-admin/?page=teinformez-revenue` — revenue dashboard overview
+- `/wp-admin/?page=teinformez-analytics` — analytics (TO BE REDESIGNED — see AN-01..04)
+- `/wp-admin/?page=teinformez-news-queue` — news approve/reject workflow
+- `/wp-admin/?page=teinformez-juridic` — Juridic Q&A drafts
+- `/wp-admin/?page=teinformez-category-order` — homepage section ordering
+- `/wp-admin/?page=teinformez-settings` — API keys (Brevo, OpenAI, GA4, social)
+
+## Lessons Learned (această sesiune)
+
+**L-TI-EMAIL-1** (2026-05-14): Brevo modern domain authentication uses selectors `brevo1` + `brevo2` for DKIM CNAMEs, not the legacy `mail` + `mail2` selectors documented in older guides. When verifying domain in Brevo, copy DNS records EXACT from the Brevo UI — don't assume selector names from external tutorials. Discovered when `dig CNAME mail._domainkey.teinformez.eu` returned empty despite Brevo showing "DKIM signature ✅" — correct query was `dig CNAME brevo1._domainkey.teinformez.eu`.
+
+**L-TI-EMAIL-2** (2026-05-14): Brevo "Domain Authenticated" status only requires the `brevo-code` TXT (ownership verification). DKIM CNAMEs + SPF include + DMARC are SEPARATE — Brevo dashboard can show "Verified" with brevo-code alone, but emails will fail DKIM/SPF auth in receiving servers without the additional records. Always verify DNS independently with `dig` after Brevo says "authenticated."
+
+**L-TI-MN05** (2026-05-14): When adding `$wpdb` queries to a PHP method that doesn't already use WordPress DB layer, MUST declare `global $wpdb;` at method start. Missing this caused MN-05 newsletter sponsored ads feature to crash entire delivery cron silently for 24h (cron returns Fatal Error, WP catches it, no user notification). Smoke testing emails after deploy of any feature touching delivery handler is essential — code review caught nothing because the method scope issue was non-obvious.
+
+**L-TI-CAS-RESERVE** (2026-05-14): When integrating with shared infrastructure (CAS from MA in development), prefer empty/null placeholder + feature flag over filler content. Original internal 4PRO carousel "felt active" but was brand-inappropriate for TeInformez audience. Empty slots are honest — "we're saving this for ads" — vs forced cross-promotion. Pattern: feature flag (`NEXT_PUBLIC_CAS_ENABLED`) defaulting OFF + clean placeholder UI ("CAS slot") when enabled but not yet wired.
+
+## Decision Log
+
+| Date | Decision | Why |
+|---|---|---|
+| 2026-05-13 | MN-01: Platform 100% Free, monetize via ads only. Premium tier DEFER. | First need to grow user base; Premium without scale = wasted dev time |
+| 2026-05-14 | Halt newsletter sends entirely until CAS wired (vs send with empty promo slot) | Avoid sending visually-incomplete emails that look unprofessional |
+| 2026-05-14 | Analytics redesign: keep GA4 but move to "Advanced" page; main dashboard = 3 simple sections | Owner is non-marketeer; 25 metrici overwhelms vs 5 cu trend = actionable |
+| 2026-05-14 | Consolidation Brevo+Resend → Brevo-only DEFERRED (not done now) | Resend works after fix; refactor adds 1h MA work that doesn't unblock launch |
