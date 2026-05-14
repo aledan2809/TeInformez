@@ -81,8 +81,8 @@ class Admin {
         // the "Show advanced view" toggle on the simple analytics page.
         add_submenu_page(
             'teinformez',
-            __('Analytics &mdash; Advanced', 'teinformez'),
-            __('Analytics &mdash; Advanced', 'teinformez'),
+            __('Analytics — Advanced', 'teinformez'),
+            __('Analytics — Advanced', 'teinformez'),
             'manage_options',
             'teinformez-analytics-advanced',
             [$this, 'render_analytics_advanced']

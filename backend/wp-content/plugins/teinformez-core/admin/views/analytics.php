@@ -28,10 +28,12 @@ $week1_end = $now;
 $week1_start = $now->modify('-7 days');
 $week2_end = $week1_start;
 $week2_start = $now->modify('-14 days');
+// 30-day window INCLUSIVE of today: today minus 29 days … today.
+// Prior window: today minus 59 days … today minus 30 days (also 30 days, no overlap).
 $chart_end = $now;
-$chart_start = $now->modify('-30 days')->setTime(0, 0, 0);
-$chart_prev_end = $chart_start;
-$chart_prev_start = $now->modify('-60 days')->setTime(0, 0, 0);
+$chart_start = $now->modify('-29 days')->setTime(0, 0, 0);
+$chart_prev_end = $now->modify('-30 days')->setTime(23, 59, 59);
+$chart_prev_start = $now->modify('-59 days')->setTime(0, 0, 0);
 
 $fmt = static function(DateTimeImmutable $dt): string { return $dt->format('Y-m-d H:i:s'); };
 
@@ -99,17 +101,20 @@ if ($has_events) {
 // ---------------------------------------------------------------------------
 // Card 5 — Top category by views (last 7d), parse JSON categories in PHP
 // ---------------------------------------------------------------------------
-$c5_label = '—'; $c5_pct = 0; $c5_count = 0;
+// Top category by share of category-impressions in the last 7 days.
+// Each article-view is attributed to ALL its categories (multi-tag = correct
+// usage), so the denominator is sum(cat_views), not sum(article_views).
+// Result semantics: "X% of category-impressions are in <top>".
+// Bounded 0..100 by construction (single key over total).
+$c5_label = '—'; $c5_pct = 0; $c5_count = 0; $c5_total_impressions = 0;
 if ($has_events && $has_news) {
     $rows = $wpdb->get_results($wpdb->prepare(
         "SELECT n.categories, COUNT(*) AS views FROM {$events_table} e INNER JOIN {$news_table} n ON n.id = e.page_id WHERE e.event_type='page_view' AND e.page_type='news' AND e.page_id > 0 AND e.created_at BETWEEN %s AND %s GROUP BY n.id, n.categories",
         $fmt($week1_start), $fmt($week1_end)
     ));
     $cat_views = [];
-    $total_views = 0;
     foreach ($rows as $row) {
         $views = (int) $row->views;
-        $total_views += $views;
         $cats_raw = (string) ($row->categories ?? '');
         $cats = [];
         if ($cats_raw !== '') {
@@ -136,9 +141,10 @@ if ($has_events && $has_news) {
     }
     if (!empty($cat_views)) {
         arsort($cat_views);
+        $c5_total_impressions = array_sum($cat_views);
         $c5_label = (string) array_key_first($cat_views);
         $c5_count = (int) $cat_views[$c5_label];
-        $c5_pct = $total_views > 0 ? round(($c5_count / $total_views) * 100, 1) : 0;
+        $c5_pct = $c5_total_impressions > 0 ? round(($c5_count / $c5_total_impressions) * 100, 1) : 0;
     }
 }
 
@@ -324,11 +330,11 @@ $c4_trend = $render_trend($c4_curr, $c4_prev);
             </div>
         </a>
 
-        <div class="ti-card" style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;">
+        <div class="ti-card" style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;" title="Procent calculat din total impresii pe categorii (un articol cu 2 categorii contribuie la ambele).">
             <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;">Top categorie audiență (săpt.)</div>
             <div style="font-size:24px;font-weight:700;line-height:1.2;margin-top:8px;color:#1d2327;word-break:break-word;"><?php echo esc_html($c5_label); ?></div>
             <div style="font-size:13px;font-weight:600;margin-top:6px;color:#646970;">
-                <?php echo esc_html(number_format_i18n($c5_count)); ?> views &middot; <?php echo esc_html(number_format_i18n($c5_pct, 1)); ?>% din trafic
+                <?php echo esc_html(number_format_i18n($c5_count)); ?> views &middot; <?php echo esc_html(number_format_i18n($c5_pct, 1)); ?>% din audiență
             </div>
         </div>
 
