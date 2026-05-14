@@ -362,6 +362,7 @@ class Delivery_Handler {
      * $by_category = ['politics' => [$item1, $item2, ...], 'tech' => [...], ...]
      */
     private function build_digest_html($user, $by_category, $frequency) {
+        global $wpdb;
         $frontend_url = Config::get('frontend_url', 'https://teinformez.eu');
         $user_name = $user->display_name ?: $user->user_email;
         $greeting = $this->get_greeting($frequency);
