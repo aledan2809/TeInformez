@@ -14,7 +14,6 @@ class Admin {
 
     public function __construct() {
         add_action('admin_menu', [$this, 'add_menu_pages']);
-        add_action('admin_menu', [$this, 'hide_hidden_submenus'], 999);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
     }
 
@@ -77,8 +76,9 @@ class Admin {
             [$this, 'render_analytics']
         );
 
-        // Advanced analytics — registered for routing but hidden from sidebar
-        // (accessible via "Show advanced view" link on the simple analytics page)
+        // Advanced analytics — full GA-style metrics, GA4 tab, drill-downs.
+        // Visible in sidebar so power users can deep-link; also reachable via
+        // the "Show advanced view" toggle on the simple analytics page.
         add_submenu_page(
             'teinformez',
             __('Analytics &mdash; Advanced', 'teinformez'),
@@ -189,13 +189,6 @@ class Admin {
      */
     public function render_analytics_advanced() {
         require_once TEINFORMEZ_PLUGIN_DIR . 'admin/views/analytics-advanced.php';
-    }
-
-    /**
-     * Hide submenu items registered only for routing (not shown in sidebar)
-     */
-    public function hide_hidden_submenus() {
-        remove_submenu_page('teinformez', 'teinformez-analytics-advanced');
     }
 
     /**
