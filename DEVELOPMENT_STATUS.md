@@ -43,6 +43,7 @@ Last Updated: 2026-05-14 (post-soft-launch prep)
 | `82a0093` | docs(TODO): add Post-soft-launch pending section |
 | `0446212` | feat(AN-01): analytics simple/advanced split — 5 headline cards + 3 SVG trend charts (30d vs 30d-ago) on simple page; full 25+ metrics + GA4 tab + Cross-check + drill-downs preserved on `analytics-advanced.php` |
 | `27e64d4` | fix(AN-01): expose advanced analytics submenu (remove_submenu_page broke WP capability check, advanced page returned 403 for admins) |
+| `41f1a70` | fix(AN-01): chart today-inclusive + Card 5 percentage [0,100] math + i18n real em-dash. Adds `frontend/scripts/tg-walk-analytics.mjs` (assertion-driven Playwright walk). Verified by walk 14/14 PASS + Tester-Gateway audit run `2026-05-14T21-35-51-031Z-3tez` (zero AN-01 critical-flow failures; remaining P0 = pre-existing React hydration on Next.js public, tracked as G-TI-FRONTEND-REACT-HYDRATION) |
 
 ## Active TODO (post-launch, see `TODO_PERSISTENT.md`)
 

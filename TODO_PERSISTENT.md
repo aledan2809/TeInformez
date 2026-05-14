@@ -34,13 +34,14 @@
 > **Scop:** simplifică dashboard-ul de la 25+ metrici GA-style la 3 secțiuni utile pentru owner non-marketeer. Răspunde la 3 întrebări: "cresc/scad?", "ce a funcționat?", "ce trebuie să fac?"
 > **Decizie 2026-05-14:** GA4 tab păstrat dar mutat în pagină "Advanced" (toggle, nu pe homepage analytics). Single source of truth pentru daily check = noul dashboard simplu.
 
-- [x] **AN-01** — **Phase 1 — Headline + Trend grafice** — DONE 2026-05-14 (`0446212` + `27e64d4`):
+- [x] **AN-01** — **Phase 1 — Headline + Trend grafice** — DONE 2026-05-14 (`0446212` + `27e64d4` + `41f1a70`):
   - 5 card-uri mari sus: Vizitatori unici săpt. (cu ↑↓ vs săpt. trecută), Useri înregistrați total (+ noi azi), Email subscribers activi (+ noi azi), Articole citite total (cu ↑↓), Top categorie audiență
-  - 3 grafice SVG line charts (30 zile + comparison 30d ago, NO library): Trafic zilnic, Înregistrări noi/zi, Newsletter signups/zi
+  - 3 grafice SVG line charts (30 zile inclusiv azi + comparison 30d ago, NO library): Trafic zilnic, Înregistrări noi/zi, Newsletter signups/zi
   - Toate clickable → drill-down redirect la advanced page (`?page=teinformez-analytics-advanced&detail=...`)
   - Files split: rewrite `admin/views/analytics.php` (simple) + new `analytics-advanced.php` (current 25+ metrics + GA4 tab + Cross-check + Top Articles intact) + class-admin.php (registered Analytics — Advanced submenu)
   - Live verified `https://teinformez.eu/wp-admin/?page=teinformez-analytics`: 5 cards correct, 3 charts SVG render, advanced toggle + back link OK, drill-down OK, mobile 375px stacks vertical (full walk in `reports/an01-walk/`).
   - Follow-up fix `27e64d4`: removed `remove_submenu_page` call (broke WP capability check on advanced page); advanced visible in sidebar.
+  - Bug-fix follow-up `41f1a70` (post-/review 2026-05-15): chart today-inclusive window (was dropping today's data), Card 5 percentage math (multi-cat overflow bound to [0,100]), real em-dash în i18n menu string. Verified by `frontend/scripts/tg-walk-analytics.mjs` 14/14 assertions PASS + Tester-Gateway audit `2026-05-14T21-35-51-031Z-3tez` (zero AN-01 critical-flow failures).
 
 - [ ] **AN-02** — **Phase 2 — "Ce a funcționat" tables** (~2-3h):
   - Top 5 articole săpt. (cu views + click rate — există deja)
@@ -59,6 +60,11 @@
 ### Monitoring & ops (post-launch nice-to-have)
 
 - [ ] **OP-SENTRY** — Adaugă `NEXT_PUBLIC_SENTRY_DSN` în `/var/www/teinformez-frontend/.env` pe VPS2 + `pm2 restart teinformez` — necesită user să-și facă cont Sentry (free tier 5k errors/lună suficient pentru soft launch). Error monitoring centralizat e gata wired (SL-07), așteaptă doar DSN.
+
+### Pre-existing bugs surfaced by tooling (NOT caused by AN-01 — separate sessions)
+
+- [ ] **G-TI-FRONTEND-REACT-HYDRATION** — Frontend Next.js public emits ~14 React hydration errors per page load: `#418` (Hydration failed), `#423` (ReactDOMServer Suspense), `#425` (Text content mismatch). Detected by Tester-Gateway audit `2026-05-14T21-35-51-031Z-3tez` while running TG critical flows on `https://teinformez.eu/{news,login,register,/}`. Companion symptoms in console: `Failed to fetch RSC payload for https://teinformez.eu/news. Falling back to browser navigation. TypeError: network error` (and same for `/`, `/login`, `/register`). Likely root causes (research before fixing per L82): (a) SSR/client mismatch in some component using `Date.now()`, `Math.random()`, or `typeof window` without `useEffect`; (b) Suspense boundary missing on a streaming RSC; (c) RSC fetch CORS/network issue masking the real hydration error. Probably worsened by `output: 'standalone'` mode on VPS PM2. Reproducer: open https://teinformez.eu/news in DevTools → Console shows minified errors + RSC fallback. Fix path: rebuild frontend with non-minified React (`NEXT_PUBLIC_ENABLE_REACT_DEV_OVERLAY=1` or local dev mode) to surface full error message → fix the hydration source → redeploy. Effort: 1-2h dedicated session. Touches `frontend/src/app/**` only (NO touch on WP backend).
+- [ ] **G-TI-PHP-NEWS-API-WARNINGS** — `class-news-api.php:776` emits constant `Undefined property: stdClass::$original_content` and `$processed_content` warnings on every news fetch — floods nginx error log + PHP-FPM log, makes real errors hard to spot. Separate cleanup. Probably needs `(string) ($obj->original_content ?? '')` null-coalescing pattern on the property reads. ~15 min fix.
 
 ---
 
