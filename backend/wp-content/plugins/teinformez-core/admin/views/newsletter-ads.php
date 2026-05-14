@@ -59,6 +59,16 @@ if (isset($_POST['teinformez_newsletter_ads_nonce']) && wp_verify_nonce($_POST['
     }
 }
 
+// Pause toggle (kill switch for all newsletter sends)
+if (isset($_POST['teinformez_pause_nonce']) && wp_verify_nonce($_POST['teinformez_pause_nonce'], 'teinformez_pause_toggle')) {
+    $new_paused = isset($_POST['pause_value']) && $_POST['pause_value'] === '1' ? 1 : 0;
+    update_option('teinformez_newsletter_paused', $new_paused);
+    $notice = $new_paused === 1
+        ? __('Newsletter sends PAUSED. Cron-ul nu va mai trimite digest-uri până la resume.', 'teinformez')
+        : __('Newsletter sends RESUMED. Cron-ul va reîncepe digest delivery.', 'teinformez');
+}
+$is_paused = (int) get_option('teinformez_newsletter_paused', 0) === 1;
+
 // Edit mode: load existing row
 $editing = null;
 if (isset($_GET['action'], $_GET['id']) && $_GET['action'] === 'edit') {
@@ -80,6 +90,35 @@ $today = date('Y-m-d');
     <?php if (!empty($error)): ?>
         <div class="notice notice-error is-dismissible"><p><?php echo esc_html($error); ?></p></div>
     <?php endif; ?>
+
+    <!-- Newsletter pause kill switch -->
+    <div style="background:<?php echo $is_paused ? '#fef3c7' : '#f0fdf4'; ?>;border:2px solid <?php echo $is_paused ? '#f59e0b' : '#16a34a'; ?>;border-radius:8px;padding:16px 20px;margin:20px 0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <div>
+                <p style="margin:0 0 4px;font-weight:700;font-size:15px;color:<?php echo $is_paused ? '#92400e' : '#15803d'; ?>;">
+                    <?php if ($is_paused): ?>
+                        ⏸ <?php esc_html_e('Newsletter sends — PAUSED', 'teinformez'); ?>
+                    <?php else: ?>
+                        ▶ <?php esc_html_e('Newsletter sends — ACTIVE', 'teinformez'); ?>
+                    <?php endif; ?>
+                </p>
+                <p style="margin:0;font-size:13px;color:<?php echo $is_paused ? '#78350f' : '#166534'; ?>;line-height:1.5;">
+                    <?php if ($is_paused): ?>
+                        <?php esc_html_e('Cron-ul de digest delivery e oprit. Niciun email nu va fi trimis. Resume când integrarea cu MA (CAS — Carousel of Ads) e gata.', 'teinformez'); ?>
+                    <?php else: ?>
+                        <?php esc_html_e('Cron rulează la 15min. Useri abonați primesc digest-uri conform schedule.', 'teinformez'); ?>
+                    <?php endif; ?>
+                </p>
+            </div>
+            <form method="post" style="margin:0;">
+                <?php wp_nonce_field('teinformez_pause_toggle', 'teinformez_pause_nonce'); ?>
+                <input type="hidden" name="pause_value" value="<?php echo $is_paused ? '0' : '1'; ?>">
+                <button type="submit" class="button <?php echo $is_paused ? 'button-primary' : ''; ?>" style="font-weight:600;">
+                    <?php echo $is_paused ? esc_html__('Resume sends', 'teinformez') : esc_html__('Pause sends', 'teinformez'); ?>
+                </button>
+            </form>
+        </div>
+    </div>
 
     <!-- Campaign list -->
     <h2><?php esc_html_e('Campanii existente', 'teinformez'); ?></h2>
