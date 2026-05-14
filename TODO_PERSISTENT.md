@@ -34,12 +34,13 @@
 > **Scop:** simplifică dashboard-ul de la 25+ metrici GA-style la 3 secțiuni utile pentru owner non-marketeer. Răspunde la 3 întrebări: "cresc/scad?", "ce a funcționat?", "ce trebuie să fac?"
 > **Decizie 2026-05-14:** GA4 tab păstrat dar mutat în pagină "Advanced" (toggle, nu pe homepage analytics). Single source of truth pentru daily check = noul dashboard simplu.
 
-- [ ] **AN-01** — **Phase 1 — Headline + Trend grafice** (~3-4h):
+- [x] **AN-01** — **Phase 1 — Headline + Trend grafice** — DONE 2026-05-14 (`0446212` + `27e64d4`):
   - 5 card-uri mari sus: Vizitatori unici săpt. (cu ↑↓ vs săpt. trecută), Useri înregistrați total (+ noi azi), Email subscribers activi (+ noi azi), Articole citite total (cu ↑↓), Top categorie audiență
-  - 3 grafice SVG line charts (30 zile + comparison year-ago): Trafic zilnic, Înregistrări noi/zi, Newsletter signups/zi
-  - Toate clickable → drill-down detail (păstrat din versiunea actuală)
-  - Mutarea celorlalte 20+ metrici la `?view=advanced` (un toggle "Show advanced" pe pagina principală)
-  - Files: rewrite `admin/views/analytics.php` + posibil split în `analytics-simple.php` + `analytics-advanced.php`
+  - 3 grafice SVG line charts (30 zile + comparison 30d ago, NO library): Trafic zilnic, Înregistrări noi/zi, Newsletter signups/zi
+  - Toate clickable → drill-down redirect la advanced page (`?page=teinformez-analytics-advanced&detail=...`)
+  - Files split: rewrite `admin/views/analytics.php` (simple) + new `analytics-advanced.php` (current 25+ metrics + GA4 tab + Cross-check + Top Articles intact) + class-admin.php (registered Analytics — Advanced submenu)
+  - Live verified `https://teinformez.eu/wp-admin/?page=teinformez-analytics`: 5 cards correct, 3 charts SVG render, advanced toggle + back link OK, drill-down OK, mobile 375px stacks vertical (full walk in `reports/an01-walk/`).
+  - Follow-up fix `27e64d4`: removed `remove_submenu_page` call (broke WP capability check on advanced page); advanced visible in sidebar.
 
 - [ ] **AN-02** — **Phase 2 — "Ce a funcționat" tables** (~2-3h):
   - Top 5 articole săpt. (cu views + click rate — există deja)
