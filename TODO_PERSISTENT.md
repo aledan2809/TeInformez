@@ -1,6 +1,65 @@
 # TODO Persistent — TeInformez
 > Items rămân până marcate DONE cu dată + commit.
-> Last updated: 2026-05-13
+> Last updated: 2026-05-14
+
+---
+
+## 🔧 Post-soft-launch — Pending
+
+### Email infrastructure (pre-deliverability)
+
+- [x] **EMAIL-01** — Brevo verify `teinformez.eu` (DKIM brevo1/brevo2 + brevo-code TXT) — DONE 2026-05-14 (Hostico DNS)
+- [x] **EMAIL-02** — Hostico mailbox `noreply@teinformez.eu` — DONE 2026-05-14
+- [x] **EMAIL-03** — WP `teinformez_from_email` flip → `noreply@teinformez.eu` — DONE 2026-05-14
+- [x] **EMAIL-04** — Resend verify `techbiz.ae` (DKIM + SPF send.*) — DONE 2026-05-14
+- [x] **EMAIL-05** — Fix `$wpdb` global missing în `build_digest_html` (MN-05 regression) — DONE 2026-05-14 (`b975c78`)
+- [ ] **EMAIL-06** — SPF Hostico TXT: adaugă `include:spf.brevo.com` (acțiune user, ~5 min Hostico Zone Editor) — îmbunătățește deliverability pe Outlook/Yahoo/corporate (Gmail merge cu DKIM-only, dar SPF=fail e suspicios pentru alți providers)
+
+### CAS — Carousel of Ads (depinde de MA dev)
+
+- [x] **CAS-01** — Halt newsletter sends (kill switch via `teinformez_newsletter_paused` WP option + admin banner toggle pe Newsletter Ads page) — DONE 2026-05-14 (`80554dc`). Set ON until CAS live.
+- [x] **CAS-02** — Remove 4PRO day-of-week rotation din email digest (păstrat doar sponsored campaign + slot empty fallback) — DONE 2026-05-14 (`80554dc`)
+- [x] **CAS-03** — Hide InFeedAd 4PRO carousel pe `/news` (feature flag `NEXT_PUBLIC_CAS_ENABLED`, default off → slot empty) — DONE 2026-05-14 (`80554dc`)
+- [ ] **CAS-04** — **Wire CAS integration with MA** — depinde de MA Launch Plan + CAS endpoint dev (separate session pe MA):
+  - Newsletter side: fetch `GET ${MA_API}/api/cas/render?slot=newsletter&recipient=<email_hash>` în `build_digest_html`, inject HTML în `$promo_html` placeholder
+  - InFeed side: fetch `GET ${MA_API}/api/cas/render?slot=infeed&visitor=<visitor_hash>` în InFeedAd component, render returned HTML
+  - Env vars: `TEINFORMEZ_MA_API_URL` + `TEINFORMEZ_MA_API_KEY` (.env teinformez) + `NEXT_PUBLIC_CAS_ENABLED=true`
+  - Resume newsletter sends after CAS endpoint live + tested
+  - Estimat: 2-3h în TeInformez + dependență pe MA side
+
+- [ ] **CAS-05** — Eventual: banner CAS pe homepage `/` (între secțiuni 2-3, opțional) — discuție când CAS e live + ai signal că ai inventory real de servit
+
+### Analytics redesign (3 faze)
+
+> **Scop:** simplifică dashboard-ul de la 25+ metrici GA-style la 3 secțiuni utile pentru owner non-marketeer. Răspunde la 3 întrebări: "cresc/scad?", "ce a funcționat?", "ce trebuie să fac?"
+> **Decizie 2026-05-14:** GA4 tab păstrat dar mutat în pagină "Advanced" (toggle, nu pe homepage analytics). Single source of truth pentru daily check = noul dashboard simplu.
+
+- [ ] **AN-01** — **Phase 1 — Headline + Trend grafice** (~3-4h):
+  - 5 card-uri mari sus: Vizitatori unici săpt. (cu ↑↓ vs săpt. trecută), Useri înregistrați total (+ noi azi), Email subscribers activi (+ noi azi), Articole citite total (cu ↑↓), Top categorie audiență
+  - 3 grafice SVG line charts (30 zile + comparison year-ago): Trafic zilnic, Înregistrări noi/zi, Newsletter signups/zi
+  - Toate clickable → drill-down detail (păstrat din versiunea actuală)
+  - Mutarea celorlalte 20+ metrici la `?view=advanced` (un toggle "Show advanced" pe pagina principală)
+  - Files: rewrite `admin/views/analytics.php` + posibil split în `analytics-simple.php` + `analytics-advanced.php`
+
+- [ ] **AN-02** — **Phase 2 — "Ce a funcționat" tables** (~2-3h):
+  - Top 5 articole săpt. (cu views + click rate — există deja)
+  - Top 5 surse de trafic: organic / facebook / email / RSS / direct — necesită source tracking îmbunătățit în `wp_teinformez_visitor_analytics` (coloană `referrer_source` derivată din `metadata` JSON)
+  - Top 5 categorii ca audiență
+  - Acțiune recomandată sub fiecare tabel (text scurt, contextual)
+
+- [ ] **AN-03** — **Phase 3 — Revenue mini-dashboard** (~1h, post-CAS-04):
+  - Card-uri: Impressii CAS săpt., Sponsorizate active azi, Click rate per slot CAS (newsletter vs infeed)
+  - Hookup cu MA CAS data via `GET ${MA_API}/api/cas/metrics?source=teinformez&range=7d`
+
+- [ ] **AN-04** — **GA4 tab → pagină separată "Advanced Analytics"** (parte din AN-01):
+  - Mută Custom + Google Analytics tabs + Data Cross-check + cele 25 metrici la `/wp-admin/?page=teinformez-analytics-advanced`
+  - Link cross-reference din dashboard nou către advanced
+
+### Monitoring & ops (post-launch nice-to-have)
+
+- [ ] **OP-SENTRY** — Adaugă `NEXT_PUBLIC_SENTRY_DSN` în `/var/www/teinformez-frontend/.env` pe VPS2 + `pm2 restart teinformez` — necesită user să-și facă cont Sentry (free tier 5k errors/lună suficient pentru soft launch). Error monitoring centralizat e gata wired (SL-07), așteaptă doar DSN.
+
+---
 
 ---
 
@@ -128,3 +187,5 @@
 | 2026-05-13 | Faza 1 Soft Launch COMPLETE — SL-01 through SL-10 all done. SL-04 canonical/noindex, SL-05 GA4 SPA tracking, SL-06 Core Web Vitals, SL-07 error monitoring, SL-08 homepage copy, SL-09 D+1 re-engagement email with TOP 3 articles, SL-10 /api/og dynamic OG images (HTTP 200 image/png verified). TRWG-GW baseline: 2/49 pre-existing console errors (React hydration #425 + GTM headless), no regressions from SL work. |
 | 2026-05-13 | **Faza 2 COMPLETĂ** (GR-01–GR-04 pre-existente; GR-05 push notifications PWA livrat commit `4756012`, TRWG-GW 3OK/3GATED/3EMPTY, zero regresii). **MN-04 eliminat** complet. **Fixes livrate** (commit `9382f00`): (1) dedup articole dubluri — Layer A title similarity ≥75%/12h + Layer B image URL uniqueness/24h; (2) UI Biziday-style — source sus, titlu bold, imagini înjumătățite în list view, `InFeedAd` component (carusel intern 4 proiecte + AdSense fallback via `NEXT_PUBLIC_ADSENSE_CLIENT`+`NEXT_PUBLIC_ADSENSE_SLOT` env vars); (3) email promo bloc rotativ zilnic în digest (minim 1 indiferent de nr. articole); (4) `$thumbnail_budget` 4→1 în delivery handler. **NEXT**: Faza 3 — MN-01 (feature matrix decision) → MN-02 (Stripe) → MN-03 (paywall) → MN-05 (newsletter sponsorizat) → MN-06 (revenue dashboard). |
 | 2026-05-13 | Faza 2 Growth COMPLETE — Task 1 (duplicate dedup: title similarity 75%/12h + image uniqueness/24h in class-news-fetcher.php `9382f00`), Task 2 (MN-04 removed), Task 3 (Biziday-style UI: ArticleCard rewrite + InFeedAd carousel + feed injection + email promo block `9382f00`), Task 4 (thumbnail_budget 4→1 `9382f00`). GR-01/02/03/04 confirmed pre-existing. GR-05 implemented: sw.js + PushPrompt (3-visit threshold) + /push/subscribe endpoint (`4756012`). TRWG-GW post-GR-05: 3 OK / 3 GATED / 3 EMPTY — baseline parity. All Faza 2 items DONE. |
+| 2026-05-13 | Faze 3+4 COMPLETE — MN-01 (decizie Free + ads only, Premium DEFER), MN-05 newsletter sponsorizat `fef09fd`, MN-06 revenue dashboard `b2fcfe3`, OP-03 affiliate links `759c1e0`. OP-01/02 DEFER (fără Premium tier). |
+| 2026-05-14 | **Email infrastructure LIVE** — Brevo `teinformez.eu` verified (DKIM brevo1/brevo2 + brevo-code TXT + DMARC live în Hostico DNS), Resend `techbiz.ae` verified (DKIM + SPF send.MX + send.TXT), Hostico mailbox `noreply@teinformez.eu` created, WP `teinformez_from_email` flip. Smoke test: digest email arrived in Gmail Inbox cu DKIM=pass. **Critical bug fixed**: `class-delivery-handler.php` lipsea `global $wpdb;` în `build_digest_html` (MN-05 regression, commit `b975c78`) — newsletter delivery cron crash-uia silent de la deploy MN-05 până azi. **Pre-CAS cleanup** (commit `80554dc`): halt newsletter sends via `teinformez_newsletter_paused` WP option (kill switch + admin banner toggle), removed 4PRO day-of-week rotation din email digest, hidden InFeedAd 4PRO carousel pe `/news` (feature flag `NEXT_PUBLIC_CAS_ENABLED`). Slot-uri reserved pentru CAS integration (depinde de MA dev). Analytics redesign: propunere documentată (3 faze AN-01/02/03 + decision GA4→Advanced), implementation deferred. EMAIL-06 (SPF Brevo include) + OP-SENTRY pending user action. |
