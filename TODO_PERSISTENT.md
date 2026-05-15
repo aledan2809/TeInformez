@@ -62,9 +62,16 @@
   - Sub-buckets pentru referral_other: top 10 unique referers afișate separat (e.g., dacă cineva linkează din wikipedia.org sau forumuri).
   - Geo / IP-based country breakdown (necesită lib MaxMind GeoIP sau Cloudflare CF-IPCountry header).
 
-- [ ] **AN-03** — **Phase 3 — Revenue mini-dashboard** (~1h, post-CAS-04):
-  - Card-uri: Impressii CAS săpt., Sponsorizate active azi, Click rate per slot CAS (newsletter vs infeed)
-  - Hookup cu MA CAS data via `GET ${MA_API}/api/cas/metrics?source=teinformez&range=7d`
+- [x] **AN-03** — **Phase 3 — Revenue mini-dashboard** — DONE 2026-05-15 (`7f047d5`).
+  - **Local telemetry**: new `CAS_Telemetry` class + `wp_teinformez_cas_telemetry` (lazy-created append-only ledger); `CAS_API.handle_render` + `build_digest_html` record placement + filled outcome + timestamp for every MA fetch. No PII, fire-and-forget, failure swallowed.
+  - **3 cards în `analytics.php` Revenue section** (între Headline cards și Trend charts):
+    1. **Impresii CAS (săpt.)** — total filled last 7d + fill rate% (filled/total ratio).
+    2. **Sponsorizate active** — count active rows în `wp_teinformez_newsletter_ads` cu campaign window curent.
+    3. **Fill rate per slot** — breakdown newsletter / infeed / banner; gracefully degrades cu "(fără date încă)" când telemetry table goală.
+  - **Live smoke**: 4 manual proxy calls → table created automat + 4 rows recorded (`placement=infeed×3 + banner×1`, `was_filled=0`); Playwright admin walk verifies Revenue h2 + all 3 cards render cu zero page errors.
+  - **MA /api/cas/metrics**: blocked — NextAuth-gated (returns 307→login on X-API-Key). **Click-rate card deferred** until MA exposes API-key auth on metrics endpoint OR webhook callback to TeInformez. Logged as MA-side follow-up.
+  - **`/review`**: APPROVE — append-only ledger avoids UPSERT race, lazy-create matches Visitor_Analytics convention, indexes cover both aggregation patterns, ~1.8M rows/year is manageable scale.
+  - **TWG**: explicit skip (same reason — Anthropic credit blocks vision; Playwright authenticated walk + `/review` = equivalent validation).
 
 - [x] **AN-04** — DONE 2026-05-14 (bundled atomic în AN-01 commit `0446212`; marker sync 2026-05-15). Verified live 2026-05-15: both submenu pages registered (`admin.php?page=teinformez-analytics` + `admin.php?page=teinformez-analytics-advanced`) — both return `302 → wp-login.php?redirect_to=...` correctly proving registration. Simple view = `analytics.php` (552 lines: 5 headline cards + 3 SVG 30d trend charts + AN-02 "ce a funcționat" tables). Advanced view = `analytics-advanced.php` (550 lines: Custom + Google Analytics tabs + Data Cross-check section + drilldown handlers for 25+ metrics). Cross-links both ways: `Show advanced view →` button on simple (analytics.php:365) + `← Back to simple view` on advanced (analytics-advanced.php:408). Drilldown wiring: simple cards link to `?detail=<metric>` on advanced (analytics-advanced.php:100+178). Menu registration in `class-admin.php:70-89` — both submenu pages visible in WP sidebar.
   - Mută Custom + Google Analytics tabs + Data Cross-check + cele 25 metrici la `/wp-admin/?page=teinformez-analytics-advanced`
