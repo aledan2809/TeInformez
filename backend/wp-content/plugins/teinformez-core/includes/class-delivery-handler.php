@@ -630,12 +630,15 @@ class Delivery_Handler {
                     'timeout' => 3,
                     'headers' => ['X-API-Key' => $cas_key],
                 ]);
+                $cas_filled = false;
                 if (!is_wp_error($resp) && (int) wp_remote_retrieve_response_code($resp) === 200) {
                     $body = (string) wp_remote_retrieve_body($resp);
                     if ($body !== '') {
                         $promo_html = $body;
+                        $cas_filled = true;
                     }
                 }
+                \TeInformez\CAS_Telemetry::record('newsletter', $cas_filled);
             }
         }
 

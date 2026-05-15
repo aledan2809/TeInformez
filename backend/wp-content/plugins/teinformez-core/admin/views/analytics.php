@@ -356,6 +356,12 @@ $sum_series = static function(array $series): int {
 
 $c1_trend = $render_trend($c1_curr, $c1_prev);
 $c4_trend = $render_trend($c4_curr, $c4_prev);
+
+// === AN-03: Revenue mini-dashboard (CAS impressions + sponsored campaigns) ===
+$cas_impressions_7d   = \TeInformez\CAS_Telemetry::total_impressions(7);
+$cas_sponsored_active = \TeInformez\CAS_Telemetry::active_sponsored_today();
+$cas_per_placement    = \TeInformez\CAS_Telemetry::aggregate_by_placement(7);
+$cas_has_data = !empty($cas_per_placement);
 ?>
 <div class="wrap">
     <h1>Visitor Analytics</h1>
@@ -408,6 +414,55 @@ $c4_trend = $render_trend($c4_curr, $c4_prev);
             <div style="font-size:13px;font-weight:600;margin-top:6px;color:#646970;">
                 <?php echo esc_html(number_format_i18n($c5_count)); ?> views &middot; <?php echo esc_html(number_format_i18n($c5_pct, 1)); ?>% din audiență
             </div>
+        </div>
+
+    </div>
+
+    <!-- AN-03: Revenue (CAS impressions + sponsored campaigns) -->
+    <h2 style="font-size:15px;color:#1d2327;margin:0 0 10px;">Revenue <span style="font-weight:400;color:#646970;font-size:13px;">(ultimele 7 zile)</span></h2>
+    <div class="ti-revenue-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:24px;">
+
+        <div class="ti-card" style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;" title="Sumă impresii CAS livrate (placement infeed + banner + newsletter), ultimele 7 zile. Source: wp_teinformez_cas_telemetry.">
+            <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;">Impresii CAS (săpt.)</div>
+            <div style="font-size:36px;font-weight:700;line-height:1.1;margin-top:8px;color:#1d2327;"><?php echo esc_html(number_format_i18n($cas_impressions_7d)); ?></div>
+            <div style="font-size:13px;font-weight:600;margin-top:6px;color:#646970;">
+                <?php
+                if ($cas_has_data) {
+                    $total_filled = 0; $total_calls = 0;
+                    foreach ($cas_per_placement as $r) { $total_filled += $r['filled']; $total_calls += $r['total']; }
+                    $rate = $total_calls > 0 ? round(($total_filled / $total_calls) * 100, 1) : 0.0;
+                    echo esc_html($rate) . '% fill rate · ' . esc_html(number_format_i18n($total_calls)) . ' calls';
+                } else {
+                    echo '(fără date încă)';
+                }
+                ?>
+            </div>
+        </div>
+
+        <div class="ti-card" style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;" title="Număr campanii sponsorizate active astăzi (wp_teinformez_newsletter_ads cu status=active și campaign window curent).">
+            <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;">Sponsorizate active</div>
+            <div style="font-size:36px;font-weight:700;line-height:1.1;margin-top:8px;color:#1d2327;"><?php echo esc_html(number_format_i18n($cas_sponsored_active)); ?></div>
+            <div style="font-size:13px;font-weight:600;margin-top:6px;color:#646970;">
+                <?php echo $cas_sponsored_active > 0 ? 'activ azi' : '0 azi · slot CAS fallback'; ?>
+            </div>
+        </div>
+
+        <div class="ti-card" style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;" title="Fill rate per placement = filled / total fetches în ultimele 7 zile. CAS=Carousel of Ads (MA).">
+            <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;">Fill rate per slot</div>
+            <?php if ($cas_has_data): ?>
+                <div style="margin-top:8px;">
+                    <?php foreach ($cas_per_placement as $r): ?>
+                        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px;color:#1d2327;">
+                            <span style="text-transform:capitalize;font-weight:500;"><?php echo esc_html($r['placement']); ?></span>
+                            <span style="color:#646970;"><?php echo esc_html(number_format_i18n($r['filled'])); ?> / <?php echo esc_html(number_format_i18n($r['total'])); ?> · <strong style="color:#1d2327;"><?php echo esc_html(number_format_i18n(round($r['fill_rate'] * 100, 1), 1)); ?>%</strong></span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php else: ?>
+                <div style="font-size:14px;color:#646970;margin-top:14px;line-height:1.4;">
+                    Telemetria CAS apare aici imediat ce primele fetches încep să se înregistreze. (Tabel <code>wp_teinformez_cas_telemetry</code> creat lazy la prima impresie.)
+                </div>
+            <?php endif; ?>
         </div>
 
     </div>

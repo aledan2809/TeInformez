@@ -2,6 +2,7 @@
 namespace TeInformez\API;
 
 use TeInformez\Config;
+use TeInformez\CAS_Telemetry;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -72,20 +73,22 @@ class CAS_API extends REST_API {
         ]);
 
         if (is_wp_error($resp)) {
+            // Upstream unreachable counts as an empty impression for fill-rate accounting.
+            CAS_Telemetry::record($placement, false);
             return new \WP_REST_Response(['error' => 'upstream_unreachable'], 502);
         }
 
         $code = (int) wp_remote_retrieve_response_code($resp);
         $body = (string) wp_remote_retrieve_body($resp);
+        $was_filled = ($code === 200 && $body !== '');
 
-        $response = new \WP_REST_Response(null, $code === 200 ? 200 : 204);
+        // Fire-and-forget telemetry (AN-03 revenue dashboard).
+        CAS_Telemetry::record($placement, $was_filled);
+
+        $response = new \WP_REST_Response(null, $was_filled ? 200 : 204);
         $response->header('Content-Type', 'text/html; charset=utf-8');
         $response->header('Cache-Control', self::CACHE_CONTROL_HEADER);
-        if ($code === 200 && $body !== '') {
-            $response->set_data($body);
-        } else {
-            $response->set_data('');
-        }
+        $response->set_data($was_filled ? $body : '');
         return $response;
     }
 

@@ -76,6 +76,7 @@ function teinformez_init() {
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-email-sender.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-ma-client.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-visitor-analytics.php';
+    require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-cas-telemetry.php';
 
     // Load news processing classes (Phase B)
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-news-source-manager.php';
