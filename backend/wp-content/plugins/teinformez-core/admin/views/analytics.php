@@ -247,7 +247,7 @@ $render_trend = static function(int $curr, int $prev): array {
 $build_daily_series = static function(string $sql, array $params, DateTimeImmutable $period_start, int $days) use ($wpdb): array {
     $rows = $wpdb->get_results($wpdb->prepare($sql, ...$params));
     $by_date = [];
-    foreach ($rows as $r) {
+    foreach ((array) ($rows ?? []) as $r) {
         $by_date[(string) $r->day] = (int) $r->n;
     }
     $series = [];
