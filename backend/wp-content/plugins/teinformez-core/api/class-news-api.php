@@ -773,7 +773,9 @@ class News_API extends REST_API {
      * Format news item for API response
      */
     private function format_news_item($item) {
-        $content = $item->processed_content ?: $item->original_content;
+        $processed = (string) ($item->processed_content ?? '');
+        $original  = (string) ($item->original_content ?? '');
+        $content   = $processed !== '' ? $processed : $original;
 
         // Wrap plain text paragraphs in <p> tags if not already HTML
         if ($content && strpos($content, '<p>') === false) {
