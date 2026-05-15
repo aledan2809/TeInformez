@@ -789,23 +789,23 @@ class News_API extends REST_API {
         $image_source = null;
         if ($image) {
             $fallback_host = parse_url($image, PHP_URL_HOST);
-            $image_source = $item->source_name ?: ($fallback_host ?: null);
+            $image_source = ($item->source_name ?? '') ?: ($fallback_host ?: null);
         }
 
         return [
-            'id' => (int) $item->id,
-            'title' => $item->processed_title ?: $item->original_title,
-            'summary' => $item->processed_summary,
+            'id' => (int) ($item->id ?? 0),
+            'title' => ($item->processed_title ?? '') ?: ($item->original_title ?? ''),
+            'summary' => $item->processed_summary ?? null,
             'content' => $content,
             'image' => $image ?: null,
             'image_source' => $image_source,
             'youtube_url' => $youtube ?: null,
-            'source' => $item->source_name,
+            'source' => $item->source_name ?? null,
             'categories' => $this->normalize_categories_array((array) ($item->categories ?? [])),
-            'tags' => $item->tags,
-            'published_at' => $item->published_at,
-            'original_url' => $item->original_url,
-            'language' => $item->target_language ?: \TeInformez\Config::SITE_LANGUAGE,
+            'tags' => $item->tags ?? null,
+            'published_at' => $item->published_at ?? null,
+            'original_url' => $item->original_url ?? null,
+            'language' => ($item->target_language ?? '') ?: \TeInformez\Config::SITE_LANGUAGE,
             'view_count' => (int) ($item->view_count ?? 0),
         ];
     }
