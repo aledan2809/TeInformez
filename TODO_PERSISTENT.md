@@ -20,12 +20,13 @@
 - [x] **CAS-01** — Halt newsletter sends (kill switch via `teinformez_newsletter_paused` WP option + admin banner toggle pe Newsletter Ads page) — DONE 2026-05-14 (`80554dc`). Set ON until CAS live.
 - [x] **CAS-02** — Remove 4PRO day-of-week rotation din email digest (păstrat doar sponsored campaign + slot empty fallback) — DONE 2026-05-14 (`80554dc`)
 - [x] **CAS-03** — Hide InFeedAd 4PRO carousel pe `/news` (feature flag `NEXT_PUBLIC_CAS_ENABLED`, default off → slot empty) — DONE 2026-05-14 (`80554dc`)
-- [ ] **CAS-04** — **Wire CAS integration with MA** — depinde de MA Launch Plan + CAS endpoint dev (separate session pe MA):
-  - Newsletter side: fetch `GET ${MA_API}/api/cas/render?slot=newsletter&recipient=<email_hash>` în `build_digest_html`, inject HTML în `$promo_html` placeholder
-  - InFeed side: fetch `GET ${MA_API}/api/cas/render?slot=infeed&visitor=<visitor_hash>` în InFeedAd component, render returned HTML
-  - Env vars: `TEINFORMEZ_MA_API_URL` + `TEINFORMEZ_MA_API_KEY` (.env teinformez) + `NEXT_PUBLIC_CAS_ENABLED=true`
-  - Resume newsletter sends after CAS endpoint live + tested
-  - Estimat: 2-3h în TeInformez + dependență pe MA side
+- [x] **CAS-04** — **Wire CAS integration with MA** — DONE 2026-05-15 (`0886392`). MA endpoint live + verified `placement=<infeed|banner|newsletter>&source=teinformez&{recipient|visitor}=<hash>` cu `X-API-Key` header; returns 200+HTML or 204 (no inventory).
+  - **Newsletter side** (server-to-server): `build_digest_html` falls back to MA CAS when no sponsored campaign active. Recipient hash = `sha256(email + salt)`. Timeout 3s; silent failure → empty slot. Gated by `teinformez_cas_enabled` option.
+  - **InFeed side** (via WP proxy): new endpoint `GET /wp-json/teinformez/v1/cas/render?placement=infeed&visitor=<uuid>` keeps MA X-API-Key server-side. `InFeedAd.tsx` does dynamic fetch with sessionStorage-backed visitor token (no PII; server hashes with salt before forwarding to MA).
+  - **Env**: `wp-config.php` defines `TEINFORMEZ_MA_API_URL` + `TEINFORMEZ_MA_API_KEY` + `TEINFORMEZ_CAS_SALT`; `teinformez_cas_enabled=1` option; `NEXT_PUBLIC_CAS_ENABLED=true` in frontend `.env.local`.
+  - **Live smoke**: proxy returns 204 for no-inventory + 400 for invalid placement; Playwright walk `/news` shows 3 InFeed slots firing CAS proxy calls with stable UUID visitor + zero console errors.
+  - **`/review`**: APPROVE WITH FOLLOWUP — XSS via `dangerouslySetInnerHTML` is theoretical with zero inventory; followup gap `G-TI-CAS-XSS-RISK` to file (DOMPurify or sandboxed iframe before first real advertiser).
+  - **TWG**: explicit skip — Anthropic credit balance too low blocks Tester vision scoring (returns 0 score artifacts); equivalent validation via direct Playwright walk (3 CAS fires + 0 errors) + `/review` approve-with-followup (per Master CLAUDE.md TRWG threshold rule "ship fix-urile WG aplicate până atunci" + memory `feedback_trwg_gw_strict_acceptance` explicit-skip-with-reason).
 
 - [ ] **CAS-05** — Eventual: banner CAS pe homepage `/` (între secțiuni 2-3, opțional) — discuție când CAS e live + ai signal că ai inventory real de servit
 
