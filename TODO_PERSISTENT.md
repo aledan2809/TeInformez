@@ -65,7 +65,7 @@
 
 ### Monitoring & ops (post-launch nice-to-have)
 
-- [ ] **OP-SENTRY** — Adaugă `NEXT_PUBLIC_SENTRY_DSN` în `/var/www/teinformez-frontend/.env` pe VPS2 + `pm2 restart teinformez` — necesită user să-și facă cont Sentry (free tier 5k errors/lună suficient pentru soft launch). Error monitoring centralizat e gata wired (SL-07), așteaptă doar DSN.
+- [x] **OP-SENTRY** — DONE 2026-05-15. Sentry account created (fabulosos-srl org, project `javascript-nextjs`, DSN `https://...@o4511393455734784.ingest.de.sentry.io/4511393459798096`). DSN added to `/var/www/teinformez-repo/frontend/.env.local` (NEXT_PUBLIC_SENTRY_DSN + SENTRY_DSN) + copied to standalone target `/var/www/teinformez-frontend/.env.local`. Frontend rebuilt + redeployed + pm2 restarted. Smoke test (Playwright + Sentry network capture): **5 envelope POSTs** to `o4511393455734784.ingest.de.sentry.io/api/4511393459798096/envelope/` verified live — SDK `sentry.javascript.nextjs 10.52.0`, session tracking active, release auto-tagged with commit hash. Master/credentials/teinformez.env synced (gitignored).
 
 ### Pre-existing bugs surfaced by tooling (NOT caused by AN-01 — separate sessions)
 
