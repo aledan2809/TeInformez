@@ -1,5 +1,28 @@
 # Project Status — TeInformez
-Last Updated: 2026-05-14 (post-soft-launch prep)
+Last Updated: 2026-05-15 late (G-TI-PHP-NEWS-API-WARNINGS shipped)
+
+## Current State (Sesiunea 2026-05-15 late)
+
+Backend log-noise cleanup: closed `G-TI-PHP-NEWS-API-WARNINGS` ledger entry. Single surgical fix on `format_news_item` deployed to VPS2; live-verified zero new warnings on 10× curl. `/review` post-commit found no real bugs; behavioral change `content: string|null → string` is safer for the strict-mode TS frontend (estimateReadingTime + DOMPurify handle `''` cleanly). TWG skipped — backend-only fix with no UI surface.
+
+### Commits this session
+
+| Commit | Scope |
+|---|---|
+| `13fcdcf` | fix(news-api): null-coalesce processed_content / original_content (G-TI-PHP-NEWS-API-WARNINGS) — 1 file, +3/-1. Root cause: homepage SELECT at [class-news-api.php:423-431](backend/wp-content/plugins/teinformez-core/api/class-news-api.php#L423-L431) explicitly omits these 2 content columns (payload-size optimization) → stdClass items passed to `format_news_item` triggered `Undefined property` warnings per row × ~20 rows per request. |
+| `b44fdef` | docs: mark `G-TI-PHP-NEWS-API-WARNINGS [x]` in TODO_PERSISTENT with verification note. |
+
+### Live verification (post-deploy VPS2)
+
+- 10× curl `/wp-json/teinformez/v1/news?per_page=20` → `nginx.error.log` delta = **+0 lines**, `php8.3-fpm.log` delta = **+0 lines** (baseline pre-fix had hundreds of warnings per single fetch)
+- Both `/var/www/teinformez-repo/` and `/var/www/teinformez/` paths show new code (`deploy.sh teinformez` PHP-FPM restart cleared opcache as expected)
+- `/review` analysis: sibling unguarded reads (L795-806 on title/summary/source_name/etc.) don't emit warnings today because homepage SELECT includes them, but tracked as latent risk if a future narrower SELECT path is added → would be separate ~30min item, NOT in scope of this commit.
+
+## Lessons Learned (sesiunea 2026-05-15 late)
+
+- **none** — no novel non-trivial lessons. Applied existing patterns: scope discipline (feedback_scope_discipline; stuck to TODO ledger, didn't expand to sibling reads), null-coalesce idiom matching the same-file pattern at L784/L785/L807, line-delta verification ritual (10× curl + log delta count), `/review` with explicit TWG-skip rationale (no UI surface = no flow to walk).
+
+---
 
 ## Current State
 
