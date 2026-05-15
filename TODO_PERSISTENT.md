@@ -59,7 +59,7 @@
   - Card-uri: Impressii CAS săpt., Sponsorizate active azi, Click rate per slot CAS (newsletter vs infeed)
   - Hookup cu MA CAS data via `GET ${MA_API}/api/cas/metrics?source=teinformez&range=7d`
 
-- [ ] **AN-04** — **GA4 tab → pagină separată "Advanced Analytics"** (parte din AN-01):
+- [x] **AN-04** — DONE 2026-05-14 (bundled atomic în AN-01 commit `0446212`; marker sync 2026-05-15). Verified live 2026-05-15: both submenu pages registered (`admin.php?page=teinformez-analytics` + `admin.php?page=teinformez-analytics-advanced`) — both return `302 → wp-login.php?redirect_to=...` correctly proving registration. Simple view = `analytics.php` (552 lines: 5 headline cards + 3 SVG 30d trend charts + AN-02 "ce a funcționat" tables). Advanced view = `analytics-advanced.php` (550 lines: Custom + Google Analytics tabs + Data Cross-check section + drilldown handlers for 25+ metrics). Cross-links both ways: `Show advanced view →` button on simple (analytics.php:365) + `← Back to simple view` on advanced (analytics-advanced.php:408). Drilldown wiring: simple cards link to `?detail=<metric>` on advanced (analytics-advanced.php:100+178). Menu registration in `class-admin.php:70-89` — both submenu pages visible in WP sidebar.
   - Mută Custom + Google Analytics tabs + Data Cross-check + cele 25 metrici la `/wp-admin/?page=teinformez-analytics-advanced`
   - Link cross-reference din dashboard nou către advanced
 
