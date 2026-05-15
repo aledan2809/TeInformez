@@ -43,11 +43,17 @@
   - Follow-up fix `27e64d4`: removed `remove_submenu_page` call (broke WP capability check on advanced page); advanced visible in sidebar.
   - Bug-fix follow-up `41f1a70` (post-/review 2026-05-15): chart today-inclusive window (was dropping today's data), Card 5 percentage math (multi-cat overflow bound to [0,100]), real em-dash în i18n menu string. Verified by `frontend/scripts/tg-walk-analytics.mjs` 14/14 assertions PASS + Tester-Gateway audit `2026-05-14T21-35-51-031Z-3tez` (zero AN-01 critical-flow failures).
 
-- [ ] **AN-02** — **Phase 2 — "Ce a funcționat" tables** (~2-3h):
-  - Top 5 articole săpt. (cu views + click rate — există deja)
-  - Top 5 surse de trafic: organic / facebook / email / RSS / direct — necesită source tracking îmbunătățit în `wp_teinformez_visitor_analytics` (coloană `referrer_source` derivată din `metadata` JSON)
-  - Top 5 categorii ca audiență
-  - Acțiune recomandată sub fiecare tabel (text scurt, contextual)
+- [x] **AN-02** — **Phase 2 — "Ce a funcționat" tables + tracker upgrade** — DONE 2026-05-15 (`c0229f8`):
+  - Tracker upgrade (data prerequisite): frontend `getEntrySignals()` capturează `document.referrer` + UTM params per session în sessionStorage, le atașează la fiecare event. Backend `Analytics_API::track_event()` acceptă noile params + **bot UA filter server-side** (drop GoogleBot/HeadlessChrome/scrapers/link-unfurlers înainte de DB insert). `Visitor_Analytics::derive_source_bucket()` clasifică (referer, utm) → 16 buckets coarse: `organic_{google,bing,other}`, `social_{facebook,instagram,twitter,linkedin,youtube,reddit,other}`, `email`, `rss`, `ad`, `internal`, `direct`, `referral_other`. UTM signals override referer (GA convention).
+  - Display: 3 tabele în secțiunea "Ce a funcționat săptămâna asta" pe pagina simplă: 📰 Top 5 articole, 🔗 Top 5 surse trafic (cu disclosure "(neînregistrat)" pentru events pre-deploy), 🏷️ Top 5 categorii audiență. Fiecare cu acțiune recomandată contextuală sub.
+  - Mobile: stack vertical sub 768px.
+  - Live verified: bot UA dropped (`{tracked:false, reason:bot_ua_filtered}`), test event UTM `?utm_source=test&utm_medium=verify&utm_campaign=an02-deploy-check` cu referer `google.com/search?q=teinformez` → DB row are `source_bucket=organic_google` (referer overrides UTM `test`). tg-walk-analytics.mjs 14/14 PASS = nicio regresie pe AN-01 features.
+  - **Forward-only data**: legacy events (1,566 din 1,567 page_views în primele 7 zile) sunt NULL bucket → afișat ca "(neînregistrat)" 99.9%. Ratio real apare progresiv pe măsură ce noi events se acumulează.
+
+- [ ] **AN-02-followup** (când AN-02 acumulează ≥7 zile de date noi cu source attribution):
+  - Schema migration: mută `referer`, `utm_*`, `source_bucket`, `is_bot` din `metadata` JSON în coloane indexed dedicate (perf pe Top Sources query care va deveni lent la 100k+ events).
+  - Sub-buckets pentru referral_other: top 10 unique referers afișate separat (e.g., dacă cineva linkează din wikipedia.org sau forumuri).
+  - Geo / IP-based country breakdown (necesită lib MaxMind GeoIP sau Cloudflare CF-IPCountry header).
 
 - [ ] **AN-03** — **Phase 3 — Revenue mini-dashboard** (~1h, post-CAS-04):
   - Card-uri: Impressii CAS săpt., Sponsorizate active azi, Click rate per slot CAS (newsletter vs infeed)
