@@ -612,8 +612,32 @@ class Delivery_Handler {
                 (int) $sponsored->id
             ));
             $promo_html = $sponsored->banner_html;
+        } else {
+            // CAS (Carousel of Ads from MA) fallback when no sponsored campaign is active.
+            // Server-to-server fetch (X-API-Key); recipient hash for per-user targeting + dedup.
+            $cas_url = defined('TEINFORMEZ_MA_API_URL') ? TEINFORMEZ_MA_API_URL : \TeInformez\Config::get('ma_cas_url', '');
+            $cas_key = defined('TEINFORMEZ_MA_API_KEY') ? TEINFORMEZ_MA_API_KEY : \TeInformez\Config::get('ma_cas_key', '');
+            $cas_enabled = \TeInformez\Config::get('cas_enabled', '0') === '1';
+            if ($cas_enabled && !empty($cas_url) && !empty($cas_key)) {
+                $salt = defined('TEINFORMEZ_CAS_SALT') ? TEINFORMEZ_CAS_SALT : \TeInformez\Config::get('cas_salt', '');
+                $recipient_hash = hash('sha256', (string) ($user->user_email ?? '') . $salt);
+                $endpoint = rtrim($cas_url, '/') . '/api/cas/render?' . http_build_query([
+                    'placement' => 'newsletter',
+                    'source'    => 'teinformez',
+                    'recipient' => $recipient_hash,
+                ]);
+                $resp = wp_remote_get($endpoint, [
+                    'timeout' => 3,
+                    'headers' => ['X-API-Key' => $cas_key],
+                ]);
+                if (!is_wp_error($resp) && (int) wp_remote_retrieve_response_code($resp) === 200) {
+                    $body = (string) wp_remote_retrieve_body($resp);
+                    if ($body !== '') {
+                        $promo_html = $body;
+                    }
+                }
+            }
         }
-        // TODO(CAS): when MA exposes /api/cas/render?slot=newsletter, fetch HTML here and assign to $promo_html.
 
         $unsubscribe_link = esc_url($frontend_url . '/dashboard/settings');
         $today_date = date_i18n('j F Y'); // e.g. "3 martie 2026"
