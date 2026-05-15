@@ -25,7 +25,7 @@
   - **InFeed side** (via WP proxy): new endpoint `GET /wp-json/teinformez/v1/cas/render?placement=infeed&visitor=<uuid>` keeps MA X-API-Key server-side. `InFeedAd.tsx` does dynamic fetch with sessionStorage-backed visitor token (no PII; server hashes with salt before forwarding to MA).
   - **Env**: `wp-config.php` defines `TEINFORMEZ_MA_API_URL` + `TEINFORMEZ_MA_API_KEY` + `TEINFORMEZ_CAS_SALT`; `teinformez_cas_enabled=1` option; `NEXT_PUBLIC_CAS_ENABLED=true` in frontend `.env.local`.
   - **Live smoke**: proxy returns 204 for no-inventory + 400 for invalid placement; Playwright walk `/news` shows 3 InFeed slots firing CAS proxy calls with stable UUID visitor + zero console errors.
-  - **`/review`**: APPROVE WITH FOLLOWUP — XSS via `dangerouslySetInnerHTML` is theoretical with zero inventory; followup gap `G-TI-CAS-XSS-RISK` to file (DOMPurify or sandboxed iframe before first real advertiser).
+  - **`/review`**: APPROVE WITH FOLLOWUP — XSS via `dangerouslySetInnerHTML` is theoretical with zero inventory; followup gap `G-TI-CAS-XSS-RISK` filed + **mitigated `b533883` 2026-05-15** (DOMPurify on useCasSlot hook + wp_kses on $promo_html).
   - **TWG**: explicit skip — Anthropic credit balance too low blocks Tester vision scoring (returns 0 score artifacts); equivalent validation via direct Playwright walk (3 CAS fires + 0 errors) + `/review` approve-with-followup (per Master CLAUDE.md TRWG threshold rule "ship fix-urile WG aplicate până atunci" + memory `feedback_trwg_gw_strict_acceptance` explicit-skip-with-reason).
 
 - [x] **CAS-05** — DONE 2026-05-15 (`092a7d1`). Banner CAS slot pe homepage `/` între secțiunile 2 și 3 (gated by `sections.length > 2` ca să nu rămână banner orfan).
@@ -33,7 +33,7 @@
   - **BannerSlot** component cu `max-w-3xl` container + `role="complementary"` + `aria-label="Reclamă"`. Renders `null` când no inventory match → zero layout shift.
   - **Backend zero-touch**: CAS_API `ALLOWED_PLACEMENTS = ['infeed', 'banner']` deja livrat în CAS-04, doar consumat aici.
   - **Live smoke**: Playwright walk homepage → 1 CAS request `placement=banner`, zero console errors, banner DOM absent (no inventory = correct).
-  - **`/review`**: APPROVE — XSS risk acoperit deja de `G-TI-CAS-XSS-RISK` (filed pentru CAS-04, se aplică și aici; mitigation = DOMPurify wrap sau sandboxed iframe before first real advertiser).
+  - **`/review`**: APPROVE — XSS risk acoperit deja de `G-TI-CAS-XSS-RISK` (filed pentru CAS-04, se aplică și aici; **mitigated `b533883` 2026-05-15** — DOMPurify pe useCasSlot hook protejează ambele consumere InFeedAd + BannerSlot).
   - **TWG**: explicit skip (same reason ca CAS-04 — Anthropic credit blocks vision; Playwright walk + `/review` = equivalent validation).
 
 ### Analytics redesign (3 faze)
