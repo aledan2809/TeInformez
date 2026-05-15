@@ -365,6 +365,38 @@ class Delivery_Handler {
     }
 
     /**
+     * Sanitize newsletter promo HTML (sponsored banner or MA CAS creative).
+     * G-TI-CAS-XSS-RISK: strips script/iframe/JS handlers before injection
+     * into digest template. Mirrors frontend DOMPurify policy in useCasSlot.ts.
+     */
+    private function sanitize_promo_html($html) {
+        if (!is_string($html) || $html === '') {
+            return '';
+        }
+        $allowed = [
+            'a'      => ['href' => [], 'title' => [], 'target' => [], 'rel' => [], 'style' => [], 'class' => []],
+            'img'    => ['src' => [], 'alt' => [], 'title' => [], 'width' => [], 'height' => [], 'style' => [], 'class' => []],
+            'div'    => ['class' => [], 'style' => []],
+            'span'   => ['class' => [], 'style' => []],
+            'p'      => ['class' => [], 'style' => []],
+            'br'     => [],
+            'hr'     => ['style' => []],
+            'strong' => [], 'b' => [], 'em' => [], 'i' => [], 'u' => [],
+            'h1' => ['style' => []], 'h2' => ['style' => []], 'h3' => ['style' => []],
+            'h4' => ['style' => []], 'h5' => ['style' => []], 'h6' => ['style' => []],
+            'table'  => ['style' => [], 'cellpadding' => [], 'cellspacing' => [], 'border' => [], 'width' => [], 'class' => [], 'role' => []],
+            'thead'  => [], 'tbody' => [], 'tfoot' => [],
+            'tr'     => ['style' => [], 'class' => []],
+            'td'     => ['style' => [], 'align' => [], 'valign' => [], 'colspan' => [], 'rowspan' => [], 'width' => [], 'class' => []],
+            'th'     => ['style' => [], 'align' => [], 'valign' => [], 'colspan' => [], 'rowspan' => [], 'width' => [], 'class' => []],
+            'ul'     => ['style' => [], 'class' => []],
+            'ol'     => ['style' => [], 'class' => []],
+            'li'     => ['style' => [], 'class' => []],
+        ];
+        return wp_kses($html, $allowed);
+    }
+
+    /**
      * Build HTML email digest — "Axios meets Morning Brew" single-column layout.
      * $by_category = ['politics' => [$item1, $item2, ...], 'tech' => [...], ...]
      */
@@ -611,7 +643,7 @@ class Delivery_Handler {
                 "UPDATE {$ads_table} SET impressions = impressions + 1 WHERE id = %d",
                 (int) $sponsored->id
             ));
-            $promo_html = $sponsored->banner_html;
+            $promo_html = $this->sanitize_promo_html($sponsored->banner_html);
         } else {
             // CAS (Carousel of Ads from MA) fallback when no sponsored campaign is active.
             // Server-to-server fetch (X-API-Key); recipient hash for per-user targeting + dedup.
@@ -634,7 +666,7 @@ class Delivery_Handler {
                 if (!is_wp_error($resp) && (int) wp_remote_retrieve_response_code($resp) === 200) {
                     $body = (string) wp_remote_retrieve_body($resp);
                     if ($body !== '') {
-                        $promo_html = $body;
+                        $promo_html = $this->sanitize_promo_html($body);
                         $cas_filled = true;
                     }
                 }

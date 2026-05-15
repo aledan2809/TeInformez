@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import DOMPurify from 'isomorphic-dompurify';
 
 /**
  * Shared CAS (Carousel of Ads) fetch hook for browser-side slots.
@@ -57,7 +58,15 @@ export function useCasSlot(placement: CasPlacement): CasSlotResult {
         return resp.text();
       })
       .then((body) => {
-        if (body && body.length > 0) setHtml(body);
+        if (body && body.length > 0) {
+          // G-TI-CAS-XSS-RISK: sanitize MA creative HTML before render.
+          // Strips <script>, inline event handlers (default DOMPurify behavior)
+          // plus iframe/object/embed (ad slots use img/a only).
+          const clean = DOMPurify.sanitize(body, {
+            FORBID_TAGS: ['iframe', 'object', 'embed'],
+          });
+          setHtml(clean);
+        }
         setLoaded(true);
       })
       .catch(() => {
