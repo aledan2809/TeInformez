@@ -60,7 +60,7 @@ export default function HeroArticle({ id, title, summary, image, imageSource, so
               </>
             )}
             <span>·</span>
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1" suppressHydrationWarning>
               <Calendar className="h-3 w-3" />
               {new Date(published_at).toLocaleDateString('ro-RO', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
             </span>

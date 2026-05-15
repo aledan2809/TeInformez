@@ -34,7 +34,7 @@ export default function SharedFooter() {
         </div>
 
         <div className="mt-8 pt-6 border-t text-center text-xs text-gray-600 dark:text-gray-400">
-          <p>&copy; {new Date().getFullYear()} TeInformez.eu. Toate drepturile rezervate.</p>
+          <p suppressHydrationWarning>&copy; {new Date().getFullYear()} TeInformez.eu. Toate drepturile rezervate.</p>
         </div>
       </div>
     </footer>

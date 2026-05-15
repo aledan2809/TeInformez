@@ -32,7 +32,7 @@ export default function ArticleCard({
         <h4 className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug">
           {title}
         </h4>
-        <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+        <div className="mt-1 text-xs text-gray-500 dark:text-gray-400" suppressHydrationWarning>
           {timeAgo}
         </div>
       </Link>
@@ -77,7 +77,7 @@ export default function ArticleCard({
         )}
 
         {/* Timestamp bottom */}
-        <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+        <div className="mt-3 text-xs text-gray-500 dark:text-gray-400" suppressHydrationWarning>
           {timeAgo}
         </div>
 
