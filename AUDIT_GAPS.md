@@ -56,6 +56,7 @@
 | G-TI-NEW-002 | INFO | Dashboard SSR delivers 112-byte loading skeleton — journey audit tooling sees EMPTY | Accepted — authenticated-only page; SSR skeleton is correct behaviour, not a content gap |
 | G-TI-NEW-003 | INFO | Journey audit `/terms` GATED false positive — onboarding marker matches word in content | Accepted — `/terms` is publicly accessible; tooling pattern match on "Setările Contului" text inside page |
 | G-TI-NEW-004 | INFO | Journey audit `/news` HAS_ERRORS false positive — Next.js RSC JSON payload | Accepted — RSC payload in Next.js App Router is expected, not an application error |
+| G-TI-CAS-XSS-RISK | MEDIUM | CAS-04 (commit `0886392`) renders MA ad creative via `dangerouslySetInnerHTML` in `frontend/src/components/home/InFeedAd.tsx:60` AND newsletter `build_digest_html` injects MA HTML body raw into `$promo_html`. Theoretical with zero inventory + MA first-party; becomes real XSS vector when ad creative is uploaded by less-trusted parties (self-serve advertisers) or if MA is compromised. | OPEN — mitigation before first real advertiser. Options: (a) wrap with isomorphic-dompurify like G-TI-NEW-005 fix `b03f267`, (b) sandboxed iframe for InFeed; (c) MA-side creative whitelist (no `<script>`, no inline event handlers, no `<iframe>`). Newsletter side: stricter — `wp_kses_post()` filter on `$promo_html` before render. |
 
 ---
 
