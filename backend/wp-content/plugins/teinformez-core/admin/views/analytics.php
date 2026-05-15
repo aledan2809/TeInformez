@@ -149,6 +149,78 @@ if ($has_events && $has_news) {
 }
 
 // ---------------------------------------------------------------------------
+// AN-02 — "Ce a funcționat" tables (top 5 articles + sources + categories)
+// ---------------------------------------------------------------------------
+
+// Top 5 articles last 7d
+$top_articles = [];
+if ($has_events && $has_news) {
+    $top_articles = $wpdb->get_results($wpdb->prepare(
+        "SELECT e.page_id, COUNT(*) views, MAX(n.processed_title) processed_title, MAX(n.original_title) original_title FROM {$events_table} e LEFT JOIN {$news_table} n ON n.id = e.page_id WHERE e.event_type='page_view' AND e.page_type='news' AND e.page_id > 0 AND e.created_at BETWEEN %s AND %s GROUP BY e.page_id ORDER BY views DESC LIMIT 5",
+        $fmt($week1_start), $fmt($week1_end)
+    ));
+}
+
+// Top 5 sources (last 7d, derived from metadata.source_bucket — populated post-AN-02 deploy)
+$top_sources = [];
+$sources_total = 0;
+$sources_unknown = 0;
+if ($has_events) {
+    // Pull all events with source data + count of those without (legacy/no-tracker events)
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT metadata FROM {$events_table} WHERE event_type='page_view' AND created_at BETWEEN %s AND %s",
+        $fmt($week1_start), $fmt($week1_end)
+    ));
+    $bucket_counts = [];
+    foreach ($rows as $row) {
+        $sources_total++;
+        $bucket = null;
+        $meta_raw = (string) ($row->metadata ?? '');
+        if ($meta_raw !== '') {
+            $meta = json_decode($meta_raw, true);
+            if (is_array($meta) && isset($meta['source_bucket']) && is_string($meta['source_bucket'])) {
+                $bucket = $meta['source_bucket'];
+            }
+        }
+        if ($bucket === null) {
+            $sources_unknown++;
+        } else {
+            if (!isset($bucket_counts[$bucket])) $bucket_counts[$bucket] = 0;
+            $bucket_counts[$bucket]++;
+        }
+    }
+    arsort($bucket_counts);
+    $top_sources = array_slice($bucket_counts, 0, 5, true);
+}
+
+// Top 5 categories (multi-cat impressions, same logic as Card 5 but list-form)
+$top_categories = [];
+$top_categories_total = $c5_total_impressions ?? 0;
+if (!empty($cat_views ?? [])) {
+    $top_categories = array_slice($cat_views, 0, 5, true);
+}
+
+// Pretty labels for source buckets
+$source_labels = [
+    'organic_google'   => 'Google (organic)',
+    'organic_bing'     => 'Bing (organic)',
+    'organic_other'    => 'Alt search engine',
+    'social_facebook'  => 'Facebook',
+    'social_instagram' => 'Instagram',
+    'social_twitter'   => 'Twitter / X',
+    'social_linkedin'  => 'LinkedIn',
+    'social_youtube'   => 'YouTube',
+    'social_reddit'    => 'Reddit',
+    'social_other'     => 'Alt social',
+    'email'            => 'Email / Newsletter',
+    'rss'              => 'RSS feed',
+    'ad'               => 'Reclamă plătită',
+    'internal'         => 'Navigare internă',
+    'direct'           => 'Direct (typed URL / no referer)',
+    'referral_other'   => 'Alt site (referral)',
+];
+
+// ---------------------------------------------------------------------------
 // Trend helpers + percentage formatting
 // ---------------------------------------------------------------------------
 $render_trend = static function(int $curr, int $prev): array {
@@ -364,14 +436,117 @@ $c4_trend = $render_trend($c4_curr, $c4_prev);
 
     </div>
 
-    <p style="color:#646970;font-size:12px;margin-top:0;">Hover pe punctele graficului pentru data + valoarea exactă. Click pe orice card &rarr; detail rows în Advanced view.</p>
+    <p style="color:#646970;font-size:12px;margin-top:0;margin-bottom:24px;">Hover pe punctele graficului pentru data + valoarea exactă. Click pe orice card &rarr; detail rows în Advanced view.</p>
+
+    <!-- AN-02: "Ce a funcționat" — 3 tables (top articles + sources + categories) -->
+    <h2 style="font-size:15px;color:#1d2327;margin:0 0 10px;">Ce a funcționat săptămâna asta</h2>
+    <div class="ti-tables-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:18px;">
+
+        <!-- Top 5 articles -->
+        <div class="ti-table-card" style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;">📰 Top 5 articole (săpt.)</div>
+            <?php if (empty($top_articles)): ?>
+                <p style="color:#646970;font-size:13px;margin:8px 0 0;">Niciun articol citit săptămâna asta.</p>
+            <?php else: ?>
+                <table class="widefat" style="border:none;">
+                    <tbody>
+                    <?php foreach ($top_articles as $article): ?>
+                        <?php $title = !empty($article->processed_title) ? $article->processed_title : $article->original_title; ?>
+                        <tr>
+                            <td style="padding:6px 8px;border:none;font-size:13px;"><?php echo esc_html(wp_trim_words((string) $title, 12, '…')); ?></td>
+                            <td style="padding:6px 8px;border:none;font-size:13px;font-weight:600;text-align:right;width:60px;"><?php echo esc_html(number_format_i18n((int) $article->views)); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <p style="color:#646970;font-size:12px;margin-top:10px;font-style:italic;">➡️ Promovează articolul #1 pe rețelele sociale luna asta.</p>
+            <?php endif; ?>
+        </div>
+
+        <!-- Top 5 sources -->
+        <div class="ti-table-card" style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;">🔗 Top 5 surse trafic (săpt.)</div>
+            <?php if (empty($top_sources) && $sources_unknown === 0): ?>
+                <p style="color:#646970;font-size:13px;margin:8px 0 0;">Nicio vizită înregistrată.</p>
+            <?php else: ?>
+                <table class="widefat" style="border:none;">
+                    <tbody>
+                    <?php foreach ($top_sources as $bucket => $count):
+                        $pct = $sources_total > 0 ? round(($count / $sources_total) * 100, 1) : 0;
+                        $label = $source_labels[$bucket] ?? $bucket;
+                    ?>
+                        <tr>
+                            <td style="padding:6px 8px;border:none;font-size:13px;"><?php echo esc_html($label); ?></td>
+                            <td style="padding:6px 8px;border:none;font-size:13px;font-weight:600;text-align:right;width:90px;color:#1d2327;">
+                                <?php echo esc_html(number_format_i18n((int) $count)); ?>
+                                <span style="color:#646970;font-weight:400;">(<?php echo esc_html(number_format_i18n($pct, 1)); ?>%)</span>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if ($sources_unknown > 0):
+                        $unknown_pct = $sources_total > 0 ? round(($sources_unknown / $sources_total) * 100, 1) : 0;
+                    ?>
+                        <tr>
+                            <td style="padding:6px 8px;border:none;font-size:13px;color:#9ca3af;font-style:italic;">(neînregistrat)*</td>
+                            <td style="padding:6px 8px;border:none;font-size:13px;text-align:right;width:90px;color:#9ca3af;">
+                                <?php echo esc_html(number_format_i18n((int) $sources_unknown)); ?>
+                                <span style="font-weight:400;">(<?php echo esc_html(number_format_i18n($unknown_pct, 1)); ?>%)</span>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
+                <?php if ($sources_unknown > 0): ?>
+                    <p style="color:#9ca3af;font-size:11px;margin-top:8px;font-style:italic;">* Capture de referer/UTM activat 2026-05-15. Evenimentele anterioare apar ca "neînregistrat". Ratio real apare pe măsură ce se acumulează date noi (~3-7 zile).</p>
+                <?php endif; ?>
+                <p style="color:#646970;font-size:12px;margin-top:10px;font-style:italic;">
+                    <?php
+                    $top_bucket = !empty($top_sources) ? array_key_first($top_sources) : null;
+                    if ($top_bucket === 'direct') echo '➡️ Mult trafic direct = brand awareness bun. Profită cu newsletter recurring.';
+                    elseif ($top_bucket === 'organic_google') echo '➡️ Continui SEO articole; categoria de top atrage trafic organic.';
+                    elseif (str_starts_with((string) $top_bucket, 'social_')) echo '➡️ Funcționează social — postează 2-3 articole/săpt. pe canalul ăsta.';
+                    elseif ($top_bucket === 'email') echo '➡️ Newsletter aduce trafic — testează frecvență mai mare.';
+                    elseif ($top_bucket === 'internal') echo '➡️ Useri navighează în site — verifică cross-links + recommended articles.';
+                    else echo '➡️ Diversifică surse: încearcă SEO + social + newsletter în paralel.';
+                    ?>
+                </p>
+            <?php endif; ?>
+        </div>
+
+        <!-- Top 5 categories -->
+        <div class="ti-table-card" style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;">🏷️ Top 5 categorii audiență (săpt.)</div>
+            <?php if (empty($top_categories)): ?>
+                <p style="color:#646970;font-size:13px;margin:8px 0 0;">Nicio categorie urmărită.</p>
+            <?php else: ?>
+                <table class="widefat" style="border:none;">
+                    <tbody>
+                    <?php foreach ($top_categories as $cat => $views):
+                        $pct = $top_categories_total > 0 ? round(($views / $top_categories_total) * 100, 1) : 0;
+                    ?>
+                        <tr>
+                            <td style="padding:6px 8px;border:none;font-size:13px;"><?php echo esc_html($cat); ?></td>
+                            <td style="padding:6px 8px;border:none;font-size:13px;font-weight:600;text-align:right;width:90px;color:#1d2327;">
+                                <?php echo esc_html(number_format_i18n((int) $views)); ?>
+                                <span style="color:#646970;font-weight:400;">(<?php echo esc_html(number_format_i18n($pct, 1)); ?>%)</span>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <p style="color:#646970;font-size:12px;margin-top:10px;font-style:italic;">➡️ Scrie 2-3 articole noi în categoria #1 săptămâna asta.</p>
+            <?php endif; ?>
+        </div>
+
+    </div>
 
     <style>
     @media (max-width: 768px) {
         .ti-headline-grid { grid-template-columns: 1fr !important; }
         .ti-charts-grid { grid-template-columns: 1fr !important; }
+        .ti-tables-grid { grid-template-columns: 1fr !important; }
     }
-    .ti-card:hover, .ti-chart:hover { box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .ti-card:hover, .ti-chart:hover, .ti-table-card:hover { box-shadow: 0 1px 3px rgba(0,0,0,.06); }
     </style>
 </div>
 <script>(function(){setTimeout(function(){window.location.reload();},60000);})();</script>

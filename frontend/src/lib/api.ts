@@ -344,6 +344,14 @@ class ApiClient {
     page_path?: string;
     duration_seconds?: number;
     metadata?: Record<string, unknown>;
+    // AN-02: source attribution signals (entry referer + UTM params).
+    // Captured once per session in visitorAnalytics.getEntrySignals().
+    referer?: string;
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    utm_term?: string;
+    utm_content?: string;
   }): Promise<void> {
     await this.client.post('/analytics/track', payload);
   }
