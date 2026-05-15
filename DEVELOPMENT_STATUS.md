@@ -1,5 +1,51 @@
 # Project Status — TeInformez
-Last Updated: 2026-05-15 late (G-TI-PHP-NEWS-API-WARNINGS shipped)
+Last Updated: 2026-05-15 late-evening (G-TI-CAS-XSS-RISK closed)
+
+## Current State (Sesiunea 2026-05-15 late-evening — CAS XSS mitigation)
+
+G-TI-CAS-XSS-RISK closed via Direct propose-confirm-apply (TeInformez = RESTRICT,
+not NO-TOUCH so no ledger ritual). Defense-in-depth: frontend centralized
+DOMPurify in `useCasSlot.ts` hook (protects both InFeedAd CAS-04 + BannerSlot
+CAS-05 consumers); backend new private `sanitize_promo_html()` kses helper in
+`class-delivery-handler.php` applied at both `$promo_html` assignment sites
+(sponsor banner + MA CAS fallback). DOMPurify config smoke 7/7 pass (script /
+iframe / svg-onload / event-handlers / object / embed stripped). PHP -l clean
+on VPS2. Live verified: teinformez.eu / + /news 200; CAS proxy 204 (no inventory,
+correct); deployed code contains all new code paths (`sanitize_promo_html` x3,
+`FORBID_TAGS` + `DOMPurify` in chunks).
+
+### Commits this session
+
+| Commit | Scope |
+|---|---|
+| `b533883` | security(cas-xss): DOMPurify on useCasSlot hook + wp_kses on $promo_html (G-TI-CAS-XSS-RISK). 2 files, +44/-3. Mirrors G-TI-NEW-005 precedent `b03f267`. |
+| `16a61e3` | docs(audit): G-TI-CAS-XSS-RISK Eliminated in AUDIT_GAPS (top table + inline row) + TODO_PERSISTENT CAS-04 / CAS-05 follow-up references updated. 2 files, +4/-3. |
+
+### Live verification
+
+- `https://teinformez.eu/` → 200
+- `https://teinformez.eu/news` → 200
+- `https://teinformez.eu/wp-json/teinformez/v1/cas/render?placement=infeed&visitor=test-*` → 204 (No Content; expected with zero inventory)
+- Backend file deployed: `grep -c sanitize_promo_html` → 3 (1 method def + 2 call sites) ✅
+- Frontend chunks deployed: `FORBID_TAGS` in `chunks/app/news/page-*.js` + `DOMPurify` in `chunks/3142-*.js` ✅
+
+### Cross-project follow-up
+
+User requested Master cross-project items continued in new AIP2 session.
+Eligible after honest scoreboard: **SSO E2E ecosystem verification** (PRIMARY,
+audit-only) + **ML2 Wave 2 4PRO+AVE ecosystems** (SECONDARY, ABIP2 audit-only).
+Excluded: TRWG-GW + api-tester + security-scanner (already done); AIRouter
+Phase E (Direct only, NO-TOUCH consumers).
+
+Full handoff at `Master/reports/handoffs/ST-2026-05-15-17.md`.
+
+## Lessons Learned (sesiunea 2026-05-15 late-evening)
+
+- **none** — pattern (DOMPurify on user-provided HTML + kses on server-injected
+  promo HTML) already documented via G-TI-NEW-005 precedent `b03f267`.
+  Reinforcement of `feedback_scope_discipline` (skip tsconfig.tsbuildinfo from
+  commit) + `feedback_pre_commit_scope_verify` (declared expected +44/-3 before
+  commit) — both worked as designed.
 
 ## Current State (Sesiunea 2026-05-15 late)
 
