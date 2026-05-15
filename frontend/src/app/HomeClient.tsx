@@ -5,6 +5,7 @@ import SharedHeader from '@/components/SharedHeader';
 import CategoryNavBar from '@/components/home/CategoryNavBar';
 import HeroArticle from '@/components/home/HeroArticle';
 import CategorySection from '@/components/home/CategorySection';
+import BannerSlot from '@/components/home/BannerSlot';
 import Link from 'next/link';
 import { Newspaper } from 'lucide-react';
 import { createTimeSpentTracker, trackPageView } from '@/lib/visitorAnalytics';
@@ -94,15 +95,18 @@ export default function HomeClient({ hero, sections }: HomeClientProps) {
           </div>
         )}
 
-        {/* Category sections */}
-        {sections.map((section) => (
-          <div key={section.slug} id={`cat-${section.slug}`}>
-            <CategorySection
-              slug={section.slug}
-              label={section.label}
-              emoji={section.emoji}
-              articles={section.articles}
-            />
+        {/* Category sections — CAS banner injected between sections 2 and 3 (after index 1) */}
+        {sections.map((section, idx) => (
+          <div key={section.slug}>
+            <div id={`cat-${section.slug}`}>
+              <CategorySection
+                slug={section.slug}
+                label={section.label}
+                emoji={section.emoji}
+                articles={section.articles}
+              />
+            </div>
+            {idx === 1 && sections.length > 2 ? <BannerSlot /> : null}
           </div>
         ))}
 
