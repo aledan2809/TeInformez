@@ -282,7 +282,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                         <tr>
                             <td>
                                 <strong>
-                                    <a href="<?php echo add_query_arg('edit', $item->id); ?>">
+                                    <a href="<?php echo add_query_arg('edit', intval($item->id)); ?>">
                                         <?php echo esc_html($item->processed_title ?: $item->original_title); ?>
                                     </a>
                                 </strong>
