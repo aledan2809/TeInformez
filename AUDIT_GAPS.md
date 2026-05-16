@@ -45,6 +45,9 @@
 | L-08 | Eliminated | `45e3d5a` — `$user_id` made required in `delete_subscription()`; WHERE clause always includes both `id` AND `user_id` | 2026-05-16 |
 | L-05 | Eliminated | B2 — session-cookie dedup in `get_single()` + `track_view()`; cookie `teinformez_viewed_<id>` with `hash(session_id . AUTH_KEY)`, 24h expiry | 2026-05-16 |
 | L-07 | Eliminated | B2 — PCRE `/u` flag on all regex; CNP `\b\d{13}\b/u`; Romanian address keywords; diacritics `ă/î/â/ș/ț` in name patterns | 2026-05-16 |
+| L-10 | Eliminated | B3 — `intval()` on all 6 raw `$item->id` locations in juridic-queue.php (5) and news-queue.php (2); hidden input values + URL concatenation + display | 2026-05-16 |
+| L-11 | Eliminated | B3 — `sanitize_text_field($_POST['action'])` before switch statement in news-queue.php | 2026-05-16 |
+| L-12 | Eliminated | B3 — PEM regex validation on `ga4_private_key` before `Config::set()`; invalid format triggers admin error notice and skips save | 2026-05-16 |
 
 **Evidence H-04–H-08**: E8 test (2026-05-11): unauthenticated GET /admin/analytics → HTTP 401; reader → HTTP 403; admin → HTTP 200.
 **Note M-07**: Fully eliminated — `send_via_brevo()` and `send_newsletter_confirmation()` now log `*@domain.com` only (see commit below).
@@ -307,23 +310,26 @@
 - **Description:** SELECT then UPDATE pattern allows concurrent cron workers to process same items, causing duplicate AI API calls and doubled costs.
 - **Recommendation:** Use atomic `UPDATE ... WHERE status='fetched' LIMIT 10` then SELECT claimed items.
 
-### L-10: Unescaped integer IDs in admin view output
+### L-10: Unescaped integer IDs in admin view output — **ELIMINATED 2026-05-16**
 
 - **Location:** `admin/views/juridic-queue.php:211,225,230,238`, `admin/views/news-queue.php:137,329`
 - **Description:** `$item->id` echoed without `esc_attr()`/`intval()` in hidden fields and display.
 - **Recommendation:** Use `intval($item->id)` or `esc_attr($item->id)`.
+- **Resolution:** All 6 audit-listed locations + 1 bonus (text display, URL concat) wrapped with `intval()`. No double-escaping — `intval()` returns int, safe for all output contexts.
 
-### L-11: Unsanitized `$_POST['action']` in switch statement
+### L-11: Unsanitized `$_POST['action']` in switch statement — **ELIMINATED 2026-05-16**
 
 - **Location:** `admin/views/news-queue.php:24`
 - **Description:** `$_POST['action']` used directly in switch without `sanitize_text_field()`.
 - **Recommendation:** Sanitize before use.
+- **Resolution:** `$action = sanitize_text_field($_POST['action'])` assigned before switch statement; switch uses `$action` variable.
 
-### L-12: `ga4_private_key` saved without format validation
+### L-12: `ga4_private_key` saved without format validation — **ELIMINATED 2026-05-16**
 
 - **Location:** `admin/class-admin.php:212-215`
 - **Description:** Only `trim()` and `wp_unslash()` applied. No PEM format validation.
 - **Recommendation:** Validate PEM format (`-----BEGIN...-----END`) or use `sanitize_textarea_field()`.
+- **Resolution:** PEM regex `/^-----BEGIN PRIVATE KEY-----[A-Za-z0-9+\/=\s]+-----END PRIVATE KEY-----\s*$/` applied before `Config::set()`. Invalid format triggers `add_settings_error()` admin notice and skips save. Empty value allowed (clearing the key).
 
 ---
 

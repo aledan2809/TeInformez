@@ -99,7 +99,7 @@ $categories = [
 
     <!-- Add/Edit Form -->
     <div style="background:#fff; padding:20px; margin:20px 0; border:1px solid #ccc; border-radius:4px;">
-        <h2><?php echo $edit_item ? 'Editează întrebarea #' . $edit_item->id : 'Adaugă întrebare nouă'; ?></h2>
+        <h2><?php echo $edit_item ? 'Editează întrebarea #' . intval($edit_item->id) : 'Adaugă întrebare nouă'; ?></h2>
         <form method="post">
             <?php wp_nonce_field('juridic_save', '_juridic_nonce'); ?>
             <input type="hidden" name="juridic_action" value="save">
@@ -212,7 +212,7 @@ $categories = [
             <?php else: ?>
                 <?php foreach ($items as $item): ?>
                     <tr>
-                        <td><?php echo $item->id; ?></td>
+                        <td><?php echo intval($item->id); ?></td>
                         <td><?php echo esc_html(mb_substr($item->question_anonymized, 0, 80)) . (mb_strlen($item->question_anonymized) > 80 ? '...' : ''); ?></td>
                         <td><?php echo esc_html($categories[$item->category] ?? $item->category); ?></td>
                         <td><?php echo $item->is_weekly_column ? '✅' : '—'; ?></td>
@@ -225,19 +225,19 @@ $categories = [
                         </td>
                         <td><?php echo number_format($item->view_count); ?></td>
                         <td>
-                            <a href="<?php echo admin_url('admin.php?page=teinformez-juridic&edit=' . $item->id); ?>" class="button button-small">Editează</a>
+                            <a href="<?php echo admin_url('admin.php?page=teinformez-juridic&edit=' . intval($item->id)); ?>" class="button button-small">Editează</a>
                             <?php if ($item->status === 'draft'): ?>
                                 <form method="post" style="display:inline">
                                     <?php wp_nonce_field('juridic_save', '_juridic_nonce'); ?>
                                     <input type="hidden" name="juridic_action" value="publish">
-                                    <input type="hidden" name="publish_id" value="<?php echo $item->id; ?>">
+                                    <input type="hidden" name="publish_id" value="<?php echo intval($item->id); ?>">
                                     <button type="submit" class="button button-small button-primary">Publică</button>
                                 </form>
                             <?php endif; ?>
                             <form method="post" style="display:inline" onsubmit="return confirm('Sigur vrei să ștergi?')">
                                 <?php wp_nonce_field('juridic_save', '_juridic_nonce'); ?>
                                 <input type="hidden" name="juridic_action" value="delete">
-                                <input type="hidden" name="delete_id" value="<?php echo $item->id; ?>">
+                                <input type="hidden" name="delete_id" value="<?php echo intval($item->id); ?>">
                                 <button type="submit" class="button button-small" style="color:red">Șterge</button>
                             </form>
                         </td>

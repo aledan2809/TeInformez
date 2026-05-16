@@ -22,8 +22,9 @@ if (isset($_POST['action']) && isset($_POST['_wpnonce'])) {
     } else {
         $item_id = isset($_POST['item_id']) ? (int)$_POST['item_id'] : 0;
         $notes = isset($_POST['admin_notes']) ? sanitize_textarea_field($_POST['admin_notes']) : '';
+        $action = sanitize_text_field($_POST['action']);
 
-        switch ($_POST['action']) {
+        switch ($action) {
             case 'approve':
                 if ($publisher->approve($item_id, $notes)) {
                     $message = __('News item approved.', 'teinformez');
@@ -136,7 +137,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
 
             <form method="post">
                 <?php wp_nonce_field('teinformez_queue_action'); ?>
-                <input type="hidden" name="item_id" value="<?php echo $editing_item->id; ?>">
+                <input type="hidden" name="item_id" value="<?php echo intval($editing_item->id); ?>">
 
                 <table class="form-table">
                     <tr>
@@ -327,7 +328,7 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                                 <?php if ($item->status === 'pending_review'): ?>
                                     <form method="post" style="display: inline;">
                                         <?php wp_nonce_field('teinformez_queue_action'); ?>
-                                        <input type="hidden" name="item_id" value="<?php echo $item->id; ?>">
+                                        <input type="hidden" name="item_id" value="<?php echo intval($item->id); ?>">
                                         <button type="submit" name="action" value="approve" class="button button-small" title="<?php _e('Approve', 'teinformez'); ?>">✓</button>
                                         <button type="submit" name="action" value="reject" class="button button-small" title="<?php _e('Reject', 'teinformez'); ?>">✕</button>
                                     </form>

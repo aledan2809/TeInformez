@@ -279,6 +279,15 @@ class Admin {
             } elseif ($field === 'ga4_private_key' && isset($_POST[$field])) {
                 // Keep line breaks for PEM format keys.
                 $value = trim((string) wp_unslash($_POST[$field]));
+                if ($value !== '' && !preg_match('/^-----BEGIN PRIVATE KEY-----[A-Za-z0-9+\/=\s]+-----END PRIVATE KEY-----\s*$/', $value)) {
+                    add_settings_error(
+                        'teinformez_messages',
+                        'teinformez_pem_invalid',
+                        __('Invalid PEM format for GA4 private key. The key must begin with -----BEGIN PRIVATE KEY----- and end with -----END PRIVATE KEY-----.', 'teinformez'),
+                        'error'
+                    );
+                    continue;
+                }
                 Config::set($field, $value);
             } elseif (isset($_POST[$field])) {
                 Config::set($field, sanitize_text_field($_POST[$field]));
