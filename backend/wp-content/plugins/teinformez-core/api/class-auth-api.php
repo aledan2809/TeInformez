@@ -185,9 +185,15 @@ class Auth_API extends REST_API {
         // Generate token
         $token = $this->generate_token($user_id);
 
+        // L-02: Generate opaque refresh token
+        $device_fingerprint = sanitize_text_field($params['device_fingerprint'] ?? 'default');
+        $refresh_token = bin2hex(random_bytes(32));
+        update_user_meta($user_id, 'teinformez_refresh_token_' . $device_fingerprint, hash('sha256', $refresh_token));
+
         return $this->success([
             'user' => $this->format_user_data($user_id),
-            'token' => $token
+            'token' => $token,
+            'refresh_token' => $refresh_token
         ], __('Registration successful!', 'teinformez'), 201);
     }
 
@@ -228,9 +234,15 @@ class Auth_API extends REST_API {
 
         $token = $this->generate_token($user->ID);
 
+        // L-02: Generate opaque refresh token
+        $device_fingerprint = sanitize_text_field($params['device_fingerprint'] ?? 'default');
+        $refresh_token = bin2hex(random_bytes(32));
+        update_user_meta($user->ID, 'teinformez_refresh_token_' . $device_fingerprint, hash('sha256', $refresh_token));
+
         return $this->success([
             'user' => $this->format_user_data($user->ID),
-            'token' => $token
+            'token' => $token,
+            'refresh_token' => $refresh_token
         ], __('Login successful!', 'teinformez'));
     }
 
@@ -263,22 +275,51 @@ class Auth_API extends REST_API {
 
     /**
      * Refresh authentication token
+     * L-02: Opaque refresh tokens stored in user_meta for server-side revocation
      */
     public function refresh_token($request) {
-        $user_id = $this->get_current_user_id();
+        $params = $request->get_json_params();
 
-        if (!$user_id) {
+        if (empty($params['refresh_token']) || empty($params['device_fingerprint'])) {
             return $this->error(
-                __('Not authenticated.', 'teinformez'),
-                'not_authenticated',
+                __('Refresh token and device fingerprint are required.', 'teinformez'),
+                'missing_params',
+                400
+            );
+        }
+
+        $refresh_token = preg_replace('/[^A-Fa-f0-9]/', '', $params['refresh_token']);
+        $device_fingerprint = sanitize_text_field($params['device_fingerprint']);
+        $meta_key = 'teinformez_refresh_token_' . $device_fingerprint;
+
+        // Look up all users with this refresh token for the given device
+        global $wpdb;
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND meta_value = %s LIMIT 1",
+            $meta_key,
+            hash('sha256', $refresh_token)
+        ));
+
+        if (!$row) {
+            return $this->error(
+                __('Invalid or revoked refresh token.', 'teinformez'),
+                'invalid_refresh_token',
                 401
             );
         }
 
+        $user_id = (int) $row->user_id;
+
+        // Generate new access token
         $token = $this->generate_token($user_id);
 
+        // Rotate refresh token
+        $new_refresh = bin2hex(random_bytes(32));
+        update_user_meta($user_id, $meta_key, hash('sha256', $new_refresh));
+
         return $this->success([
-            'token' => $token
+            'token' => $token,
+            'refresh_token' => $new_refresh
         ]);
     }
 
@@ -292,10 +333,11 @@ class Auth_API extends REST_API {
         $expires_at = time() + DAY_IN_SECONDS;
         $token_data = $user_id . '|' . $expires_at;
 
-        // Per-user secret: AUTH_KEY + password hash fragment — rotates on password change
+        // L-01: dedicated secret with AUTH_KEY fallback + per-user password hash fragment
         $user_data  = get_userdata((int)$user_id);
         $per_user   = $user_data ? substr($user_data->user_pass, 8, 12) : '';
-        $secret     = AUTH_KEY . $per_user;
+        $base_secret = defined('TEINFORMEZ_AUTH_SECRET') ? TEINFORMEZ_AUTH_SECRET : AUTH_KEY;
+        $secret     = $base_secret . $per_user;
 
         $signature = hash_hmac('sha256', $token_data, $secret);
 
@@ -329,9 +371,10 @@ class Auth_API extends REST_API {
             return false;
         }
 
-        // Re-derive the same per-user secret used at token generation
+        // L-01: Re-derive the same per-user secret used at token generation
         $per_user          = substr($user->user_pass, 8, 12);
-        $secret            = AUTH_KEY . $per_user;
+        $base_secret       = defined('TEINFORMEZ_AUTH_SECRET') ? TEINFORMEZ_AUTH_SECRET : AUTH_KEY;
+        $secret            = $base_secret . $per_user;
         $token_data        = $user_id . '|' . $expires_at;
         $expected_signature = hash_hmac('sha256', $token_data, $secret);
 
@@ -369,8 +412,8 @@ class Auth_API extends REST_API {
         // Generate reset token (valid for 24 hours)
         $reset_token = $this->generate_reset_token($user->ID);
 
-        // Save token in user meta
-        update_user_meta($user->ID, '_teinformez_reset_token', $reset_token);
+        // L-03: Store hash of reset token — plaintext goes to email only
+        update_user_meta($user->ID, '_teinformez_reset_token', hash('sha256', $reset_token));
         update_user_meta($user->ID, '_teinformez_reset_expires', time() + (24 * HOUR_IN_SECONDS));
 
         // Build reset link
@@ -396,7 +439,8 @@ class Auth_API extends REST_API {
         }
 
         $email = sanitize_email($params['email']);
-        $token = sanitize_text_field($params['token']);
+        // L-04: base64-safe sanitization preserving +/= characters
+        $token = preg_replace('/[^A-Za-z0-9+\/=|.\-_]/', '', $params['token']);
         $password = $params['password'];
 
         // Validate password strength
@@ -419,7 +463,8 @@ class Auth_API extends REST_API {
         $stored_token = get_user_meta($user->ID, '_teinformez_reset_token', true);
         $expires = get_user_meta($user->ID, '_teinformez_reset_expires', true);
 
-        if (empty($stored_token) || !hash_equals($stored_token, $token)) {
+        // L-03: Hash incoming token to compare against stored hash
+        if (empty($stored_token) || !hash_equals($stored_token, hash('sha256', $token))) {
             return $this->error(
                 __('Invalid reset link.', 'teinformez'),
                 'invalid_token',
@@ -455,7 +500,8 @@ class Auth_API extends REST_API {
     private function generate_reset_token($user_id) {
         $random = bin2hex(random_bytes(32));
         $data = $user_id . '|' . $random . '|' . time();
-        return base64_encode($data . '|' . hash_hmac('sha256', $data, AUTH_KEY));
+        $base_secret = defined('TEINFORMEZ_AUTH_SECRET') ? TEINFORMEZ_AUTH_SECRET : AUTH_KEY;
+        return base64_encode($data . '|' . hash_hmac('sha256', $data, $base_secret));
     }
 
     /**
