@@ -1,9 +1,9 @@
 # TeInformez Security Audit — Gap Analysis
 
-**Date:** 2026-04-16 (updated 2026-05-12)
+**Date:** 2026-04-16 (updated 2026-05-16)
 **Plugin:** TeInformez Core v1.0.0
 **Scope:** Static code analysis of `backend/wp-content/plugins/teinformez-core/`
-**Mode:** AUDIT-ONLY → DIRECT FIX (H-01–H-08 fixed 2026-05-11; Sprint 1 fixed 2026-05-11; Sprint 2 fixed 2026-05-12; Sprint 3 fixed 2026-05-12; Sprint 4 fixed 2026-05-12; Sprint 5 fixed 2026-05-12; Sprint 5 review fixes `564a983` 2026-05-12)
+**Mode:** AUDIT-ONLY → DIRECT FIX (H-01–H-08 fixed 2026-05-11; Sprint 1–5 fixed 2026-05-11/12; ABIP2 B1–B16 security hardening 2026-05-16)
 **Target:** WordPress 6.0+ / PHP 8.0+
 
 ---
@@ -50,7 +50,15 @@
 | L-12 | Eliminated | B3 — PEM regex validation on `ga4_private_key` before `Config::set()`; invalid format triggers admin error notice and skips save | 2026-05-16 |
 | I-01 | Eliminated | B7 — `current_password` required in `/user/delete`; `wp_check_password()` before `wp_delete_user()`; generic 403 on failure (no user-existence leak) | 2026-05-16 |
 | I-04 | Eliminated | B12 — `hash('sha256', $ip . AUTH_KEY)` replaces plaintext IP storage; version-gated backfill migration hashes existing IPs; daily 7-year retention cron `teinformez_gdpr_retention_cleanup` registered on activation, deregistered on deactivation | 2026-05-16 |
-| L-06 | Eliminated | B16 — all 10 `register_rest_route()` calls in class-news-api.php include `args` with type/required/sanitize_callback/validate_callback; page/per_page range 1-100; id absint ≥1; strings sanitize_text_field | 2026-05-16 |
+| L-01 | Eliminated | `36b3591` — dedicated `TEINFORMEZ_AUTH_SECRET` constant; falls back to `AUTH_KEY` if unset | 2026-05-16 |
+| L-02 | Eliminated | `36b3591` — opaque server-side refresh tokens stored in `user_meta`; old access token format retired | 2026-05-16 |
+| L-03 | Eliminated | `36b3591` — reset tokens stored as `hash('sha256', $token)` in user_meta; validation compares hashes | 2026-05-16 |
+| L-04 | Eliminated | `36b3591` — base64-safe regex sanitizer replaces `sanitize_text_field()` for token inputs | 2026-05-16 |
+| L-06 | Eliminated | `a3acd40` — all 10 `register_rest_route()` calls in class-news-api.php include `args` with type/required/sanitize_callback/validate_callback; page/per_page range 1-100; id absint ≥1; strings sanitize_text_field | 2026-05-16 |
+| L-09 | Eliminated | `12266b0` — atomic `UPDATE ... SET status='processing', claimed_at=NOW()` replaces SELECT-then-UPDATE; stale claim recovery ≥60s | 2026-05-16 |
+| I-02 | Eliminated | `e78d877` — `class-cors.php` with `rest_pre_serve_request` filter; validates `HTTP_ORIGIN` against allowed list; OPTIONS preflight 200 | 2026-05-16 |
+| I-03 | Eliminated | `e78d877` — FK constraints on subscriptions/delivery_log/visitor_events → `wp_users.ID`; `ON DELETE CASCADE`/`SET NULL` | 2026-05-16 |
+| I-06 | Eliminated | `12266b0` — `self::$authenticated_user_id = null` reset at start of `is_authenticated()` | 2026-05-16 |
 
 **Evidence H-04–H-08**: E8 test (2026-05-11): unauthenticated GET /admin/analytics → HTTP 401; reader → HTTP 403; admin → HTTP 200.
 **Note M-07**: Fully eliminated — `send_via_brevo()` and `send_newsletter_confirmation()` now log `*@domain.com` only (see commit below).
@@ -256,29 +264,33 @@
 
 ## Low
 
-### L-01: Token relies solely on site-wide `AUTH_KEY`
+### ~~L-01: Token relies solely on site-wide `AUTH_KEY`~~ → Eliminated 2026-05-16
 
 - **Location:** `api/class-auth-api.php:290, 320`
 - **Description:** Key rotation invalidates all sessions. Key compromise enables forging tokens for any user.
 - **Recommendation:** Use a dedicated secret or add per-user component.
+- **Resolution:** Dedicated `TEINFORMEZ_AUTH_SECRET` constant with fallback to `AUTH_KEY`. Per-user password hash component added to HMAC.
 
-### L-02: No separate refresh token mechanism
+### ~~L-02: No separate refresh token mechanism~~ → Eliminated 2026-05-16
 
 - **Location:** `api/class-auth-api.php:260-276`
 - **Description:** `/auth/refresh` reuses the same access token format. No additional security over longer-lived access tokens.
 - **Recommendation:** Implement opaque, server-side stored refresh tokens.
+- **Resolution:** Opaque server-side refresh tokens stored in `user_meta` with expiry. Old access token format retired for refresh flow.
 
-### L-03: Password reset token stored in plaintext in user meta
+### ~~L-03: Password reset token stored in plaintext in user meta~~ → Eliminated 2026-05-16
 
 - **Location:** `api/class-auth-api.php:360-361`
 - **Description:** Database compromise exposes unexpired reset tokens.
 - **Recommendation:** Store `hash('sha256', $reset_token)` and compare hashes during validation.
+- **Resolution:** Reset tokens stored as `hash('sha256', $token)`. Validation compares hashes via `hash_equals()`.
 
-### L-04: `sanitize_text_field()` may corrupt base64 tokens
+### ~~L-04: `sanitize_text_field()` may corrupt base64 tokens~~ → Eliminated 2026-05-16
 
 - **Location:** `api/class-auth-api.php:386, 470`
 - **Description:** Strips tags, encodes special chars. Base64 tokens contain `+`, `/`, `=` which can be corrupted.
 - **Recommendation:** Use regex validation instead: `preg_replace('/[^A-Za-z0-9+\/=|]/', '', $token)`.
+- **Resolution:** Base64-safe regex sanitizer replaces `sanitize_text_field()` for all token input paths.
 
 ### L-05: View count manipulation — no rate limiting — **ELIMINATED 2026-05-16**
 

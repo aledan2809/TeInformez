@@ -4,9 +4,28 @@
 
 ---
 
-## [ ] 🔒 SECURITY FIXES — scheduled ABIP2 + 2 Triage Direct (creat 2026-05-16)
+## [x] 🔒 SECURITY FIXES — ABIP2 B1-B16 DONE 2026-05-16; Triage-1 DONE (Sprint 4); I-05 deferred Triage-2
 
-**Status**: scheduled for next session per ST handoff `Master/reports/handoffs/ST-2026-05-16-01.md`.
+**Status**: ABIP2 main pipeline complete. 17 findings eliminated (L-01–L-12, I-01–I-04, I-06). Only I-05 remains (deferred to Triage-2 Direct session).
+
+**Commits (ABIP2 B1–B16)**:
+- `45e3d5a` B1 L-08 require user_id in delete_subscription
+- `700f72d` B2 L-05 view-dedup L-07 unicode-PII-regex
+- `a51b650` B3 L-10 intval-output L-11 sanitize-POST-action L-12 PEM-validation
+- `359788c` B3 L-10 missed intval() on news-queue add_query_arg
+- `36b3591` B4 L-01 dedicated-secret L-02 opaque-refresh L-03 hashed-reset L-04 base64-safe-sanitize
+- `da4c26c` B7 I-01 require-reauth-on-account-delete
+- `12266b0` B11 L-09 atomic-cron-claim I-06 reset-static-auth
+- `c690049` B12 I-04 gdpr-ip-hashing-and-retention
+- `e78d877` B13 I-02 cors-fallback I-03 foreign-keys
+- `a3acd40` B16 L-06 rest-args-schema-validation
+
+**Prior Sprint commits (already Eliminated before ABIP2)**:
+- `9d6d31e` C-01 IDOR, H-01 column injection, H-02 rate limiting, H-03 token revocability
+- `8a3814b` review fixes — remove phantom whitelist field, harden rate limiter
+- `d1b09ca` correct check_rate_limit() return type
+- `9b39dff` Retry-After header on 429 + clear rate limit on successful login
+- `0c50157` review fixes — $changes log XSS, dead CORS code, SSRF at source save
 
 **Scope**: 44 findings in `TeInformez/AUDIT_GAPS.md` (1 Critical + 8 High + 17 Medium + 12 Low + 6 Informational).
 
