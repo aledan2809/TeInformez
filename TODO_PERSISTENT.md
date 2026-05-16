@@ -1,6 +1,81 @@
 # TODO Persistent — TeInformez
 > Items rămân până marcate DONE cu dată + commit.
-> Last updated: 2026-05-14
+> Last updated: 2026-05-16
+
+---
+
+## [ ] 🔒 SECURITY FIXES — scheduled ABIP2 + 2 Triage Direct (creat 2026-05-16)
+
+**Status**: scheduled for next session per ST handoff `Master/reports/handoffs/ST-2026-05-16-01.md`.
+
+**Scope**: 44 findings in `TeInformez/AUDIT_GAPS.md` (1 Critical + 8 High + 17 Medium + 12 Low + 6 Informational).
+
+**Decomposition** (3 distinct execution tracks per user directive 2026-05-16):
+
+### Track A — ABIP2 main pipeline (next session, user pre-approved RESTRICT execution mode)
+
+**13 batches**, deploy after EACH (per user "dupa fiecare ca sa vedem rezultatele online"):
+
+| Batch | Files | Findings | Effort |
+|---|---|---|---|
+| B1 | `includes/class-subscription-manager.php` + `api/class-user-api.php` | C-01 IDOR, H-01 column injection whitelist, L-08 required `$user_id` | ~15min |
+| B2 | `api/class-news-api.php` + `api/class-juridic-api.php` + `api/class-telegram-api.php` | H-04 admin analytics cap, H-05 juridic CRUD cap, H-06 telegram cap, L-05 view dedup, L-07 PII unicode | ~30min |
+| B3 | `admin/views/juridic-queue.php` + `admin/views/news-queue.php` + `admin/class-admin.php` | H-08 admin form cap, L-10 esc_attr(id), L-11 sanitize $_POST action, L-12 PEM validation | ~20min |
+| B4 | `api/class-auth-api.php` (rate limit infra) | H-02 transient rate limiter on login/register/reset, M-01 email enum, M-02 shared pwd validator, M-03 set-secure-cookie validate, L-01/02/03/04 token/AUTH_KEY/reset hash | ~1.5h |
+| B5 | `api/class-auth-api.php` (revocation) | H-03 token revocation via hash(password) HMAC suffix → invalidate on pwd change | ~45min |
+| B6 | `api/class-telegram-api.php` + new `includes/class-encryption.php` | H-07 encrypt telegram bot token (AES-256-CBC + AUTH_KEY salt) + migration | ~45min |
+| B7 | `api/class-user-api.php` (preferences/email/delete) | M-08 preferences whitelist, M-15 bulk cap 50, M-16 email change confirmation flow, I-01 re-auth account delete | ~1h |
+| B8 | `includes/class-news-fetcher.php` | M-09 SSRF block private IPs + HTTPS only + `reject_unsafe_urls`, M-10 XXE `LIBXML_NONET` | ~20min |
+| B9 | `includes/class-ai-processor.php` + `includes/class-chief-editor.php` | M-11 sanitize AI output (sanitize_text_field/wp_kses_post/sanitize_textarea_field), M-12 HTTPS validation for non-localhost AI Router | ~20min |
+| B11 | `includes/class-social-poster.php` + `api/class-rest-api.php` | M-13 `prepare()` HAVING, M-14 REST nonce for cookie auth (X-WP-Nonce), I-06 reset static `$authenticated_user_id`, L-09 atomic cron claim | ~30min |
+| B12 | `includes/class-email-sender.php` + `includes/class-user-manager.php` + `includes/class-gdpr-handler.php` | M-07 redact reset link from logs, M-08 user-manager preferences whitelist sibling, I-04 hash IP for GDPR | ~20min |
+| B13 | `includes/class-activator.php` + WP hooks | I-03 `delete_user` action hook cleanup orphans, I-02 app-level CORS fallback via `rest_pre_serve_request` | ~30min |
+| B15 | `Master/TODO_PERSISTENT.md` + `TeInformez/TODO_PERSISTENT.md` (doc-only) | Align markers OP-01 + OP-02 → `[~] DEFER (no Premium tier per MN-01)` | 5min |
+| B16 | `api/class-news-api.php` (REST args) | L-06 add `args` schema with sanitize_callback/validate_callback on REST routes | ~30min |
+
+**Total ABIP2 estimat**: ~7h dev work, ~13 deploys.
+
+### Track B — Triage-1 Direct surgical session (CORS hardening, separate)
+
+**File**: `backend/wp-content/plugins/teinformez-core/includes/class-config.php`
+
+**Findings**:
+- M-05: Restrict `*.vercel.app` CORS wildcard (user confirmed 2026-05-16: Vercel TeInformez dead, migrated to VPS2 WordPress; safe to narrow)
+- M-06: `get_client_ip()` only trust `X-Forwarded-For` from known Nginx proxy (single trusted hop); parse rightmost entry only
+- M-17: Localhost origins (`localhost:3000`, `localhost:3002`) gated on `WP_DEBUG` OR env-based config (exclude in prod)
+
+**Effort**: ~30min. Surgical patch. Deploy after.
+
+### Track C — Triage-2 Direct surgical session (Google key infra, separate)
+
+**Files**: `backend/wp-content/plugins/teinformez-core/includes/class-google-analytics-service.php` + VPS2 `wp-config.php`
+
+**Findings**:
+- I-05: Move Google service account private key from `wp_options.ga4_private_key` → `wp-config.php` constant `TEINFORMEZ_GA4_PRIVATE_KEY` (with fallback to filesystem path `/var/www/teinformez-secrets/ga4-key.pem` chmod 600 root:www-data). Database breach no longer exposes Google API credentials.
+
+**Effort**: ~45min. Requires SSH VPS2 + wp-config edit + key migration script (one-time) + admin UI update to remove field. Deploy after.
+
+### Track D — Post-all `/review` verification
+
+After ABIP2 + both Triage sessions land:
+- Run `/review` skill on TeInformez branch HEAD → baseline + verify findings closed
+- AUDIT_GAPS.md update: move each finding to "Eliminated Gaps" with commit hash + date
+- Mark this TODO item `[x]` with full closure context
+
+### Acceptance criteria (composite)
+
+- All 44 findings closed in AUDIT_GAPS.md "Eliminated Gaps" section with commit hashes
+- Each ABIP2 batch deployed individually to `teinformez.eu` + manually smoke-tested
+- `/review` skill output shows no NEW critical/high findings on changed files
+- TODO_PERSISTENT this item marked `[x]` with date + commit list
+
+### Anti-patterns to AVOID (codified)
+
+- ❌ NU batch-uri merged together — fiecare batch e commit + deploy + smoke separat (user explicit cere visibility per phase)
+- ❌ NU folosi ABIP2 audit-only (RESTRICT permite execution; user a pre-aprobat)
+- ❌ NU atinge Triage findings (M-05/06/17, I-05) în ABIP2 — sunt separate Direct surgical sessions
+- ❌ NU skip `/review` post-all (Track D obligatoriu)
+- ❌ NU rephrase user constraints — verbatim block must appear ABOVE Technical Translation per CLAUDE.md FILE MODIFICATION DISCIPLINE
 
 ---
 
