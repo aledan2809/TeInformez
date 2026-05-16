@@ -42,70 +42,243 @@ class News_API extends REST_API {
         register_rest_route($this->namespace, '/news', [
             'methods' => 'GET',
             'callback' => [$this, 'get_news'],
-            'permission_callback' => '__return_true'
+            'permission_callback' => '__return_true',
+            'args' => [
+                'page' => [
+                    'type' => 'integer',
+                    'required' => false,
+                    'default' => 1,
+                    'sanitize_callback' => 'absint',
+                    'validate_callback' => function($param) {
+                        return is_numeric($param) && (int)$param >= 1 && (int)$param <= 100;
+                    },
+                ],
+                'per_page' => [
+                    'type' => 'integer',
+                    'required' => false,
+                    'default' => 20,
+                    'sanitize_callback' => 'absint',
+                    'validate_callback' => function($param) {
+                        return is_numeric($param) && (int)$param >= 1 && (int)$param <= 100;
+                    },
+                ],
+                'category' => [
+                    'type' => 'string',
+                    'required' => false,
+                    'sanitize_callback' => 'sanitize_text_field',
+                    'validate_callback' => function($param) {
+                        return is_string($param);
+                    },
+                ],
+                'search' => [
+                    'type' => 'string',
+                    'required' => false,
+                    'sanitize_callback' => 'sanitize_text_field',
+                    'validate_callback' => function($param) {
+                        return is_string($param);
+                    },
+                ],
+                'archive' => [
+                    'type' => 'boolean',
+                    'required' => false,
+                    'default' => false,
+                    'sanitize_callback' => 'rest_sanitize_boolean',
+                    'validate_callback' => 'rest_validate_request_arg',
+                ],
+            ],
         ]);
 
         // Get single news item
         register_rest_route($this->namespace, '/news/(?P<id>\d+)', [
             'methods' => 'GET',
             'callback' => [$this, 'get_single_news'],
-            'permission_callback' => '__return_true'
+            'permission_callback' => '__return_true',
+            'args' => [
+                'id' => [
+                    'type' => 'integer',
+                    'required' => true,
+                    'sanitize_callback' => 'absint',
+                    'validate_callback' => function($param) {
+                        return is_numeric($param) && (int)$param >= 1;
+                    },
+                ],
+            ],
         ]);
 
         // Get personalized news feed (authenticated)
         register_rest_route($this->namespace, '/news/personalized', [
             'methods' => 'GET',
             'callback' => [$this, 'get_personalized_feed'],
-            'permission_callback' => [$this, 'is_authenticated']
+            'permission_callback' => [$this, 'is_authenticated'],
+            'args' => [
+                'page' => [
+                    'type' => 'integer',
+                    'required' => false,
+                    'default' => 1,
+                    'sanitize_callback' => 'absint',
+                    'validate_callback' => function($param) {
+                        return is_numeric($param) && (int)$param >= 1 && (int)$param <= 100;
+                    },
+                ],
+                'per_page' => [
+                    'type' => 'integer',
+                    'required' => false,
+                    'default' => 20,
+                    'sanitize_callback' => 'absint',
+                    'validate_callback' => function($param) {
+                        return is_numeric($param) && (int)$param >= 1 && (int)$param <= 100;
+                    },
+                ],
+            ],
         ]);
 
         // Homepage data (categorized news in single call)
         register_rest_route($this->namespace, '/news/homepage', [
             'methods' => 'GET',
             'callback' => [$this, 'get_homepage_data'],
-            'permission_callback' => '__return_true'
+            'permission_callback' => '__return_true',
+            'args' => [],
         ]);
 
         // Track news view
         register_rest_route($this->namespace, '/news/(?P<id>\d+)/view', [
             'methods' => 'POST',
             'callback' => [$this, 'track_view'],
-            'permission_callback' => '__return_true'
+            'permission_callback' => '__return_true',
+            'args' => [
+                'id' => [
+                    'type' => 'integer',
+                    'required' => true,
+                    'sanitize_callback' => 'absint',
+                    'validate_callback' => function($param) {
+                        return is_numeric($param) && (int)$param >= 1;
+                    },
+                ],
+            ],
         ]);
 
         // Newsletter subscribe (double opt-in, no account needed)
         register_rest_route($this->namespace, '/newsletter/subscribe', [
             'methods' => 'POST',
             'callback' => [$this, 'newsletter_subscribe'],
-            'permission_callback' => '__return_true'
+            'permission_callback' => '__return_true',
+            'args' => [
+                'email' => [
+                    'type' => 'string',
+                    'required' => true,
+                    'sanitize_callback' => 'sanitize_email',
+                    'validate_callback' => function($param) {
+                        return is_string($param) && is_email($param);
+                    },
+                ],
+                'gdpr_consent' => [
+                    'type' => 'boolean',
+                    'required' => true,
+                    'sanitize_callback' => 'rest_sanitize_boolean',
+                    'validate_callback' => 'rest_validate_request_arg',
+                ],
+                'visitor_id' => [
+                    'type' => 'string',
+                    'required' => false,
+                    'default' => '',
+                    'sanitize_callback' => 'sanitize_text_field',
+                ],
+                'session_id' => [
+                    'type' => 'string',
+                    'required' => false,
+                    'default' => '',
+                    'sanitize_callback' => 'sanitize_text_field',
+                ],
+                'utm_source' => [
+                    'type' => 'string',
+                    'required' => false,
+                    'default' => '',
+                    'sanitize_callback' => 'sanitize_text_field',
+                ],
+                'utm_medium' => [
+                    'type' => 'string',
+                    'required' => false,
+                    'default' => '',
+                    'sanitize_callback' => 'sanitize_text_field',
+                ],
+                'utm_campaign' => [
+                    'type' => 'string',
+                    'required' => false,
+                    'default' => '',
+                    'sanitize_callback' => 'sanitize_text_field',
+                ],
+            ],
         ]);
 
         // Newsletter confirm (double opt-in step 2)
         register_rest_route($this->namespace, '/newsletter/confirm', [
             'methods' => 'GET',
             'callback' => [$this, 'newsletter_confirm'],
-            'permission_callback' => '__return_true'
+            'permission_callback' => '__return_true',
+            'args' => [
+                'token' => [
+                    'type' => 'string',
+                    'required' => true,
+                    'sanitize_callback' => 'sanitize_text_field',
+                    'validate_callback' => function($param) {
+                        return is_string($param) && strlen($param) > 0;
+                    },
+                ],
+            ],
         ]);
 
         // Newsletter unsubscribe
         register_rest_route($this->namespace, '/newsletter/unsubscribe', [
             'methods' => 'GET',
             'callback' => [$this, 'newsletter_unsubscribe'],
-            'permission_callback' => '__return_true'
+            'permission_callback' => '__return_true',
+            'args' => [
+                'token' => [
+                    'type' => 'string',
+                    'required' => true,
+                    'sanitize_callback' => 'sanitize_text_field',
+                    'validate_callback' => function($param) {
+                        return is_string($param) && strlen($param) > 0;
+                    },
+                ],
+            ],
         ]);
 
         // Admin analytics
         register_rest_route($this->namespace, '/admin/analytics', [
             'methods' => 'GET',
             'callback' => [$this, 'get_analytics'],
-            'permission_callback' => [$this, 'is_admin']
+            'permission_callback' => [$this, 'is_admin'],
+            'args' => [],
         ]);
 
         // Push notification subscription (GR-05)
         register_rest_route($this->namespace, '/push/subscribe', [
             'methods' => 'POST',
             'callback' => [$this, 'push_subscribe'],
-            'permission_callback' => '__return_true'
+            'permission_callback' => '__return_true',
+            'args' => [
+                'endpoint' => [
+                    'type' => 'string',
+                    'required' => true,
+                    'sanitize_callback' => 'esc_url_raw',
+                    'validate_callback' => function($param) {
+                        return is_string($param) && strlen($param) > 0;
+                    },
+                ],
+                'keys' => [
+                    'type' => 'object',
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_array($param) && !empty($param['p256dh']) && !empty($param['auth']);
+                    },
+                ],
+                'expirationTime' => [
+                    'type' => ['integer', 'null'],
+                    'required' => false,
+                    'default' => null,
+                ],
+            ],
         ]);
     }
 

@@ -50,6 +50,7 @@
 | L-12 | Eliminated | B3 — PEM regex validation on `ga4_private_key` before `Config::set()`; invalid format triggers admin error notice and skips save | 2026-05-16 |
 | I-01 | Eliminated | B7 — `current_password` required in `/user/delete`; `wp_check_password()` before `wp_delete_user()`; generic 403 on failure (no user-existence leak) | 2026-05-16 |
 | I-04 | Eliminated | B12 — `hash('sha256', $ip . AUTH_KEY)` replaces plaintext IP storage; version-gated backfill migration hashes existing IPs; daily 7-year retention cron `teinformez_gdpr_retention_cleanup` registered on activation, deregistered on deactivation | 2026-05-16 |
+| L-06 | Eliminated | B16 — all 10 `register_rest_route()` calls in class-news-api.php include `args` with type/required/sanitize_callback/validate_callback; page/per_page range 1-100; id absint ≥1; strings sanitize_text_field | 2026-05-16 |
 
 **Evidence H-04–H-08**: E8 test (2026-05-11): unauthenticated GET /admin/analytics → HTTP 401; reader → HTTP 403; admin → HTTP 200.
 **Note M-07**: Fully eliminated — `send_via_brevo()` and `send_newsletter_confirmation()` now log `*@domain.com` only (see commit below).
@@ -286,11 +287,12 @@
 - **Recommendation:** Deduplicate via cookie/session. Remove auto-increment from `get_single()`.
 - **Resolution:** Session-cookie dedup applied to both `get_single()` and `track_view()` in class-juridic-api.php. Cookie `teinformez_viewed_<id>` set with `hash('sha256', session_id . AUTH_KEY)` value and 24h expiry. Duplicate views return `tracked: false`.
 
-### L-06: Missing REST route `args` schema validation
+### L-06: Missing REST route `args` schema validation — **ELIMINATED 2026-05-16**
 
 - **Location:** `api/class-news-api.php:39-92` (all routes)
 - **Description:** No route-level `args` with `sanitize_callback`/`validate_callback`. Relies on manual validation in callbacks.
 - **Recommendation:** Add `args` definitions for defense-in-depth and auto-documentation.
+- **Resolution:** All 10 `register_rest_route()` calls in class-news-api.php now include complete `args` arrays with `type`, `required`, `sanitize_callback` (absint for integers, sanitize_text_field for strings), and `validate_callback` (range checks for page/per_page 1-100, type checks for strings/integers). Defense-in-depth only — existing callback validation preserved.
 
 ### L-07: Weak PII anonymization in juridic questions — **ELIMINATED 2026-05-16**
 
