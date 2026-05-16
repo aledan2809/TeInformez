@@ -266,6 +266,28 @@ class Activator {
             KEY session_id (session_id)
         ) {$charset_collate};";
 
+        // Table: Stripe Subscriptions
+        $table_stripe = $wpdb->prefix . 'teinformez_stripe_subscriptions';
+        $sql_stripe = "CREATE TABLE IF NOT EXISTS {$table_stripe} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id BIGINT(20) UNSIGNED NOT NULL,
+            tier ENUM('free','premium') NOT NULL DEFAULT 'free',
+            stripe_customer_id VARCHAR(100) DEFAULT NULL,
+            stripe_subscription_id VARCHAR(100) DEFAULT NULL,
+            stripe_price_id VARCHAR(100) DEFAULT NULL,
+            status ENUM('active','canceled','past_due','trialing','incomplete','incomplete_expired','unpaid','paused') NOT NULL DEFAULT 'active',
+            current_period_end DATETIME DEFAULT NULL,
+            cancel_at_period_end TINYINT(1) NOT NULL DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY user_id (user_id),
+            KEY stripe_customer_id (stripe_customer_id),
+            KEY stripe_subscription_id (stripe_subscription_id),
+            KEY tier (tier),
+            KEY status (status)
+        ) {$charset_collate};";
+
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql_preferences);
         dbDelta($sql_subscriptions);
@@ -278,6 +300,7 @@ class Activator {
         dbDelta($sql_reading_history);
         dbDelta($sql_bookmarks);
         dbDelta($sql_visitor_events);
+        dbDelta($sql_stripe);
 
         // Run migrations for existing installations
         self::run_migrations();
@@ -364,6 +387,34 @@ class Activator {
         if (empty($column_exists)) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $wpdb->query("ALTER TABLE {$table} ADD COLUMN gdpr_consent_policy_version VARCHAR(10) DEFAULT '1.0' AFTER gdpr_ip_address");
+        }
+
+        // v1.3.0: Stripe subscriptions table
+        $table_stripe = $wpdb->prefix . 'teinformez_stripe_subscriptions';
+        $stripe_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_stripe));
+        if ($stripe_exists !== $table_stripe) {
+            require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+            $charset_collate = $wpdb->get_charset_collate();
+            $sql_stripe_mig = "CREATE TABLE IF NOT EXISTS {$table_stripe} (
+                id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+                user_id BIGINT(20) UNSIGNED NOT NULL,
+                tier ENUM('free','premium') NOT NULL DEFAULT 'free',
+                stripe_customer_id VARCHAR(100) DEFAULT NULL,
+                stripe_subscription_id VARCHAR(100) DEFAULT NULL,
+                stripe_price_id VARCHAR(100) DEFAULT NULL,
+                status ENUM('active','canceled','past_due','trialing','incomplete','incomplete_expired','unpaid','paused') NOT NULL DEFAULT 'active',
+                current_period_end DATETIME DEFAULT NULL,
+                cancel_at_period_end TINYINT(1) NOT NULL DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                UNIQUE KEY user_id (user_id),
+                KEY stripe_customer_id (stripe_customer_id),
+                KEY stripe_subscription_id (stripe_subscription_id),
+                KEY tier (tier),
+                KEY status (status)
+            ) {$charset_collate};";
+            dbDelta($sql_stripe_mig);
         }
 
         // v1.2.0: Foreign key constraints (I-03 defense-in-depth)

@@ -102,6 +102,7 @@ function teinformez_init() {
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-settings-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-analytics-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-cas-api.php';
+    require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-stripe-api.php';
     // Initialize REST API
     new TeInformez\API\REST_API();
     new TeInformez\API\Auth_API();
@@ -111,6 +112,7 @@ function teinformez_init() {
     new TeInformez\API\Settings_API();
     new TeInformez\API\Analytics_API();
     new TeInformez\API\CAS_API();
+    new TeInformez\API\Stripe_API();
 
     // Auto-merge new categories into stored option
     $current_cats = get_option('teinformez_categories', []);
