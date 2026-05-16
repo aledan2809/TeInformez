@@ -365,6 +365,31 @@ class Activator {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery
             $wpdb->query("ALTER TABLE {$table} ADD COLUMN gdpr_consent_policy_version VARCHAR(10) DEFAULT '1.0' AFTER gdpr_ip_address");
         }
+
+        // v1.2.0: Widen gdpr_ip_address to CHAR(64) for SHA-256 hashes + backfill existing plaintext IPs
+        if (get_option('teinformez_gdpr_ip_hashed') !== '1') {
+            // Widen column to hold 64-char SHA-256 hex digest
+            $wpdb->query("ALTER TABLE {$table} MODIFY COLUMN gdpr_ip_address VARCHAR(64) DEFAULT NULL");
+
+            // Backfill: hash existing plaintext IPs in batches of 100
+            $auth_key = defined('AUTH_KEY') ? AUTH_KEY : '';
+            $offset = 0;
+            $batch_size = 100;
+            do {
+                $rows = $wpdb->get_results($wpdb->prepare(
+                    "SELECT id, gdpr_ip_address FROM {$table} WHERE gdpr_ip_address IS NOT NULL AND gdpr_ip_address != '' AND CHAR_LENGTH(gdpr_ip_address) < 64 LIMIT %d OFFSET %d",
+                    $batch_size,
+                    $offset
+                ));
+                foreach ($rows as $row) {
+                    $hashed = hash('sha256', $row->gdpr_ip_address . $auth_key);
+                    $wpdb->update($table, ['gdpr_ip_address' => $hashed], ['id' => $row->id]);
+                }
+                $offset += $batch_size;
+            } while (count($rows) === $batch_size);
+
+            update_option('teinformez_gdpr_ip_hashed', '1');
+        }
     }
 
     /**
@@ -394,6 +419,11 @@ class Activator {
         // Daily cleanup of old data
         if (!wp_next_scheduled('teinformez_daily_cleanup')) {
             wp_schedule_event(time(), 'daily', 'teinformez_daily_cleanup');
+        }
+
+        // Daily GDPR consent retention cleanup (7-year retention)
+        if (!wp_next_scheduled('teinformez_gdpr_retention_cleanup')) {
+            wp_schedule_event(time(), 'daily', 'teinformez_gdpr_retention_cleanup');
         }
     }
 }

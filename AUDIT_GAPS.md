@@ -49,6 +49,7 @@
 | L-11 | Eliminated | B3 — `sanitize_text_field($_POST['action'])` before switch statement in news-queue.php | 2026-05-16 |
 | L-12 | Eliminated | B3 — PEM regex validation on `ga4_private_key` before `Config::set()`; invalid format triggers admin error notice and skips save | 2026-05-16 |
 | I-01 | Eliminated | B7 — `current_password` required in `/user/delete`; `wp_check_password()` before `wp_delete_user()`; generic 403 on failure (no user-existence leak) | 2026-05-16 |
+| I-04 | Eliminated | B12 — `hash('sha256', $ip . AUTH_KEY)` replaces plaintext IP storage; version-gated backfill migration hashes existing IPs; daily 7-year retention cron `teinformez_gdpr_retention_cleanup` registered on activation, deregistered on deactivation | 2026-05-16 |
 
 **Evidence H-04–H-08**: E8 test (2026-05-11): unauthenticated GET /admin/analytics → HTTP 401; reader → HTTP 403; admin → HTTP 200.
 **Note M-07**: Fully eliminated — `send_via_brevo()` and `send_newsletter_confirmation()` now log `*@domain.com` only (see commit below).
@@ -351,11 +352,12 @@
 - **Description:** No FK constraints. WordPress user deletion outside GDPR flow leaves orphaned PII records.
 - **Recommendation:** Hook into `delete_user` action to trigger cleanup.
 
-### I-04: GDPR consent IP stored in plaintext
+### ~~I-04: GDPR consent IP stored in plaintext~~ → Eliminated 2026-05-16
 
 - **Location:** `includes/class-gdpr-handler.php:30`
 - **Description:** IP addresses are PII under GDPR. No retention policy or hashing.
 - **Recommendation:** Hash IP or set retention policy for purging.
+- **Resolution:** `hash('sha256', $ip . AUTH_KEY)` replaces plaintext storage in `record_consent()`. Version-gated one-time migration backfills existing plaintext IPs (batch 100, `CHAR_LENGTH < 64` guard). Column widened to `VARCHAR(64)`. Daily cron `teinformez_gdpr_retention_cleanup` deletes consent records older than 7 years. Cron registered in activator, deregistered in deactivator. All reads of `gdpr_ip_address` are export/comparison only (no plaintext display).
 
 ### I-05: Google service account private key in `wp_options`
 

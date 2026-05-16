@@ -194,6 +194,13 @@ add_action('teinformez_daily_cleanup', function() {
     $publisher->cleanup_old_items(30);
 });
 
+// GDPR consent retention cleanup — delete records older than 7 years
+add_action('teinformez_gdpr_retention_cleanup', function() {
+    global $wpdb;
+    $table = $wpdb->prefix . 'teinformez_user_preferences';
+    $wpdb->query("DELETE FROM {$table} WHERE gdpr_consent_date IS NOT NULL AND gdpr_consent_date < DATE_SUB(NOW(), INTERVAL 7 YEAR)");
+});
+
 // D+1 re-engagement: fires 24h after registration, sends TOP 3 articles if user hasn't read any
 add_action('teinformez_welcome_d1_email', function($user_id) {
     global $wpdb;

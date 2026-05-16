@@ -27,7 +27,7 @@ class GDPR_Handler {
             [
                 'gdpr_consent' => 1,
                 'gdpr_consent_date' => current_time('mysql'),
-                'gdpr_ip_address' => sanitize_text_field($ip_address),
+                'gdpr_ip_address' => hash('sha256', $ip_address . AUTH_KEY),
                 'gdpr_consent_policy_version' => sanitize_text_field($policy_version),
                 'updated_at' => current_time('mysql')
             ],
