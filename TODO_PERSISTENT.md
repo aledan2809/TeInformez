@@ -19,6 +19,7 @@
 - `c690049` B12 I-04 gdpr-ip-hashing-and-retention
 - `e78d877` B13 I-02 cors-fallback I-03 foreign-keys
 - `a3acd40` B16 L-06 rest-args-schema-validation
+- `9a9d97e` B11 check_rate_limit return type fix (WP_Error not WP_REST_Response)
 
 **Prior Sprint commits (already Eliminated before ABIP2)**:
 - `9d6d31e` C-01 IDOR, H-01 column injection, H-02 rate limiting, H-03 token revocability
