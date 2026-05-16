@@ -48,6 +48,7 @@
 | L-10 | Eliminated | B3 — `intval()` on all 6 raw `$item->id` locations in juridic-queue.php (5) and news-queue.php (2); hidden input values + URL concatenation + display | 2026-05-16 |
 | L-11 | Eliminated | B3 — `sanitize_text_field($_POST['action'])` before switch statement in news-queue.php | 2026-05-16 |
 | L-12 | Eliminated | B3 — PEM regex validation on `ga4_private_key` before `Config::set()`; invalid format triggers admin error notice and skips save | 2026-05-16 |
+| I-01 | Eliminated | B7 — `current_password` required in `/user/delete`; `wp_check_password()` before `wp_delete_user()`; generic 403 on failure (no user-existence leak) | 2026-05-16 |
 
 **Evidence H-04–H-08**: E8 test (2026-05-11): unauthenticated GET /admin/analytics → HTTP 401; reader → HTTP 403; admin → HTTP 200.
 **Note M-07**: Fully eliminated — `send_via_brevo()` and `send_newsletter_confirmation()` now log `*@domain.com` only (see commit below).
@@ -335,11 +336,7 @@
 
 ## Informational
 
-### I-01: No re-authentication for account deletion
-
-- **Location:** `api/class-user-api.php:325-343`
-- **Description:** `/user/delete` permanently deletes account without password confirmation. Stolen token enables irreversible deletion.
-- **Recommendation:** Require current password as confirmation.
+### ~~I-01: No re-authentication for account deletion~~ → Eliminated 2026-05-16
 
 ### I-02: No application-level CORS enforcement
 

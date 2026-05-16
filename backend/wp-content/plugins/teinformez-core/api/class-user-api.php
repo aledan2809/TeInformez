@@ -343,10 +343,28 @@ class User_API extends REST_API {
 
     /**
      * Delete account (GDPR right to be forgotten)
+     * Requires current_password for re-authentication (I-01).
      */
     public function delete_account($request) {
         $csrf = $this->check_cookie_csrf($request); if ($csrf) return $csrf;
         $user_id = $this->get_current_user_id();
+        $params = $request->get_json_params();
+
+        // Require current_password field
+        $validation = $this->validate_required($params, ['current_password']);
+        if (is_wp_error($validation)) {
+            return $validation;
+        }
+
+        // Verify password — generic error to avoid leaking user existence
+        $user = get_userdata($user_id);
+        if (!$user || !wp_check_password($params['current_password'], $user->user_pass, $user_id)) {
+            return new \WP_REST_Response([
+                'success' => false,
+                'message' => 'Invalid password — re-authentication required',
+                'code' => 'reauth_failed'
+            ], 403);
+        }
 
         // Anonymize data
         $gdpr = new GDPR_Handler();
