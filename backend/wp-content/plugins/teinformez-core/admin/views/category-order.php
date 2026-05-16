@@ -7,7 +7,6 @@ $hidden_categories = get_option('teinformez_hidden_categories', []);
 // Default categories (same as frontend)
 $all_categories = [
     ['slug' => 'toate', 'label' => 'Toate', 'emoji' => '&#x1F4F0;'],
-    ['slug' => 'juridic', 'label' => 'Juridic cu Alina', 'emoji' => '&#x1F4CB;'],
     ['slug' => 'actualitate', 'label' => 'Actualitate', 'emoji' => '&#x1F4F0;'],
     ['slug' => 'politics', 'label' => 'Politic&#259;', 'emoji' => '&#x1F3DB;'],
     ['slug' => 'international', 'label' => 'Interna&#539;ional', 'emoji' => '&#x1F30D;'],

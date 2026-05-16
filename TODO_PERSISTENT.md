@@ -290,9 +290,9 @@ After ABIP2 + both Triage sessions land:
 
 ### Faza 3 — Monetization
 
-- [x] **MN-01** — **Feature matrix**: DECIZIE 2026-05-13 — platformă 100% Free, monetizare ads only. Premium tier DEFER până crește baza de useri. MN-02/MN-03 DEFER corespunzător.
-- [~] **MN-02** — **Stripe subscriptions**: DEFER (fără tier Premium activ)
-- [~] **MN-03** — **Paywall soft**: DEFER (fără tier Premium activ)
+- [x] **MN-01** — **Feature matrix**: DECIZIE 2026-05-13 — platformă 100% Free, monetizare ads only. Premium tier DEFER până crește baza de useri. MN-02/MN-03 DEFER corespunzător. **REVERSAT 2026-05-17**: Premium reactivat. Juridic cu Alina ELIMINAT complet. Preț: 9 RON/lună sau 99 RON/an. Feature matrix Premium: filtre avansate + export PDF + push prioritar.
+- [ ] **MN-02** — **Stripe subscriptions**: IN PROGRESS 2026-05-17 (Step 3 activ)
+- [ ] **MN-03** — **Paywall soft**: PENDING (după MN-02)
 - [x] **MN-05** — **Newsletter sponsorizat**: DONE 2026-05-13 (`fef09fd`) — DB `wp_teinformez_newsletter_ads` + admin UI CRUD (sponsor_name, banner_html, campaign_start/end, status, impressions counter) + delivery handler inject (campanie activă azi → override promo intern, fallback rotație internă). TRWG-GW: toate checks OK.
 - [x] **MN-06** — **Admin revenue dashboard**: DONE 2026-05-13 (`b2fcfe3`) — `/wp-admin/?page=teinformez-revenue` — grid cards (useri, newsletter subscribers, articole, campanii ads active, total impressii), tabel campanii cu status azi, status AdSense (configurat/neconfigurat + instrucțiuni), strategia de monetizare curentă documentată. TRWG-GW: toate checks OK.
 

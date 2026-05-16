@@ -98,7 +98,6 @@ function teinformez_init() {
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-auth-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-user-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-news-api.php';
-    require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-juridic-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-telegram-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-settings-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-analytics-api.php';
@@ -108,7 +107,6 @@ function teinformez_init() {
     new TeInformez\API\Auth_API();
     new TeInformez\API\User_API();
     new TeInformez\API\News_API();
-    new TeInformez\API\Juridic_API();
     new TeInformez\API\Telegram_API();
     new TeInformez\API\Settings_API();
     new TeInformez\API\Analytics_API();
@@ -182,12 +180,6 @@ add_action('teinformez_news_published', function() {
         delete_transient('teinformez_news_p1_pp' . $pp);
     }
 }, 20);
-
-// Social media posting: auto-post when juridic Q&A is published
-add_action('teinformez_juridic_published', function($item) {
-    $social = new TeInformez\Social_Poster();
-    $social->post_juridic_on_demand($item, ['facebook', 'twitter', 'instagram']);
-});
 
 add_action('teinformez_check_delivery_health', function() {
     $handler = new TeInformez\Delivery_Handler();

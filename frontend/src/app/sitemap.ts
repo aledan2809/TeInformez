@@ -13,11 +13,6 @@ interface NewsApiItem {
   published_at: string;
 }
 
-interface JuridicApiItem {
-  id: number;
-  published_at: string;
-}
-
 async function fetchNewsTotalPages(): Promise<number> {
   try {
     const res = await fetch(`${API_BASE}/news?per_page=${NEWS_PER_PAGE}&page=1`, {
@@ -44,21 +39,7 @@ async function fetchNewsPage(page: number): Promise<NewsApiItem[]> {
   }
 }
 
-async function fetchAllJuridicItems(): Promise<JuridicApiItem[]> {
-  try {
-    const res = await fetch(`${API_BASE}/juridic?per_page=100&page=1`, {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return [];
-    const json = await res.json();
-    return (json.data?.items as JuridicApiItem[]) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-// Called at build time to determine how many sitemap files to generate.
-// id=0: static pages + juridic; id=1..N: news pages.
+// id=0: static pages; id=1..N: news pages.
 export async function generateSitemaps() {
   const totalPages = await fetchNewsTotalPages();
   const cappedPages = Math.min(totalPages, MAX_NEWS_SITEMAPS);
@@ -74,9 +55,7 @@ export default async function sitemap({
   id: number;
 }): Promise<MetadataRoute.Sitemap> {
   if (id === 0) {
-    const juridicItems = await fetchAllJuridicItems();
-
-    const staticPages: MetadataRoute.Sitemap = [
+    return [
       {
         url: SITE_URL,
         lastModified: new Date(),
@@ -88,12 +67,6 @@ export default async function sitemap({
         lastModified: new Date(),
         changeFrequency: 'hourly',
         priority: 0.9,
-      },
-      {
-        url: `${SITE_URL}/juridic`,
-        lastModified: new Date(),
-        changeFrequency: 'daily',
-        priority: 0.8,
       },
       {
         url: `${SITE_URL}/register`,
@@ -126,15 +99,6 @@ export default async function sitemap({
         priority: 0.3,
       },
     ];
-
-    const juridicPages: MetadataRoute.Sitemap = juridicItems.map((item) => ({
-      url: `${SITE_URL}/juridic/${item.id}`,
-      lastModified: new Date(item.published_at),
-      changeFrequency: 'weekly' as const,
-      priority: 0.6,
-    }));
-
-    return [...staticPages, ...juridicPages];
   }
 
   // id >= 1: news page (1-indexed)

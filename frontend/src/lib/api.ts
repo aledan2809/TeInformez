@@ -20,10 +20,6 @@ import type {
   PersonalizedNewsResponse,
   DeliveryItem,
   DeliveryStats,
-  JuridicListResponse,
-  JuridicItemResponse,
-  JuridicCategoriesResponse,
-  JuridicColumnsResponse,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_WP_API_URL || 'http://localhost/wp-json';
@@ -339,7 +335,7 @@ class ApiClient {
     visitor_id: string;
     session_id: string;
     event_type: 'page_view' | 'article_click' | 'time_spent' | 'newsletter_subscribe';
-    page_type: 'news' | 'juridic' | 'news_list' | 'juridic_list' | 'home' | 'other';
+    page_type: 'news' | 'news_list' | 'home' | 'other';
     page_id?: number;
     page_path?: string;
     duration_seconds?: number;
@@ -373,27 +369,6 @@ class ApiClient {
 
   async getPersonalizedFeed(params?: { page?: number; per_page?: number }): Promise<PersonalizedNewsResponse> {
     const response = await this.client.get<APIResponse<PersonalizedNewsResponse>>('/news/personalized', { params });
-    return response.data.data!;
-  }
-
-  // Juridic endpoints
-  async getJuridicList(params?: { page?: number; per_page?: number; category?: string; search?: string; column_only?: boolean }): Promise<JuridicListResponse> {
-    const response = await this.client.get<APIResponse<JuridicListResponse>>('/juridic', { params });
-    return response.data.data!;
-  }
-
-  async getJuridicItem(id: number): Promise<JuridicItemResponse> {
-    const response = await this.client.get<APIResponse<JuridicItemResponse>>(`/juridic/${id}`);
-    return response.data.data!;
-  }
-
-  async getJuridicCategories(): Promise<JuridicCategoriesResponse> {
-    const response = await this.client.get<APIResponse<JuridicCategoriesResponse>>('/juridic/categories');
-    return response.data.data!;
-  }
-
-  async getJuridicColumns(params?: { page?: number }): Promise<JuridicColumnsResponse> {
-    const response = await this.client.get<APIResponse<JuridicColumnsResponse>>('/juridic/columns', { params });
     return response.data.data!;
   }
 

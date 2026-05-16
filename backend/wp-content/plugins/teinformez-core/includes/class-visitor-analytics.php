@@ -68,7 +68,7 @@ class Visitor_Analytics {
         }
 
         $page_type = sanitize_key((string) ($payload['page_type'] ?? ''));
-        if (!in_array($page_type, ['news', 'juridic', 'news_list', 'juridic_list', 'home', 'other'], true)) {
+        if (!in_array($page_type, ['news', 'news_list', 'home', 'other'], true)) {
             $page_type = 'other';
         }
 

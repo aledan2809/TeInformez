@@ -8,7 +8,6 @@ export interface CategoryDef {
 
 export const CATEGORIES: CategoryDef[] = [
   { slug: '', label: 'Toate', emoji: '📰' },
-  { slug: 'juridic', label: 'Juridic cu Alina', emoji: '📋', subcategories: ['Dreptul muncii', 'Dreptul familiei', 'Drept comercial', 'Drept penal'] },
   { slug: 'actualitate', label: 'Actualitate', emoji: '📰', subcategories: ['Breaking', 'Social', 'Educație', 'Cultură', 'România'] },
   { slug: 'politics', label: 'Politică', emoji: '🏛️', subcategories: ['România', 'UE', 'SUA', 'Internațional'] },
   { slug: 'international', label: 'Internațional', emoji: '🌍', subcategories: ['Europa', 'SUA', 'Orientul Mijlociu', 'Asia', 'Africa'] },
@@ -50,7 +49,6 @@ export const CATEGORY_COLORS: Record<string, string> = {
   sanatate: 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300',
   lifestyle: 'bg-fuchsia-100 dark:bg-fuchsia-900/30 text-fuchsia-700 dark:text-fuchsia-300',
   opinii: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300',
-  juridic: 'bg-stone-100 dark:bg-stone-900/30 text-stone-700 dark:text-stone-300',
   // Legacy slugs
   news: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300',
   world: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300',

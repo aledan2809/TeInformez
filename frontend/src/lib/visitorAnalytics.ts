@@ -1,6 +1,6 @@
 import { api } from '@/lib/api';
 
-type PageType = 'news' | 'juridic' | 'news_list' | 'juridic_list' | 'home' | 'other';
+type PageType = 'news' | 'news_list' | 'home' | 'other';
 type EventType = 'page_view' | 'article_click' | 'time_spent';
 
 interface AnalyticsPayload {

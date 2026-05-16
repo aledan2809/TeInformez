@@ -147,11 +147,6 @@ class Config {
             'icon' => '💬',
             'subcategories' => ['editoriale', 'analize', 'comentarii', 'interviuri']
         ],
-        'juridic' => [
-            'label' => 'Juridic cu Alina',
-            'icon' => '📋',
-            'subcategories' => ['dreptul-muncii', 'dreptul-familiei', 'drept-comercial', 'drept-penal', 'protectia-consumatorului']
-        ],
         // Legacy slugs used by the AI classifier
         'news' => [
             'label' => 'Actualitate',

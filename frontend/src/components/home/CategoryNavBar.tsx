@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { CATEGORIES, CategoryDef } from '@/lib/categories';
 import { useAuthStore } from '@/store/authStore';
@@ -57,7 +56,7 @@ export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) 
       const hiddenSet = new Set(hiddenCategories);
       let cats = allNavCats.filter(c => !hiddenSet.has(c.slug));
       if (userCategorySlugs) {
-        cats = cats.filter(c => c.slug === 'juridic' || userCategorySlugs!.has(c.slug));
+        cats = cats.filter(c => userCategorySlugs!.has(c.slug));
       }
       cats = sortByAdminOrder(cats, adminOrder);
 
@@ -106,19 +105,6 @@ export default function CategoryNavBar({ activeSections }: CategoryNavBarProps) 
         >
           {orderedCategories.map((cat) => {
             const hasArticles = !activeSections || activeSections.includes(cat.slug);
-
-            if (cat.slug === 'juridic') {
-              return (
-                <Link
-                  key={cat.slug}
-                  href="/juridic"
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors bg-gray-100 dark:bg-gray-800 hover:bg-primary-100 dark:hover:bg-primary-900/30 text-gray-700 dark:text-gray-300"
-                >
-                  <span>{cat.emoji}</span>
-                  <span>{cat.label}</span>
-                </Link>
-              );
-            }
 
             return (
               <button

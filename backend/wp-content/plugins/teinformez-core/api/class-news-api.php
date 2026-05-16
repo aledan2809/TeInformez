@@ -20,7 +20,6 @@ class News_API extends REST_API {
     ];
 
     private const HOMEPAGE_SECTION_ORDER = [
-        'juridic',
         'actualitate',
         'politics',
         'international',
