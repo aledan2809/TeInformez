@@ -103,18 +103,17 @@ class Subscription_Manager {
 
     /**
      * Delete subscription
+     *
+     * @param int $subscription_id
+     * @param int $user_id Ownership check — required (L-08)
      */
-    public function delete_subscription($subscription_id, $user_id = null) {
+    public function delete_subscription($subscription_id, $user_id) {
         global $wpdb;
 
-        $where = ['id' => $subscription_id];
-
-        // Security: ensure user can only delete their own subscriptions
-        if ($user_id) {
-            $where['user_id'] = $user_id;
-        }
-
-        return $wpdb->delete($this->table_name, $where);
+        return $wpdb->delete($this->table_name, [
+            'id'      => $subscription_id,
+            'user_id' => $user_id,
+        ]);
     }
 
     /**

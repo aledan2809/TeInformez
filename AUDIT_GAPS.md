@@ -42,6 +42,7 @@
 | M-12 | Eliminated | `fb15a12` — Config::validate_ai_router_url() guards both AI_Processor + Chief_Editor; http only for localhost, https for any external host | 2026-05-12 |
 | Sprint 5 review fixes | Eliminated | `564a983` — string type hint; WP_REST_Response Retry-After; IPv6 brackets trim; dev comment removed from authStore | 2026-05-12 |
 | G-TI-CAS-XSS-RISK | Eliminated | `b533883` — DOMPurify on useCasSlot hook (frontend) + sanitize_promo_html() kses allowlist in build_digest_html (backend); strips script/iframe/JS handlers | 2026-05-15 |
+| L-08 | Eliminated | `$user_id` made required in `delete_subscription()`; WHERE clause always includes both `id` AND `user_id` | 2026-05-16 |
 
 **Evidence H-04–H-08**: E8 test (2026-05-11): unauthenticated GET /admin/analytics → HTTP 401; reader → HTTP 403; admin → HTTP 200.
 **Note M-07**: Fully eliminated — `send_via_brevo()` and `send_newsletter_confirmation()` now log `*@domain.com` only (see commit below).
@@ -289,11 +290,12 @@
 - **Description:** Regex misses Romanian diacritics (e.g., "Ionut Stefanescu"), single names, CNP (personal ID numbers), and addresses.
 - **Recommendation:** Use unicode-aware patterns. Add CNP/address detection.
 
-### L-08: Optional `$user_id` in `delete_subscription()` defaults to null
+### L-08: Optional `$user_id` in `delete_subscription()` defaults to null — **ELIMINATED 2026-05-16**
 
-- **Location:** `includes/class-subscription-manager.php:94-105`
+- **Location:** `includes/class-subscription-manager.php:107`
 - **Description:** If any caller omits `$user_id`, ownership check is skipped.
 - **Recommendation:** Make `$user_id` required (no default value).
+- **Resolution:** `$user_id` parameter made required (no default); WHERE clause unconditionally includes both `id` AND `user_id`. Single caller in `api/class-user-api.php:295` already passes authenticated `$user_id`. grep confirmed no other callers.
 
 ### L-09: Race condition in cron job item claiming
 
