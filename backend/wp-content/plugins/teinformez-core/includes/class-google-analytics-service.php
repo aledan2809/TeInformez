@@ -125,20 +125,125 @@ class Google_Analytics_Service {
             $client_email = trim((string) $json['client_email']);
         }
 
-        $private_key = trim((string) Config::get('ga4_private_key', ''));
-        if ($private_key === '') {
-            $private_key = trim((string) Config::get('google_private_key', ''));
-        }
-        if ($private_key === '' && !empty($json['private_key'])) {
-            $private_key = trim((string) $json['private_key']);
-        }
-
-        // Some environments store escaped line breaks.
-        $private_key = str_replace('\\n', "\n", $private_key);
+        $private_key = self::resolve_private_key($json);
 
         $this->property_id = preg_replace('/[^0-9]/', '', $property) ?: '';
         $this->client_email = $client_email;
         $this->private_key = $private_key;
+    }
+
+    /**
+     * I-05: Resolve GA4 service-account private key in this strict precedence:
+     *   1. TEINFORMEZ_GA4_PRIVATE_KEY constant   (inline; discouraged but supported for containers)
+     *   2. TEINFORMEZ_GA4_PRIVATE_KEY_PATH       (filesystem PEM; preferred)
+     *   3. wp_options.teinformez_ga4_private_key  (legacy; emits one-shot deprecation notice)
+     *   4. wp_options legacy aliases + JSON fallback (last resort, same deprecated tier)
+     *
+     * Keeping DB paths means an un-migrated production install keeps working
+     * until ops moves the key to the filesystem, while a fully migrated install
+     * exposes the key only at the OS layer (chmod 640 root:www-data).
+     */
+    public static function resolve_private_key(array $json = []): string {
+        // 1. Inline constant (rare; e.g. container env injects via auto_prepend wp-config snippet).
+        if (defined('TEINFORMEZ_GA4_PRIVATE_KEY')) {
+            $key = trim((string) constant('TEINFORMEZ_GA4_PRIVATE_KEY'));
+            if ($key !== '') {
+                return self::normalize_pem_newlines($key);
+            }
+        }
+
+        // 2. Filesystem path constant — preferred production path.
+        if (defined('TEINFORMEZ_GA4_PRIVATE_KEY_PATH')) {
+            $path = (string) constant('TEINFORMEZ_GA4_PRIVATE_KEY_PATH');
+            if ($path !== '' && is_readable($path)) {
+                $contents = @file_get_contents($path);
+                if (is_string($contents) && $contents !== '') {
+                    return self::normalize_pem_newlines(trim($contents));
+                }
+            }
+        }
+
+        // 3. Legacy DB row (deprecated). Emit a one-shot _doing_it_wrong notice
+        // so admins see the migration is still pending in WP_DEBUG environments.
+        $db_key = trim((string) Config::get('ga4_private_key', ''));
+        if ($db_key === '') {
+            $db_key = trim((string) Config::get('google_private_key', ''));
+        }
+        if ($db_key === '' && !empty($json['private_key'])) {
+            $db_key = trim((string) $json['private_key']);
+        }
+
+        if ($db_key !== '') {
+            self::flag_db_key_deprecated();
+            return self::normalize_pem_newlines($db_key);
+        }
+
+        return '';
+    }
+
+    /**
+     * Some environments store PEM keys with escaped line breaks ("\n" as two chars
+     * instead of a real newline). Convert them back so openssl_sign() accepts them.
+     */
+    private static function normalize_pem_newlines(string $key): string {
+        return str_replace('\\n', "\n", $key);
+    }
+
+    /**
+     * Logs one-shot deprecation notice per request so we don't spam the log.
+     * Wraps _doing_it_wrong() which is a no-op outside WP_DEBUG.
+     */
+    private static function flag_db_key_deprecated(): void {
+        static $logged = false;
+        if ($logged) {
+            return;
+        }
+        $logged = true;
+        if (function_exists('_doing_it_wrong')) {
+            _doing_it_wrong(
+                'TeInformez\\Google_Analytics_Service::load_config',
+                esc_html__(
+                    'GA4 private key is still loaded from the database. Run "wp teinformez migrate-ga4-key" (or use Settings → Migrate to filesystem) and define TEINFORMEZ_GA4_PRIVATE_KEY_PATH in wp-config.php.',
+                    'teinformez'
+                ),
+                '1.1.0'
+            );
+        }
+    }
+
+    /**
+     * Used by admin status block + migration runner to report which source the key
+     * is currently coming from. Returns one of: 'inline-constant' | 'filesystem' |
+     * 'database' | 'database-legacy-alias' | 'database-json' | 'none'.
+     */
+    public static function get_private_key_source(): string {
+        if (defined('TEINFORMEZ_GA4_PRIVATE_KEY')
+            && trim((string) constant('TEINFORMEZ_GA4_PRIVATE_KEY')) !== '') {
+            return 'inline-constant';
+        }
+        if (defined('TEINFORMEZ_GA4_PRIVATE_KEY_PATH')) {
+            $path = (string) constant('TEINFORMEZ_GA4_PRIVATE_KEY_PATH');
+            if ($path !== '' && is_readable($path) && trim((string) @file_get_contents($path)) !== '') {
+                return 'filesystem';
+            }
+        }
+        if (trim((string) Config::get('ga4_private_key', '')) !== '') {
+            return 'database';
+        }
+        if (trim((string) Config::get('google_private_key', '')) !== '') {
+            return 'database-legacy-alias';
+        }
+        $json_raw = trim((string) Config::get('ga4_service_account_json', ''));
+        if ($json_raw === '') {
+            $json_raw = trim((string) Config::get('google_service_account_json', ''));
+        }
+        if ($json_raw !== '') {
+            $decoded = json_decode($json_raw, true);
+            if (is_array($decoded) && !empty($decoded['private_key'])) {
+                return 'database-json';
+            }
+        }
+        return 'none';
     }
 
     private function run_report(string $start_date, string $end_date, array $metrics, array $dimensions = [], int $limit = 1) {

@@ -216,16 +216,48 @@ use TeInformez\Config;
 
             <tr>
                 <th scope="row">
-                    <label for="ga4_private_key"><?php _e('Service Account Private Key', 'teinformez'); ?></label>
+                    <?php _e('Service Account Private Key', 'teinformez'); ?>
                 </th>
                 <td>
-                    <textarea id="ga4_private_key"
-                              name="ga4_private_key"
-                              rows="8"
-                              class="large-text code"><?php echo esc_textarea(Config::get('ga4_private_key', Config::get('google_private_key', ''))); ?></textarea>
-                    <p class="description">
-                        <?php _e('Paste full private key including BEGIN/END lines.', 'teinformez'); ?>
-                    </p>
+                    <?php
+                    $ga4_source = \TeInformez\Google_Analytics_Service::get_private_key_source();
+                    $path_const_set = defined('TEINFORMEZ_GA4_PRIVATE_KEY_PATH');
+                    $path_value = $path_const_set ? (string) constant('TEINFORMEZ_GA4_PRIVATE_KEY_PATH') : '';
+                    $badge_styles = 'display:inline-block;padding:3px 9px;border-radius:3px;font-weight:600;font-size:12px;';
+                    switch ($ga4_source) {
+                        case 'inline-constant':
+                            echo '<span style="' . $badge_styles . 'background:#d4edda;color:#155724;">' . esc_html__('Loaded from inline constant TEINFORMEZ_GA4_PRIVATE_KEY', 'teinformez') . '</span>';
+                            echo '<p class="description">' . esc_html__('Inline constants are discouraged outside container deployments — prefer the filesystem path.', 'teinformez') . '</p>';
+                            break;
+                        case 'filesystem':
+                            echo '<span style="' . $badge_styles . 'background:#d4edda;color:#155724;">' . esc_html__('Loaded from filesystem', 'teinformez') . '</span>';
+                            echo '<p class="description"><code>' . esc_html($path_value) . '</code></p>';
+                            break;
+                        case 'database':
+                        case 'database-legacy-alias':
+                        case 'database-json':
+                            echo '<span style="' . $badge_styles . 'background:#fff3cd;color:#856404;">' . esc_html__('Key still stored in the database', 'teinformez') . '</span>';
+                            if (!$path_const_set) {
+                                echo '<p class="description" style="color:#856404;">'
+                                    . esc_html__('Add to wp-config.php:', 'teinformez') . ' <code>define(\'TEINFORMEZ_GA4_PRIVATE_KEY_PATH\', \'/var/www/teinformez-secrets/ga4-key.pem\');</code>'
+                                    . '</p>';
+                                echo '<p class="description" style="color:#856404;">' . esc_html__('Then return here and click "Migrate to filesystem" below.', 'teinformez') . '</p>';
+                            } else {
+                                echo '<p class="description">' . esc_html__('Target path:', 'teinformez') . ' <code>' . esc_html($path_value) . '</code></p>';
+                                wp_nonce_field('teinformez_migrate_ga4_key', 'teinformez_migrate_ga4_nonce');
+                                echo '<p><button type="submit" name="teinformez_action" value="migrate_ga4_key" class="button button-secondary">'
+                                    . esc_html__('Migrate key to filesystem', 'teinformez')
+                                    . '</button></p>';
+                                echo '<p class="description">' . esc_html__('Writes the PEM file with mode 0640, then leaves the database row in place. Verify the dashboard, then delete the wp_options row manually.', 'teinformez') . '</p>';
+                            }
+                            break;
+                        case 'none':
+                        default:
+                            echo '<span style="' . $badge_styles . 'background:#f8d7da;color:#721c24;">' . esc_html__('GA4 private key not configured', 'teinformez') . '</span>';
+                            echo '<p class="description">' . esc_html__('Define TEINFORMEZ_GA4_PRIVATE_KEY_PATH in wp-config.php and place the PEM file at that path with mode 0640 (root:www-data).', 'teinformez') . '</p>';
+                            break;
+                    }
+                    ?>
                 </td>
             </tr>
         </table>

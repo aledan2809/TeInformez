@@ -127,6 +127,11 @@ function teinformez_init() {
         require_once TEINFORMEZ_PLUGIN_DIR . 'admin/class-admin.php';
         new TeInformez\Admin\Admin();
     }
+
+    // Load WP-CLI commands when running under wp-cli (I-05 migration etc.).
+    if (defined('WP_CLI') && WP_CLI) {
+        require_once TEINFORMEZ_PLUGIN_DIR . 'cli/class-cli-commands.php';
+    }
 }
 add_action('plugins_loaded', 'teinformez_init');
 

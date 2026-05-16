@@ -145,7 +145,17 @@ class Admin {
      * Render settings page
      */
     public function render_settings() {
-        if (isset($_POST['teinformez_settings_nonce']) && wp_verify_nonce($_POST['teinformez_settings_nonce'], 'teinformez_save_settings')) {
+        // I-05: dedicated migration POST handler runs FIRST. The button lives in
+        // the same form as Save Settings, but submits with name=teinformez_action
+        // value=migrate_ga4_key so we route exclusively to migration on that
+        // submission — Save Settings never co-fires.
+        $action = isset($_POST['teinformez_action']) ? sanitize_key((string) $_POST['teinformez_action']) : '';
+        if ($action === 'migrate_ga4_key'
+            && isset($_POST['teinformez_migrate_ga4_nonce'])
+            && wp_verify_nonce($_POST['teinformez_migrate_ga4_nonce'], 'teinformez_migrate_ga4_key')) {
+            $this->migrate_ga4_key_to_filesystem();
+        } elseif (isset($_POST['teinformez_settings_nonce'])
+            && wp_verify_nonce($_POST['teinformez_settings_nonce'], 'teinformez_save_settings')) {
             $this->save_settings();
         }
 
@@ -257,7 +267,7 @@ class Admin {
             'news_fetch_interval',
             'ga4_property_id',
             'ga4_service_account_email',
-            'ga4_private_key',
+            // ga4_private_key removed I-05: secret now lives in filesystem (TEINFORMEZ_GA4_PRIVATE_KEY_PATH)
             // Social media (Phase E)
             'social_posting_enabled',
             'facebook_page_id',
@@ -276,29 +286,55 @@ class Admin {
         foreach ($fields as $field) {
             if (in_array($field, $checkboxes)) {
                 Config::set($field, isset($_POST[$field]) ? '1' : '0');
-            } elseif ($field === 'ga4_private_key' && isset($_POST[$field])) {
-                // Keep line breaks for PEM format keys.
-                $value = trim((string) wp_unslash($_POST[$field]));
-                if ($value !== '' && !preg_match('/^-----BEGIN PRIVATE KEY-----[A-Za-z0-9+\/=\s]+-----END PRIVATE KEY-----\s*$/', $value)) {
-                    add_settings_error(
-                        'teinformez_messages',
-                        'teinformez_pem_invalid',
-                        __('Invalid PEM format for GA4 private key. The key must begin with -----BEGIN PRIVATE KEY----- and end with -----END PRIVATE KEY-----.', 'teinformez'),
-                        'error'
-                    );
-                    continue;
-                }
-                Config::set($field, $value);
             } elseif (isset($_POST[$field])) {
                 Config::set($field, sanitize_text_field($_POST[$field]));
             }
         }
+        // NOTE: ga4_private_key intentionally NOT writable via admin form (I-05).
+        // The key is loaded from TEINFORMEZ_GA4_PRIVATE_KEY[_PATH] or the deprecated
+        // DB row. Use `wp teinformez migrate-ga4-key` or the "Migrate to filesystem"
+        // button to move it out of the database, then DELETE the DB row.
 
         add_settings_error(
             'teinformez_messages',
             'teinformez_message',
             __('Settings saved successfully.', 'teinformez'),
             'updated'
+        );
+    }
+
+    /**
+     * I-05: Move GA4 private key from wp_options into the filesystem PEM file
+     * referenced by TEINFORMEZ_GA4_PRIVATE_KEY_PATH. Does NOT delete the DB row
+     * here — operator runs `wp option delete teinformez_ga4_private_key` only
+     * after confirming the live dashboard still pulls metrics.
+     *
+     * Mirror of the WP-CLI command `wp teinformez migrate-ga4-key` so the same
+     * logic can run from browser or shell.
+     */
+    private function migrate_ga4_key_to_filesystem(): void {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        $report = \TeInformez\GA4_Key_Migrator::run();
+
+        $severity = $report['ok'] ? 'updated' : 'error';
+        $message = esc_html($report['message']);
+        if (!empty($report['details'])) {
+            $details = '<ul style="margin:6px 0 0 18px;list-style:disc;">';
+            foreach ((array) $report['details'] as $line) {
+                $details .= '<li>' . esc_html((string) $line) . '</li>';
+            }
+            $details .= '</ul>';
+            $message .= $details;
+        }
+
+        add_settings_error(
+            'teinformez_messages',
+            'teinformez_migrate_ga4_result',
+            $message,
+            $severity
         );
     }
 }
