@@ -40,6 +40,10 @@ class REST_API {
      * Check if user is authenticated via Bearer token or WordPress session
      */
     public function is_authenticated($request) {
+        // I-06: Reset static user ID to prevent cross-request persistence in PHP-FPM workers
+        static $authenticated_user_id = null;
+        self::$authenticated_user_id = null;
+
         // First check WordPress session (cookie-based auth)
         if (is_user_logged_in()) {
             return true;

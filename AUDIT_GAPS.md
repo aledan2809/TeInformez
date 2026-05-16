@@ -305,11 +305,12 @@
 - **Recommendation:** Make `$user_id` required (no default value).
 - **Resolution:** `$user_id` parameter made required (no default); WHERE clause unconditionally includes both `id` AND `user_id`. Single caller in `api/class-user-api.php:295` already passes authenticated `$user_id`. grep confirmed no other callers.
 
-### L-09: Race condition in cron job item claiming
+### L-09: Race condition in cron job item claiming — **ELIMINATED 2026-05-16**
 
 - **Location:** `includes/class-ai-processor.php:44-46`, `includes/class-news-publisher.php:202-204`
 - **Description:** SELECT then UPDATE pattern allows concurrent cron workers to process same items, causing duplicate AI API calls and doubled costs.
 - **Recommendation:** Use atomic `UPDATE ... WHERE status='fetched' LIMIT 10` then SELECT claimed items.
+- **Resolution:** Replaced SELECT-then-UPDATE with atomic `UPDATE ... SET status='processing', claimed_at=NOW() WHERE status='fetched' LIMIT 10` followed by SELECT of claimed batch. Added stale claim recovery (items stuck >60s revert to 'fetched'). `claimed_at` column auto-added on first run.
 
 ### L-10: Unescaped integer IDs in admin view output — **ELIMINATED 2026-05-16**
 
@@ -362,11 +363,12 @@
 - **Description:** Database breach exposes Google API credentials.
 - **Recommendation:** Store on filesystem with restricted permissions or use `wp-config.php` constants.
 
-### I-06: Static `$authenticated_user_id` property in REST API base
+### I-06: Static `$authenticated_user_id` property in REST API base — **ELIMINATED 2026-05-16**
 
 - **Location:** `api/class-rest-api.php:14, 47`
 - **Description:** Static property shared across instances. In persistent PHP workers, could theoretically leak auth state between requests.
 - **Recommendation:** Reset to `null` at start of `is_authenticated()`.
+- **Resolution:** Added `self::$authenticated_user_id = null;` reset at the very start of `is_authenticated()` method body, preventing cross-request user ID persistence in PHP-FPM workers.
 
 ---
 

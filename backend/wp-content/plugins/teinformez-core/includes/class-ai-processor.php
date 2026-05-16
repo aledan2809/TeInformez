@@ -40,9 +40,28 @@ class AI_Processor {
         global $wpdb;
         $table = $wpdb->prefix . 'teinformez_news_queue';
 
-        // Get items waiting to be processed
+        // Ensure claimed_at column exists (L-09 atomic claim support)
+        $col_check = $wpdb->get_results("SHOW COLUMNS FROM {$table} LIKE 'claimed_at'");
+        if (empty($col_check)) {
+            $wpdb->query("ALTER TABLE {$table} ADD COLUMN claimed_at DATETIME DEFAULT NULL AFTER status");
+        }
+
+        // L-09: Recover stale claims — items stuck in 'processing' for >60s revert to 'fetched'
+        $wpdb->query(
+            "UPDATE {$table} SET status = 'fetched', claimed_at = NULL WHERE status = 'processing' AND claimed_at < DATE_SUB(NOW(), INTERVAL 60 SECOND)"
+        );
+
+        // L-09: Atomic claim — prevents concurrent cron runs from claiming overlapping items
+        $wpdb->query(
+            "UPDATE {$table} SET status = 'processing', claimed_at = NOW() WHERE status = 'fetched' ORDER BY fetched_at ASC LIMIT 10"
+        );
+
+        // Fetch the batch we just claimed
         $items = $wpdb->get_results(
-            "SELECT * FROM {$table} WHERE status = 'fetched' ORDER BY fetched_at ASC LIMIT 10"
+            $wpdb->prepare(
+                "SELECT * FROM {$table} WHERE status = 'processing' AND claimed_at >= DATE_SUB(NOW(), INTERVAL 60 SECOND) ORDER BY fetched_at ASC LIMIT %d",
+                10
+            )
         );
 
         if (empty($items)) {
@@ -77,8 +96,7 @@ class AI_Processor {
         global $wpdb;
         $table = $wpdb->prefix . 'teinformez_news_queue';
 
-        // Mark as processing
-        $wpdb->update($table, ['status' => 'processing'], ['id' => $item->id]);
+        // Item already claimed as 'processing' by atomic batch UPDATE (L-09)
 
         try {
             // Determine target language (Romanian by default)
