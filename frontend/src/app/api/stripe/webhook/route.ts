@@ -119,6 +119,3 @@ async function resolveEmailFromCustomer(customerId: string): Promise<string> {
     return ''
   }
 }
-
-// Next.js requires raw body for webhook signature verification
-export const config = { api: { bodyParser: false } }
