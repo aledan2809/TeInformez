@@ -43,6 +43,8 @@
 | Sprint 5 review fixes | Eliminated | `564a983` — string type hint; WP_REST_Response Retry-After; IPv6 brackets trim; dev comment removed from authStore | 2026-05-12 |
 | G-TI-CAS-XSS-RISK | Eliminated | `b533883` — DOMPurify on useCasSlot hook (frontend) + sanitize_promo_html() kses allowlist in build_digest_html (backend); strips script/iframe/JS handlers | 2026-05-15 |
 | L-08 | Eliminated | `45e3d5a` — `$user_id` made required in `delete_subscription()`; WHERE clause always includes both `id` AND `user_id` | 2026-05-16 |
+| L-05 | Eliminated | B2 — session-cookie dedup in `get_single()` + `track_view()`; cookie `teinformez_viewed_<id>` with `hash(session_id . AUTH_KEY)`, 24h expiry | 2026-05-16 |
+| L-07 | Eliminated | B2 — PCRE `/u` flag on all regex; CNP `\b\d{13}\b/u`; Romanian address keywords; diacritics `ă/î/â/ș/ț` in name patterns | 2026-05-16 |
 
 **Evidence H-04–H-08**: E8 test (2026-05-11): unauthenticated GET /admin/analytics → HTTP 401; reader → HTTP 403; admin → HTTP 200.
 **Note M-07**: Fully eliminated — `send_via_brevo()` and `send_newsletter_confirmation()` now log `*@domain.com` only (see commit below).
@@ -272,11 +274,12 @@
 - **Description:** Strips tags, encodes special chars. Base64 tokens contain `+`, `/`, `=` which can be corrupted.
 - **Recommendation:** Use regex validation instead: `preg_replace('/[^A-Za-z0-9+\/=|]/', '', $token)`.
 
-### L-05: View count manipulation — no rate limiting
+### L-05: View count manipulation — no rate limiting — **ELIMINATED 2026-05-16**
 
 - **Location:** `api/class-news-api.php:439-450`, `api/class-juridic-api.php:158-160`
 - **Description:** Public view tracking endpoints with no deduplication or rate limiting. Juridic `get_single()` also double-counts by auto-incrementing on GET.
 - **Recommendation:** Deduplicate via cookie/session. Remove auto-increment from `get_single()`.
+- **Resolution:** Session-cookie dedup applied to both `get_single()` and `track_view()` in class-juridic-api.php. Cookie `teinformez_viewed_<id>` set with `hash('sha256', session_id . AUTH_KEY)` value and 24h expiry. Duplicate views return `tracked: false`.
 
 ### L-06: Missing REST route `args` schema validation
 
@@ -284,11 +287,12 @@
 - **Description:** No route-level `args` with `sanitize_callback`/`validate_callback`. Relies on manual validation in callbacks.
 - **Recommendation:** Add `args` definitions for defense-in-depth and auto-documentation.
 
-### L-07: Weak PII anonymization in juridic questions
+### L-07: Weak PII anonymization in juridic questions — **ELIMINATED 2026-05-16**
 
 - **Location:** `api/class-juridic-api.php:450-463`
 - **Description:** Regex misses Romanian diacritics (e.g., "Ionut Stefanescu"), single names, CNP (personal ID numbers), and addresses.
 - **Recommendation:** Use unicode-aware patterns. Add CNP/address detection.
+- **Resolution:** All regex patterns now use PCRE `/u` flag. Added CNP detection (`/\b\d{13}\b/u` → `[CNP redactat]`). Added Romanian address keyword detection (`Str./Strada/Bd./Bulevard/Aleea/Calea/Nr./Bl./Sc./Et./Ap.`). Name pattern updated with diacritics character class `[A-ZĂÎÂȘȚ][a-zăîâșț]+`.
 
 ### L-08: Optional `$user_id` in `delete_subscription()` defaults to null — **ELIMINATED 2026-05-16**
 

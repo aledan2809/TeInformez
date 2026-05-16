@@ -171,10 +171,24 @@ class Juridic_API extends REST_API {
             return $this->error('Întrebarea nu a fost găsită.', 'not_found', 404);
         }
 
-        // Increment view count
-        $wpdb->query($wpdb->prepare(
-            "UPDATE {$table} SET view_count = view_count + 1 WHERE id = %d", $id
-        ));
+        // L-05: Session-cookie dedup for view counter
+        $cookie_name = 'teinformez_viewed_' . $id;
+        $session_id = session_id() ?: wp_get_session_token() ?: $_SERVER['REMOTE_ADDR'];
+        $expected_hash = hash('sha256', $session_id . AUTH_KEY);
+
+        if (!isset($_COOKIE[$cookie_name]) || $_COOKIE[$cookie_name] !== $expected_hash) {
+            $wpdb->query($wpdb->prepare(
+                "UPDATE {$table} SET view_count = view_count + 1 WHERE id = %d", $id
+            ));
+            setcookie($cookie_name, $expected_hash, [
+                'expires' => time() + 86400,
+                'path' => COOKIEPATH,
+                'domain' => COOKIE_DOMAIN,
+                'secure' => is_ssl(),
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
+        }
 
         return $this->success(['item' => $this->format_item($item)]);
     }
@@ -345,18 +359,33 @@ class Juridic_API extends REST_API {
     }
 
     /**
-     * Track view
+     * Track view (L-05: session-cookie dedup)
      */
     public function track_view($request) {
         global $wpdb;
         $table = $wpdb->prefix . 'teinformez_juridic_qa';
         $id = (int) $request->get_param('id');
 
-        $wpdb->query($wpdb->prepare(
-            "UPDATE {$table} SET view_count = view_count + 1 WHERE id = %d AND status = 'published'", $id
-        ));
+        $cookie_name = 'teinformez_viewed_' . $id;
+        $session_id = session_id() ?: wp_get_session_token() ?: $_SERVER['REMOTE_ADDR'];
+        $expected_hash = hash('sha256', $session_id . AUTH_KEY);
 
-        return $this->success(['tracked' => true]);
+        if (!isset($_COOKIE[$cookie_name]) || $_COOKIE[$cookie_name] !== $expected_hash) {
+            $wpdb->query($wpdb->prepare(
+                "UPDATE {$table} SET view_count = view_count + 1 WHERE id = %d AND status = 'published'", $id
+            ));
+            setcookie($cookie_name, $expected_hash, [
+                'expires' => time() + 86400,
+                'path' => COOKIEPATH,
+                'domain' => COOKIE_DOMAIN,
+                'secure' => is_ssl(),
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
+            return $this->success(['tracked' => true]);
+        }
+
+        return $this->success(['tracked' => false, 'reason' => 'already_viewed']);
     }
 
     /**
@@ -467,10 +496,19 @@ class Juridic_API extends REST_API {
     private function anonymize_question(string $question): string {
         $result = trim($question);
 
-        $result = preg_replace('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i', '[email redactat]', $result);
-        $result = preg_replace('/\+?\d[\d\s\-\(\)]{7,}\d/', '[telefon redactat]', $result);
-        $result = preg_replace('/https?:\/\/\S+/i', '[link redactat]', $result);
-        $result = preg_replace('/\b([A-Z][a-z]+)\s+([A-Z][a-z]+)\b/u', '[nume redactat]', $result);
+        // L-07: All patterns use /u flag for Unicode awareness
+        // Email
+        $result = preg_replace('/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/iu', '[email redactat]', $result);
+        // Phone
+        $result = preg_replace('/\+?\d[\d\s\-\(\)]{7,}\d/u', '[telefon redactat]', $result);
+        // URLs
+        $result = preg_replace('/https?:\/\/\S+/iu', '[link redactat]', $result);
+        // CNP (Romanian personal ID - 13 digits)
+        $result = preg_replace('/\b\d{13}\b/u', '[CNP redactat]', $result);
+        // Romanian address patterns (unicode-aware)
+        $result = preg_replace('/\b(?:Str\.|Strada|Bd\.|Bulevard|Aleea|Calea|Nr\.|Bl\.|Sc\.|Et\.|Ap\.)\s*[^\.,;!\?\n]{2,40}/u', '[adresă redactată]', $result);
+        // Names with Romanian diacritics (ă/î/â/ș/ț)
+        $result = preg_replace('/\b([A-ZĂÎÂȘȚ][a-zăîâșț]+)\s+([A-ZĂÎÂȘȚ][a-zăîâșț]+)\b/u', '[nume redactat]', $result);
 
         if (mb_strlen($result) < 30) {
             $result = 'Un cititor întreabă: ' . $result;
