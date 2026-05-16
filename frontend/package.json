@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@sentry/nextjs": "^10.52.0",
-    "@projects/stripe-module": "file:../../Stripe",
+    "@projects/stripe-module": "file:./vendor/stripe-module.tgz",
     "ai-router": "file:../../AIRouter",
     "axios": "^1.6.5",
     "clsx": "^2.1.0",

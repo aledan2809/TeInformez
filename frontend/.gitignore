@@ -9,6 +9,9 @@
 node_modules/
 package-lock.json
 
+# Vendor (override root gitignore — tarball deps committed here)
+!vendor/
+
 # Build outputs
 .next/
 out/
