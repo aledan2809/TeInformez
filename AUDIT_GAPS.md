@@ -59,6 +59,7 @@
 | I-02 | Eliminated | `e78d877` — `class-cors.php` with `rest_pre_serve_request` filter; validates `HTTP_ORIGIN` against allowed list; OPTIONS preflight 200 | 2026-05-16 |
 | I-03 | Eliminated | `e78d877` — FK constraints on subscriptions/delivery_log/visitor_events → `wp_users.ID`; `ON DELETE CASCADE`/`SET NULL` | 2026-05-16 |
 | I-06 | Eliminated | `12266b0` — `self::$authenticated_user_id = null` reset at start of `is_authenticated()` | 2026-05-16 |
+| I-05 | Eliminated | `6d50001` — GA4 private key migrated from `wp_options` to filesystem (`/var/www/teinformez-secrets/ga4-key.pem`, mode 0640 root:www-data). 4-tier resolution in `Google_Analytics_Service::resolve_private_key()`. DB row deleted post-migration. Key resolves from: filesystem. | 2026-05-17 |
 
 **Evidence H-04–H-08**: E8 test (2026-05-11): unauthenticated GET /admin/analytics → HTTP 401; reader → HTTP 403; admin → HTTP 200.
 **Note M-07**: Fully eliminated — `send_via_brevo()` and `send_newsletter_confirmation()` now log `*@domain.com` only (see commit below).
@@ -375,11 +376,11 @@
 - **Recommendation:** Hash IP or set retention policy for purging.
 - **Resolution:** `hash('sha256', $ip . AUTH_KEY)` replaces plaintext storage in `record_consent()`. Version-gated one-time migration backfills existing plaintext IPs (batch 100, `CHAR_LENGTH < 64` guard). Column widened to `VARCHAR(64)`. Daily cron `teinformez_gdpr_retention_cleanup` deletes consent records older than 7 years. Cron registered in activator, deregistered in deactivator. All reads of `gdpr_ip_address` are export/comparison only (no plaintext display).
 
-### I-05: Google service account private key in `wp_options`
+### I-05: Google service account private key in `wp_options` — **ELIMINATED 2026-05-17**
 
 - **Location:** `includes/class-google-analytics-service.php:101-141`
 - **Description:** Database breach exposes Google API credentials.
-- **Recommendation:** Store on filesystem with restricted permissions or use `wp-config.php` constants.
+- **Resolution:** `6d50001` — `GA4_Key_Migrator` class + 4-tier key resolution in `Google_Analytics_Service::resolve_private_key()` (constant → filesystem path → DB deprecated → JSON fallback). PEM written to `/var/www/teinformez-secrets/ga4-key.pem` (mode 0640 root:www-data, outside webroot). DB row `teinformez_ga4_private_key` deleted post-migration 2026-05-17. `wp teinformez ga4-key-source` reports: `filesystem`.
 
 ### I-06: Static `$authenticated_user_id` property in REST API base — **ELIMINATED 2026-05-16**
 

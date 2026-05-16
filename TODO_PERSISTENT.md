@@ -1,6 +1,76 @@
 # TODO Persistent — TeInformez
 > Items rămân până marcate DONE cu dată + commit.
-> Last updated: 2026-05-16
+> Last updated: 2026-05-17
+
+---
+
+## [ ] 🎯 SEQUENTIAL AUTONOMOUS EXECUTION PLAN — 6 steps + /review + TWG per step (creat 2026-05-16)
+
+**Trigger**: user request 2026-05-16 — execute all remaining TeInformez TODO items sequentially in autonomous Direct sessions, with `/review` skill + TWG (Tester ↔ Website Guru loop addressing all issues/bugs/concerns) AFTER each implementation phase.
+
+**MN-01 reversal note**: Steps 3-6 require activating Premium tier (reversed from 2026-05-13 "100% Free, ads-only" decision). Step 3 (MN-02) Phase 1 MUST surface feature matrix decision to user before Stripe wiring — explicit user gate. If user re-confirms "Free-only" at that gate, Steps 3-6 stay DEFER and only Steps 1-2 land.
+
+### Execution order (sequential — one step per session, do NOT batch)
+
+#### [x] Step 1 — I-05 / Triage-2 (Google service account key migration) — DONE 2026-05-17 (commit `6d50001`; DB row deleted; `ga4-key-source` = filesystem)
+- **Scope**: migrate `wp_options.ga4_private_key` → `wp-config.php` constant `TEINFORMEZ_GA4_PRIVATE_KEY` (fallback path `/var/www/teinformez-secrets/ga4-key.pem` chmod 600 root:www-data)
+- **Files**: `backend/wp-content/plugins/teinformez-core/includes/class-google-analytics-service.php` + VPS2 `wp-config.php` + new filesystem secrets dir
+- **Steps**: (a) SSH VPS2 create secrets dir + chmod, (b) one-time migration script reads existing key from DB → writes to filesystem + wp-config constant, (c) plugin code prefers constant, falls back to file, finally DB (deprecated), (d) admin UI removes ga4_private_key field, (e) DELETE row from wp_options after verification
+- **AFTER**: `/review` on changed PHP files (no new critical/high findings on changes) + TWG verify GA4 admin dashboard still pulls metrics live + visit /admin GA4 settings page → field removed + plugin still works
+- **Close**: move I-05 from Open Gaps → Eliminated Gaps in `AUDIT_GAPS.md` with commit hash + date + resolution summary
+- **Cross-impact**: NO-TOUCH-flavored (touches wp-config on prod + filesystem secrets); requires propose-confirm-apply per CLASSIFICATION §2d if classified as such — verify project safety level at session start
+
+#### Step 2 — AN-02-followup (when ≥7 days source-attribution data accumulated)
+- **Gate check first**: verify ≥7 days since AN-02 deploy (2026-05-15 → earliest viable 2026-05-22). If insufficient data, mark `[~] data insufficient — reschedule` and skip to Step 3
+- **Scope (if data available)**: refine attribution mapping in `admin/views/analytics-advanced.php` + add per-source breakdown charts (which UTM sources convert best to subscriptions)
+- **AFTER**: `/review` on analytics PHP + TWG visit `/wp-admin/?page=teinformez-analytics-advanced` → charts render + drilldown links work + no PHP warnings in `error.log`
+- **Close**: mark AN-02-followup `[x]` with commit + screenshot evidence
+
+#### Step 3 — MN-02 (Stripe subscriptions) — ABIP2 multi-phase ~6-8h
+- **Phase 1 USER GATE**: surface Premium feature matrix decision to user before any code (what's Premium-only vs Free?). Default proposal: advanced filters + juridic premium tier + PDF export + push priority. If user re-confirms "Free-only" → mark `[~] MN-01 stands` and CASCADE skip Steps 4-6.
+- **Phase 2**: integrate `@aledan/stripe` lib + add `wp_teinformez_subscriptions` table (subscription_id, user_id, tier, status, current_period_end, stripe_customer_id, stripe_subscription_id)
+- **Phase 3**: routes — frontend `/subscribe` + `/account/subscription` + backend `/api/stripe/checkout` + webhook handler `/api/stripe/webhook` (signature verify, idempotency)
+- **Phase 4**: admin tier management UI (`/wp-admin/?page=teinformez-subscriptions`) — view subscribers, cancel, refund
+- **AFTER**: `/review` on all changed files (TS+PHP) + TWG full Stripe checkout flow on **test mode** (test card 4242424242424242, success path, cancel path, webhook delivery, subscription downgrade)
+- **Cross-impact**: sync `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` + `STRIPE_PUBLISHABLE_KEY` to `Master/credentials/teinformez.env` (gitignored); VPS2 `.env` update; webhook endpoint must be HTTPS (already covered)
+
+#### Step 4 — MN-03 (Paywall soft) — depends on Step 3 DONE
+- **Scope**: soft-block UI for Premium features per MN-02 feature matrix. NO 403 hard blocks — show "Disponibil pentru Premium" badge + CTA upgrade button
+- **Routes affected**: per matrix decision in Step 3 Phase 1 (e.g., `/news/[id]/full-pdf`, advanced filter sidebar, juridic premium articles)
+- **AFTER**: `/review` on changed frontend + TWG verify 3-tier UX: guest (sees CTA register), free-logged-in (sees CTA upgrade), premium (full access)
+
+#### Step 5 — OP-01 (Churn prevention email) — depends on Step 3 DONE + first Premium subscribers exist
+- **Scope**: Brevo automation triggered 3 days before subscription expiration
+- **Backend**: WP cron `teinformez_check_expiring_subs` runs daily, scans `wp_teinformez_subscriptions WHERE expires_at BETWEEN NOW()+3d AND NOW()+4d AND status='active'`, sends Brevo transactional email "Reînnoiește acum — ofertă 10% dacă reînnoiești azi" with one-time discount code (Stripe coupon API)
+- **AFTER**: `/review` + TWG manual trigger test: seed test subscription with `expires_at = NOW() + 3.5 days`, force-run cron, verify Brevo email arrives, click discount link, complete checkout with discount applied
+
+#### Step 6 — OP-02 (Onboarding Premium wizard) — depends on Step 3 DONE
+- **Scope**: post-upgrade 1-step wizard activates Telegram push subscription + sets all category subscriptions ON → reduces time-to-value gap between payment and feature use
+- **Trigger**: redirect from Stripe success URL → `/account/welcome-premium` (1 page, 1 form, ~30s flow)
+- **Persistence**: `wp_user_meta` flag `teinformez_premium_onboarded=1` so wizard shows only once
+- **AFTER**: `/review` + TWG verify wizard appears post-payment + completes cleanly + flag persists + does not re-appear on second login
+
+### Acceptance criteria (composite)
+- [ ] All 6 steps DONE with `[x] DONE YYYY-MM-DD (commit hash)` markers in their original TODO entries (this section serves as index, originals remain authoritative for line-level status)
+- [ ] Each step deployed individually to `teinformez.eu` (no batched deploys per L83 visibility-per-phase rule)
+- [ ] AUDIT_GAPS.md Eliminated Gaps section grew by ≥6 entries (1 per step + sub-findings from /review where applicable)
+- [ ] Zero new critical/high findings from `/review` on changed files at end of each step
+- [ ] Live smoke test https://teinformez.eu passes after each step (homepage + news API + juridic API + auth + relevant new endpoint per step)
+- [ ] All commits follow project conventions (`fix(security):`, `feat(stripe):`, `feat(paywall):`, etc.)
+
+### Anti-patterns to AVOID (codified)
+- ❌ Skip `/review` or TWG between steps — user explicit requirement: BOTH after EACH step, no exceptions
+- ❌ Batch multiple steps into one session — visibility per step required (L83 pattern from B1-B16 deploys)
+- ❌ Skip MN-01 reversal documentation — Premium tier reactivation must be noted in DEVELOPMENT_STATUS + commit message
+- ❌ Auto-proceed MN-02 without explicit Premium feature matrix decision — Phase 1 user gate is HARD requirement
+- ❌ Cascade Steps 4-6 if user re-confirms Free-only at MN-02 Phase 1 gate — mark DEFER, do not implement on hypothetical premium scope
+- ❌ Skip propose-confirm-apply protocol on Step 1 (I-05) if TeInformez classified RESTRICT or NO-TOUCH (touches prod wp-config) — verify at session start
+- ❌ Deploy Stripe to prod without test-mode validation pass — webhook signature + idempotency MUST be verified in test before live mode
+- ❌ Mark a step DONE if smoke test fails — failing smoke = step incomplete regardless of code commit landing
+
+### Reference
+- Related session: 2026-05-16 ABIP2 B1-B16 closure (this TODO's predecessor)
+- L83 (visibility-per-deploy) + L131 (placeholder-as-pseudo-issue avoidance for /review false-positives) + memory `feedback_pipeline_deploy_live_projects`
 
 ---
 
