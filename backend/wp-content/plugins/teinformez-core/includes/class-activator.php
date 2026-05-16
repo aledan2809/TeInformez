@@ -366,6 +366,25 @@ class Activator {
             $wpdb->query("ALTER TABLE {$table} ADD COLUMN gdpr_consent_policy_version VARCHAR(10) DEFAULT '1.0' AFTER gdpr_ip_address");
         }
 
+        // v1.2.0: Foreign key constraints (I-03 defense-in-depth)
+        if (get_option('teinformez_fk_constraints_added') !== '1') {
+            $prefix = $wpdb->prefix;
+            $suppress = $wpdb->suppress_errors;
+            $wpdb->suppress_errors = true;
+
+            // subscriptions.user_id → wp_users.ID ON DELETE CASCADE
+            $wpdb->query("ALTER TABLE {$prefix}teinformez_subscriptions ADD CONSTRAINT fk_subscriptions_user_id FOREIGN KEY (user_id) REFERENCES {$prefix}users(ID) ON DELETE CASCADE");
+
+            // delivery_log.user_id → wp_users.ID ON DELETE CASCADE
+            $wpdb->query("ALTER TABLE {$prefix}teinformez_delivery_log ADD CONSTRAINT fk_delivery_log_user_id FOREIGN KEY (user_id) REFERENCES {$prefix}users(ID) ON DELETE CASCADE");
+
+            // visitor_events.user_id → wp_users.ID ON DELETE SET NULL
+            $wpdb->query("ALTER TABLE {$prefix}teinformez_visitor_events ADD CONSTRAINT fk_visitor_events_user_id FOREIGN KEY (user_id) REFERENCES {$prefix}users(ID) ON DELETE SET NULL");
+
+            $wpdb->suppress_errors = $suppress;
+            update_option('teinformez_fk_constraints_added', '1');
+        }
+
         // v1.2.0: Widen gdpr_ip_address to CHAR(64) for SHA-256 hashes + backfill existing plaintext IPs
         if (get_option('teinformez_gdpr_ip_hashed') !== '1') {
             // Widen column to hold 64-char SHA-256 hex digest

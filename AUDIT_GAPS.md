@@ -340,17 +340,19 @@
 
 ### ~~I-01: No re-authentication for account deletion~~ → Eliminated 2026-05-16
 
-### I-02: No application-level CORS enforcement
+### ~~I-02: No application-level CORS enforcement~~ → Eliminated 2026-05-16
 
 - **Location:** All API files
 - **Description:** CORS configured only at Nginx level. No defense-in-depth via `rest_pre_serve_request` filter.
 - **Recommendation:** Add application-level CORS headers as fallback.
+- **Resolution:** New `class-cors.php` with `TEINFORMEZ_ALLOWED_ORIGINS` constant and `teinformez_allowed_origins` filter hook. Registered in `teinformez-core.php` via `rest_api_init` → `rest_pre_serve_request`. Validates `$_SERVER['HTTP_ORIGIN']` against allowed list; emits `Access-Control-Allow-Origin`, `Allow-Methods`, `Allow-Headers`, `Allow-Credentials` headers. OPTIONS preflight returns 200. Config origins merged via filter for backwards compatibility.
 
-### I-03: No foreign key constraints on database tables
+### ~~I-03: No foreign key constraints on database tables~~ → Eliminated 2026-05-16
 
 - **Location:** `includes/class-activator.php:21-264`
 - **Description:** No FK constraints. WordPress user deletion outside GDPR flow leaves orphaned PII records.
 - **Recommendation:** Hook into `delete_user` action to trigger cleanup.
+- **Resolution:** Version-gated ALTER TABLE in `run_migrations()`: `wp_teinformez_subscriptions.user_id` → `wp_users.ID ON DELETE CASCADE`, `wp_teinformez_delivery_log.user_id` → `wp_users.ID ON DELETE CASCADE`, `wp_teinformez_visitor_events.user_id` → `wp_users.ID ON DELETE SET NULL`. Wrapped with `suppress_errors` for idempotency. Gated by `teinformez_fk_constraints_added` option.
 
 ### ~~I-04: GDPR consent IP stored in plaintext~~ → Eliminated 2026-05-16
 

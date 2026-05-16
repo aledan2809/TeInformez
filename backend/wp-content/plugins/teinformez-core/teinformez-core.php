@@ -285,20 +285,16 @@ add_filter('cron_schedules', function($schedules) {
     return $schedules;
 });
 
-// Add CORS headers for headless
+// Add CORS headers for headless (application-level fallback — I-02)
 add_action('rest_api_init', function() {
     remove_filter('rest_pre_serve_request', 'rest_send_cors_headers');
-    add_filter('rest_pre_serve_request', function($value) {
-        $origin = get_http_origin();
 
-        // Use the new wildcard-aware origin checker
-        if (TeInformez\Config::is_origin_allowed($origin)) {
-            header('Access-Control-Allow-Origin: ' . $origin);
-            header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-            header('Access-Control-Allow-Credentials: true');
-            header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce');
-        }
+    require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-cors.php';
 
-        return $value;
+    // Merge Config origins into the CORS class via filter
+    add_filter('teinformez_allowed_origins', function($origins) {
+        return array_merge($origins, TeInformez\Config::get_allowed_origins());
     });
+
+    TeInformez\CORS::init();
 });
