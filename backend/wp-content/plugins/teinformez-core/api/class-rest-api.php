@@ -196,10 +196,10 @@ class REST_API {
         }
 
         if ((int) $data['count'] >= $max) {
-            return new \WP_REST_Response(
-                ['code' => 'rate_limit_exceeded', 'message' => __('Too many attempts. Please try again later.', 'teinformez')],
-                429,
-                ['Retry-After' => (string) ($window_minutes * 60)]
+            return new \WP_Error(
+                'rate_limit_exceeded',
+                __('Too many attempts. Please try again later.', 'teinformez'),
+                ['status' => 429, 'headers' => ['Retry-After' => (string) ($window_minutes * 60)]]
             );
         }
 
