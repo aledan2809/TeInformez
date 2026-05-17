@@ -105,6 +105,15 @@ class Admin {
             'teinformez-revenue',
             [$this, 'render_revenue']
         );
+
+        add_submenu_page(
+            'teinformez',
+            __('Abonamente Stripe', 'teinformez'),
+            __('Abonamente Stripe', 'teinformez'),
+            'manage_options',
+            'teinformez-subscriptions',
+            [$this, 'render_subscriptions']
+        );
     }
 
     /**
@@ -204,6 +213,13 @@ class Admin {
      */
     public function render_revenue() {
         require_once TEINFORMEZ_PLUGIN_DIR . 'admin/views/revenue-dashboard.php';
+    }
+
+    /**
+     * Render Stripe subscriptions management page
+     */
+    public function render_subscriptions() {
+        require_once TEINFORMEZ_PLUGIN_DIR . 'admin/views/subscriptions.php';
     }
 
     /**
