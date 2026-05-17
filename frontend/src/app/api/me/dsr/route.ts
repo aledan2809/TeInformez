@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const res = await fetch(`${wpApiUrl.replace(/\/$/, "")}/teinformez/v1/legal/dsr`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), email: trimmedEmail, type: normalizedType, description: (description ?? "").slice(0, 500) }),
+      body: JSON.stringify({ name: name.trim(), email: trimmedEmail, type: normalizedType, description: (typeof description === "string" ? description : "").slice(0, 500) }),
       signal: AbortSignal.timeout(10000),
     });
 
