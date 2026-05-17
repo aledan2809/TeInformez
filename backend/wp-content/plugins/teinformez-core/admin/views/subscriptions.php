@@ -76,7 +76,7 @@ if ($table_exists) {
         $stats['total']++;
         if ($sub->tier === 'premium' && in_array($sub->status, ['active', 'trialing'], true)) {
             $stats['premium']++;
-        } elseif ($sub->status === 'canceled') {
+        } elseif (in_array($sub->status, ['canceled', 'past_due', 'unpaid'], true)) {
             $stats['canceled']++;
         } else {
             $stats['free']++;
@@ -132,7 +132,7 @@ $stripe_dashboard_url = 'https://dashboard.stripe.com';
         <tbody>
         <?php foreach ($subscribers as $sub) :
             $period_end = $sub->current_period_end
-                ? date('d.m.Y H:i', strtotime($sub->current_period_end))
+                ? date('d.m.Y H:i', (int) strtotime((string) $sub->current_period_end))
                 : '—';
 
             $tier_badge_color = $sub->tier === 'premium' ? '#00a32a' : '#8c8f94';
@@ -184,7 +184,7 @@ $stripe_dashboard_url = 'https://dashboard.stripe.com';
                 <span style="color:<?php echo esc_attr($status_color); ?>;font-weight:600;">
                     <?php echo esc_html($sub->status); ?>
                 </span>
-                <?php if (!empty($sub->cancel_at_period_end) && $sub->cancel_at_period_end == 1) : ?>
+                <?php if ((int) $sub->cancel_at_period_end === 1) : ?>
                     <br><small style="color:#dba617;">⚠ anulează la scadență</small>
                 <?php endif; ?>
             </td>
