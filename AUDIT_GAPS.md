@@ -79,6 +79,16 @@
 
 ---
 
+## ML2 Wave 3 Gaps (2026-05-17)
+
+| Gap | Severity | Description | Status |
+|-----|----------|-------------|--------|
+| G-TI-W3-001 | MEDIUM | Missing HTTP security headers on Next.js frontend: no `Strict-Transport-Security`, `Referrer-Policy`, `Permissions-Policy`, `X-XSS-Protection`. `X-Frame-Options: SAMEORIGIN` and `X-Content-Type-Options: nosniff` present via nginx. Fix: add `/:path*` headers block in `frontend/next.config.js` headers(). | OPEN — awaiting user confirm (RESTRICT protocol) |
+| G-TI-W3-002 | LOW | `POST /api/analytics` returns 500 when `GA_MEASUREMENT_ID`/`GA_API_SECRET` env vars unset on VPS. Code intentionally returns 500 (lines 42-47 in `frontend/src/app/api/analytics/route.ts`). Not a code bug — GA tracking simply not configured. | OPEN — configuration gap; fix = set env vars on VPS or accept analytics non-functional |
+| G-TI-W3-003 | LOW | `/juridic` nav link returns HTTP 404 on live site (teinformez.eu/juridic). Route exists in `.journey-audit.json` nav config but page likely unpublished or removed. Stale nav entry. | OPEN — remove /juridic from nav or publish the page |
+
+---
+
 ---
 
 ## Summary

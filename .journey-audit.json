@@ -16,7 +16,6 @@
     { "name": "Home", "href": "/" },
     { "name": "Stiri", "href": "/news" },
     { "name": "Dashboard", "href": "/dashboard" },
-    { "name": "Juridic", "href": "/juridic" },
     { "name": "Profil", "href": "/profile" },
     { "name": "Setari", "href": "/settings" },
     { "name": "GDPR", "href": "/gdpr" },
