@@ -182,12 +182,39 @@ class News_Publisher {
         if (isset($data['admin_notes'])) {
             $update_data['admin_notes'] = sanitize_textarea_field($data['admin_notes']);
         }
+        if (isset($data['is_premium'])) {
+            $update_data['is_premium'] = $data['is_premium'] ? 1 : 0;
+        }
 
         if (empty($update_data)) {
             return false;
         }
 
         return $wpdb->update($table, $update_data, ['id' => $id]) !== false;
+    }
+
+    /**
+     * Toggle is_premium flag on a news item (queue or archive)
+     */
+    public function toggle_premium($id, $is_premium) {
+        global $wpdb;
+        $queue_table   = $wpdb->prefix . 'teinformez_news_queue';
+        $archive_table = $wpdb->prefix . 'teinformez_news_archive';
+        $value = $is_premium ? 1 : 0;
+
+        // Update queue row; also sync archive row if it exists (same original_url).
+        $result = $wpdb->update($queue_table, ['is_premium' => $value], ['id' => $id]);
+
+        // Sync archive: find by original_url from queue row.
+        $original_url = $wpdb->get_var($wpdb->prepare(
+            "SELECT original_url FROM {$queue_table} WHERE id = %d",
+            $id
+        ));
+        if ($original_url) {
+            $wpdb->update($archive_table, ['is_premium' => $value], ['original_url' => $original_url]);
+        }
+
+        return $result !== false;
     }
 
     /**

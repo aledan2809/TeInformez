@@ -26,6 +26,8 @@ if (isset($_POST['action']) && isset($_POST['_wpnonce'])) {
 
         switch ($action) {
             case 'approve':
+                $is_premium = isset($_POST['is_premium']) ? 1 : 0;
+                $publisher->toggle_premium($item_id, $is_premium);
                 if ($publisher->approve($item_id, $notes)) {
                     $message = __('News item approved.', 'teinformez');
                 }
@@ -33,6 +35,14 @@ if (isset($_POST['action']) && isset($_POST['_wpnonce'])) {
             case 'reject':
                 if ($publisher->reject($item_id, $notes)) {
                     $message = __('News item rejected.', 'teinformez');
+                }
+                break;
+            case 'toggle_premium':
+                $is_premium = isset($_POST['is_premium']) ? (int) $_POST['is_premium'] : 0;
+                if ($publisher->toggle_premium($item_id, $is_premium)) {
+                    $message = $is_premium
+                        ? __('Articol marcat Premium.', 'teinformez')
+                        : __('Articol marcat Free.', 'teinformez');
                 }
                 break;
             case 'fetch_now':
@@ -201,6 +211,16 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                             ?></textarea>
                         </td>
                     </tr>
+                    <tr>
+                        <th><label for="is_premium"><?php _e('Conținut Premium', 'teinformez'); ?></label></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="is_premium" id="is_premium" value="1"
+                                       <?php checked((bool) ($editing_item->is_premium ?? false)); ?>>
+                                <?php _e('Vizibil doar pentru abonații Premium', 'teinformez'); ?>
+                            </label>
+                        </td>
+                    </tr>
                 </table>
 
                 <p class="submit">
@@ -285,6 +305,9 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                                     <a href="<?php echo add_query_arg('edit', intval($item->id)); ?>">
                                         <?php echo esc_html($item->processed_title ?: $item->original_title); ?>
                                     </a>
+                                    <?php if (!empty($item->is_premium)): ?>
+                                        <span style="background:#7c3aed20;color:#7c3aed;padding:1px 6px;border-radius:3px;font-size:11px;font-weight:600;margin-left:4px;">★ Premium</span>
+                                    <?php endif; ?>
                                 </strong>
                                 <?php if ($item->processed_summary): ?>
                                     <p style="color: #666; font-size: 12px; margin: 5px 0 0;">
@@ -333,6 +356,20 @@ if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
                                         <button type="submit" name="action" value="reject" class="button button-small" title="<?php _e('Reject', 'teinformez'); ?>">✕</button>
                                     </form>
                                 <?php endif; ?>
+                                <form method="post" style="display: inline;">
+                                    <?php wp_nonce_field('teinformez_queue_action'); ?>
+                                    <input type="hidden" name="item_id" value="<?php echo intval($item->id); ?>">
+                                    <?php if (!empty($item->is_premium)): ?>
+                                        <input type="hidden" name="is_premium" value="0">
+                                        <button type="submit" name="action" value="toggle_premium" class="button button-small"
+                                                title="<?php _e('Marchează Free', 'teinformez'); ?>"
+                                                style="color:#7c3aed;border-color:#7c3aed;">★</button>
+                                    <?php else: ?>
+                                        <input type="hidden" name="is_premium" value="1">
+                                        <button type="submit" name="action" value="toggle_premium" class="button button-small"
+                                                title="<?php _e('Marchează Premium', 'teinformez'); ?>">☆</button>
+                                    <?php endif; ?>
+                                </form>
                             </td>
                         </tr>
                     <?php endforeach; ?>

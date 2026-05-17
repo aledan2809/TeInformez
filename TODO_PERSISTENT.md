@@ -26,7 +26,7 @@
 - **AFTER**: `/review` on analytics PHP + TWG visit `/wp-admin/?page=teinformez-analytics-advanced` → charts render + drilldown links work + no PHP warnings in `error.log`
 - **Close**: mark AN-02-followup `[x]` with commit + screenshot evidence
 
-#### Step 3 — MN-02 (Stripe subscriptions) — ABIP2 multi-phase ~6-8h
+#### [x] Step 3 — MN-02 (Stripe subscriptions) — DONE 2026-05-17 (commits `991edc4` `400b5cc` `3725eb7` `6bf6571` `f3c6661` `a3e953e`)
 - **Phase 1 USER GATE**: surface Premium feature matrix decision to user before any code (what's Premium-only vs Free?). Default proposal: advanced filters + juridic premium tier + PDF export + push priority. If user re-confirms "Free-only" → mark `[~] MN-01 stands` and CASCADE skip Steps 4-6.
 - **Phase 2**: integrate `@aledan/stripe` lib + add `wp_teinformez_subscriptions` table (subscription_id, user_id, tier, status, current_period_end, stripe_customer_id, stripe_subscription_id)
 - **Phase 3**: routes — frontend `/subscribe` + `/account/subscription` + backend `/api/stripe/checkout` + webhook handler `/api/stripe/webhook` (signature verify, idempotency)
@@ -34,7 +34,7 @@
 - **AFTER**: `/review` on all changed files (TS+PHP) + TWG full Stripe checkout flow on **test mode** (test card 4242424242424242, success path, cancel path, webhook delivery, subscription downgrade)
 - **Cross-impact**: sync `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` + `STRIPE_PUBLISHABLE_KEY` to `Master/credentials/teinformez.env` (gitignored); VPS2 `.env` update; webhook endpoint must be HTTPS (already covered)
 
-#### Step 4 — MN-03 (Paywall soft) — depends on Step 3 DONE
+#### [x] Step 4 — MN-03 (Paywall soft) — DONE 2026-05-17 (commits `4ecaab4` `7e5df29`)
 - **Scope**: soft-block UI for Premium features per MN-02 feature matrix. NO 403 hard blocks — show "Disponibil pentru Premium" badge + CTA upgrade button
 - **Routes affected**: per matrix decision in Step 3 Phase 1 (e.g., `/news/[id]/full-pdf`, advanced filter sidebar, juridic premium articles)
 - **AFTER**: `/review` on changed frontend + TWG verify 3-tier UX: guest (sees CTA register), free-logged-in (sees CTA upgrade), premium (full access)
@@ -291,8 +291,8 @@ After ABIP2 + both Triage sessions land:
 ### Faza 3 — Monetization
 
 - [x] **MN-01** — **Feature matrix**: DECIZIE 2026-05-13 — platformă 100% Free, monetizare ads only. Premium tier DEFER până crește baza de useri. MN-02/MN-03 DEFER corespunzător. **REVERSAT 2026-05-17**: Premium reactivat. Juridic cu Alina ELIMINAT complet. Preț: 9 RON/lună sau 99 RON/an. Feature matrix Premium: filtre avansate + export PDF + push prioritar.
-- [ ] **MN-02** — **Stripe subscriptions**: IN PROGRESS 2026-05-17 (Step 3 activ)
-- [ ] **MN-03** — **Paywall soft**: PENDING (după MN-02)
+- [x] **MN-02** — **Stripe subscriptions**: DONE 2026-05-17 (commits `991edc4`→`a3e953e`)
+- [x] **MN-03** — **Paywall soft**: DONE 2026-05-17 (commits `4ecaab4` + `7e5df29`)
 - [x] **MN-05** — **Newsletter sponsorizat**: DONE 2026-05-13 (`fef09fd`) — DB `wp_teinformez_newsletter_ads` + admin UI CRUD (sponsor_name, banner_html, campaign_start/end, status, impressions counter) + delivery handler inject (campanie activă azi → override promo intern, fallback rotație internă). TRWG-GW: toate checks OK.
 - [x] **MN-06** — **Admin revenue dashboard**: DONE 2026-05-13 (`b2fcfe3`) — `/wp-admin/?page=teinformez-revenue` — grid cards (useri, newsletter subscribers, articole, campanii ads active, total impressii), tabel campanii cu status azi, status AdSense (configurat/neconfigurat + instrucțiuni), strategia de monetizare curentă documentată. TRWG-GW: toate checks OK.
 
@@ -371,12 +371,78 @@ After ABIP2 + both Triage sessions land:
 
 ---
 
+## [ ] Faza 4 — Optimizări post-monetization
+
+### [ ] ⚖️ LEGAL ECOSYSTEM COVERAGE — TeInformez pending (creat 2026-05-17)
+
+**Scope**: Connect TeInformez to `legal.knowbest.ro` hub (NO-TOUCH CRITIC per CLASSIFICATION §2.3).
+- Determine controller entity (I-Phoenix CA / Class RDA Impex SRL / Fabulosos)
+- Register app in Legal `LegalEntity ↔ App` routing rules
+- Wire ConsentRecord submission for visitor + signup consent
+- Wire DSR proxy (export/delete user data) → Legal `/api/dsr`
+- Pull ToS/Privacy/Cookies from Legal (versioned) instead of hardcoded
+- Backfill ConsentRecord for existing users
+- Reference: `4pro-eat` G-EAT-017 (2026-05-07) as implementation pattern; `Legal/Reports/DIRECT-CHANGES-2026-05.md` ledger
+
+**Gate**: Legal hub is NO-TOUCH CRITIC → dedicated session, propose-confirm-apply per CLASSIFICATION §2d.
+
+---
+
+### [ ] MN-04 (OP-01) — Brevo churn prevention email 3 zile înainte de expirare abonament (creat 2026-05-17)
+
+**Scope**:
+- WP cron `teinformez_check_expiring_subs` runs daily
+- Scans `wp_teinformez_subscriptions WHERE expires_at BETWEEN NOW()+3d AND NOW()+4d AND status='active'`
+- Sends Brevo transactional email "Reînnoiește acum — ofertă 10% dacă reînnoiești azi" cu one-time discount code (Stripe coupon API)
+- **Gate**: depends on MN-02 (Step 3) DONE + first Premium subscribers exist
+
+**After**: `/review` + TWG manual trigger test: seed test subscription cu `expires_at = NOW() + 3.5 days`, force-run cron, verify Brevo email arrives, click discount link, complete checkout with discount applied.
+
+---
+
+### [ ] MN-04 (OP-02) — Post-upgrade onboarding wizard la /account/welcome-premium (creat 2026-05-17)
+
+**Scope**:
+- 1-page wizard post-payment activates Telegram push subscription + sets all category subscriptions ON → reduces time-to-value gap
+- Trigger: redirect from Stripe success URL → `/account/welcome-premium`
+- Persistence: `wp_user_meta` flag `teinformez_premium_onboarded=1` so wizard shows only once
+- **Gate**: depends on MN-02 (Step 3) DONE
+
+**After**: `/review` + TWG verify wizard appears post-payment + completes cleanly + flag persists + does not re-appear on second login.
+
+---
+
+### [ ] AN-02 followup — schema migration + per-source breakdown charts (gated 2026-05-22)
+
+**Gate check first**: verify ≥7 days since AN-02 deploy (2026-05-15 → earliest viable **2026-05-22**). If insufficient data, reschedule.
+
+**Scope (if data available)**:
+- Refine attribution mapping in `admin/views/analytics-advanced.php`
+- Add per-source breakdown charts (which UTM sources convert best to subscriptions)
+- Add indexed columns for analytics queries performance
+
+**After**: `/review` + TWG visit `/wp-admin/?page=teinformez-analytics-advanced` → charts render + drilldown links work + no PHP warnings in `error.log`.
+
+---
+
+### [ ] Admin UI pentru is_premium — toggle în formularul de review articole (creat 2026-05-17)
+
+**Scope**: Add `is_premium` toggle checkbox in the WordPress admin article review form (news queue review page).
+- Identified in `/review` as next logical step after MN-03 soft paywall
+- Admin should be able to mark any article as premium from the review queue without DB queries
+- File: `admin/views/news-queue.php` + `admin/class-admin.php` (save handler)
+
+**After**: `/review` + TWG verify toggle saves correctly + `is_premium=1` articles show ⭐ badge in frontend.
+
+---
+
 ## Session Log
 
 | Date | Entry |
 |------|-------|
 | 2026-05-11 | Phase A+B complete; [7] CODE audit 68/100; TRUE FULL E2E scope defined |
 | 2026-05-11 | TRUE FULL E2E 92% complete — E1-E11 ✅, F1-F2 ✅, G1-G2 ✅, H1-H2 ✅, I1-I2 ✅; G3+G4 deferred. Report: `Reports/TRUE-E2E-FULL-2026-05-11.md` |
+| 2026-05-17 | MN-03 Soft Paywall DONE (commits `4ecaab4` + `7e5df29`). `is_premium` col în DB (queue+archive), API field `format_news_item()`, frontend badges (ArticleCard+NewsListClient), NewsDetailClient 3-branch paywall render cu subscription loading skeleton. /review (P1 flicker + P2 cache logout + P3 backticks) applied. TWG 8/8 PASS. Faza 4 TODO items adăugate (LEGAL, OP-01, OP-02, AN-02 followup, admin is_premium toggle). Step 4 din SEQUENTIAL PLAN marcat implicit DONE via MN-03 completion. |
 | 2026-05-12 | Security hardening complete — Sprint 1-5 + review fixes all eliminated. G3+G4 done. M-07 fully closed. Soft Launch & Monetization scope added (SL-01–SL-10, GR-01–GR-05, MN-01–MN-06, OP-01–OP-03). |
 | 2026-05-13 | Faza 1 Soft Launch COMPLETE — SL-01 through SL-10 all done. SL-04 canonical/noindex, SL-05 GA4 SPA tracking, SL-06 Core Web Vitals, SL-07 error monitoring, SL-08 homepage copy, SL-09 D+1 re-engagement email with TOP 3 articles, SL-10 /api/og dynamic OG images (HTTP 200 image/png verified). TRWG-GW baseline: 2/49 pre-existing console errors (React hydration #425 + GTM headless), no regressions from SL work. |
 | 2026-05-13 | **Faza 2 COMPLETĂ** (GR-01–GR-04 pre-existente; GR-05 push notifications PWA livrat commit `4756012`, TRWG-GW 3OK/3GATED/3EMPTY, zero regresii). **MN-04 eliminat** complet. **Fixes livrate** (commit `9382f00`): (1) dedup articole dubluri — Layer A title similarity ≥75%/12h + Layer B image URL uniqueness/24h; (2) UI Biziday-style — source sus, titlu bold, imagini înjumătățite în list view, `InFeedAd` component (carusel intern 4 proiecte + AdSense fallback via `NEXT_PUBLIC_ADSENSE_CLIENT`+`NEXT_PUBLIC_ADSENSE_SLOT` env vars); (3) email promo bloc rotativ zilnic în digest (minim 1 indiferent de nr. articole); (4) `$thumbnail_budget` 4→1 în delivery handler. **NEXT**: Faza 3 — MN-01 (feature matrix decision) → MN-02 (Stripe) → MN-03 (paywall) → MN-05 (newsletter sponsorizat) → MN-06 (revenue dashboard). |
