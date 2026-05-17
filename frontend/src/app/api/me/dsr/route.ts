@@ -3,7 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 const VALID_TYPES = ["ACCESS", "DELETE", "RECTIFY", "PORTABILITY", "OBJECTION", "OTHER"] as const;
 
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => null);
+  let body: Record<string, unknown> | null = null;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
   if (!body) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
@@ -13,7 +18,8 @@ export async function POST(request: NextRequest) {
   if (!name || typeof name !== "string" || name.trim().length < 2) {
     return NextResponse.json({ error: "Numele este obligatoriu (minim 2 caractere)." }, { status: 400 });
   }
-  if (!email || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  const trimmedEmail = typeof email === "string" ? email.trim() : "";
+  if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
     return NextResponse.json({ error: "Adresa de email nu este validă." }, { status: 400 });
   }
   const normalizedType = typeof type === "string" ? type.toUpperCase() : "";
@@ -30,7 +36,7 @@ export async function POST(request: NextRequest) {
     const res = await fetch(`${wpApiUrl.replace(/\/$/, "")}/teinformez/v1/legal/dsr`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), email: email.trim(), type: normalizedType, description: (description ?? "").slice(0, 5000) }),
+      body: JSON.stringify({ name: name.trim(), email: trimmedEmail, type: normalizedType, description: (description ?? "").slice(0, 500) }),
       signal: AbortSignal.timeout(10000),
     });
 

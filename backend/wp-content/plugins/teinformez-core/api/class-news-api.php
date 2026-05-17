@@ -366,13 +366,13 @@ class News_API extends REST_API {
             $data_values = array_merge($values, [$per_page, ($page - 1) * $per_page]);
         }
 
-        $total = (int) ($count_values
-            ? $wpdb->get_var($wpdb->prepare($count_sql, ...$count_values))
-            : $wpdb->get_var($count_sql));
+        $total = (int) $wpdb->get_var(
+            $count_values ? $wpdb->prepare($count_sql, ...$count_values) : $wpdb->prepare($count_sql)
+        );
 
-        $items = $data_values
-            ? $wpdb->get_results($wpdb->prepare($data_sql, ...$data_values))
-            : $wpdb->get_results($data_sql);
+        $items = $wpdb->get_results(
+            $data_values ? $wpdb->prepare($data_sql, ...$data_values) : $wpdb->prepare($data_sql)
+        );
 
         // Decode JSON fields
         foreach ($items as &$item) {
@@ -512,9 +512,9 @@ class News_API extends REST_API {
             );
         }
 
-        // Parse query parameters
-        $page = $request->get_param('page') ?: 1;
-        $per_page = min($request->get_param('per_page') ?: 20, 50);
+        // Parse query parameters — cast to int to prevent type-juggling injection.
+        $page = max(1, (int) ($request->get_param('page') ?: 1));
+        $per_page = min(max(1, (int) ($request->get_param('per_page') ?: 20)), 50);
 
         // Get user subscriptions
         $subscription_manager = new \TeInformez\Subscription_Manager();
@@ -591,19 +591,26 @@ class News_API extends REST_API {
         }
 
         // Get articles from the last 3 days only (homepage = fresh content)
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name built from $wpdb->prefix (trusted), no user input; prepare() used for best practice.
         $items = $wpdb->get_results(
-            "SELECT id, processed_title, original_title, processed_summary,
-                    ai_generated_image_url, youtube_embed, source_name, categories, tags,
-                    published_at, original_url, target_language, view_count
-             FROM {$table}
-             WHERE status = 'published'
-               AND (
-                    (ai_generated_image_url IS NOT NULL AND ai_generated_image_url <> '')
-                    OR (youtube_embed IS NOT NULL AND youtube_embed <> '')
-               )
-               AND published_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)
-             ORDER BY published_at DESC"
+            $wpdb->prepare(
+                "SELECT id, processed_title, original_title, processed_summary,
+                        ai_generated_image_url, youtube_embed, source_name, categories, tags,
+                        published_at, original_url, target_language, view_count
+                 FROM `%i`
+                 WHERE status = 'published'
+                   AND (
+                        (ai_generated_image_url IS NOT NULL AND ai_generated_image_url <> '')
+                        OR (youtube_embed IS NOT NULL AND youtube_embed <> '')
+                   )
+                   AND published_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)
+                 ORDER BY published_at DESC",
+                $table
+            )
         );
+
+        // Guard against null return from wpdb on DB error.
+        $items = $items ?? [];
 
         // Parse categories JSON for each item
         foreach ($items as &$item) {

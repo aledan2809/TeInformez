@@ -48,6 +48,12 @@ class Legal_Client {
      * Does NOT block the sign-up response (blocking=false).
      */
     public static function record_newsletter_consent(string $ip, string $user_agent): void {
+        // Validate and sanitize IP (accept only valid IPv4/IPv6 to prevent header injection).
+        $ip = filter_var($ip, FILTER_VALIDATE_IP) ? $ip : '0.0.0.0';
+        // Strip control characters and sanitize user-agent to prevent header injection.
+        $user_agent = sanitize_text_field(preg_replace('/[\r\n\t\0]/', '', $user_agent));
+        $user_agent = substr($user_agent, 0, 512);
+
         $payload = wp_json_encode([
             'appSlug'           => self::APP_SLUG,
             'documentVersionId' => self::get_privacy_version_id(),
@@ -55,17 +61,32 @@ class Legal_Client {
             'method'            => 'IN_APP',
         ]);
 
-        wp_remote_post(self::api_url() . '/api/v1/consents/record', [
+        if ($payload === false) {
+            error_log('[Legal_Client] wp_json_encode failed for newsletter consent payload');
+            return;
+        }
+
+        $key = self::api_key();
+        $headers = [
+            'Content-Type'    => 'application/json',
+            'x-forwarded-for' => $ip,
+            'user-agent'      => $user_agent,
+        ];
+        if (!empty($key)) {
+            $headers['x-legal-api-key'] = $key;
+        }
+
+        $response = wp_remote_post(self::api_url() . '/api/v1/consents/record', [
             'method'   => 'POST',
             'blocking' => false,
             'timeout'  => 5,
-            'headers'  => [
-                'Content-Type'    => 'application/json',
-                'x-forwarded-for' => $ip,
-                'user-agent'      => $user_agent,
-            ],
+            'headers'  => $headers,
             'body'     => $payload,
         ]);
+
+        if (is_wp_error($response)) {
+            error_log('[Legal_Client] newsletter consent fire-and-forget error: ' . $response->get_error_message());
+        }
     }
 
     /**
@@ -101,8 +122,21 @@ class Legal_Client {
             return null;
         }
 
+        $code = wp_remote_retrieve_response_code($response);
+        if ($code < 200 || $code >= 300) {
+            error_log('[Legal_Client] DSR submit HTTP error: ' . $code . ' — ' . wp_remote_retrieve_response_message($response));
+            return null;
+        }
+
         $body = json_decode(wp_remote_retrieve_body($response), true);
-        return $body['requestId'] ?? null;
+        if (!is_array($body)) {
+            return null;
+        }
+        $request_id = $body['requestId'] ?? null;
+        if ($request_id !== null && !is_string($request_id)) {
+            return null;
+        }
+        return $request_id;
     }
 
     /**
@@ -124,11 +158,21 @@ class Legal_Client {
             return;
         }
 
-        $body       = json_decode(wp_remote_retrieve_body($response), true);
+        try {
+            $body = json_decode(wp_remote_retrieve_body($response), true);
+        } catch (\Throwable $e) {
+            error_log('[Legal_Client] refresh_privacy_version JSON decode error: ' . $e->getMessage());
+            return;
+        }
+
+        if (!is_array($body)) {
+            return;
+        }
+
         $version_id = $body['version']['id'] ?? '';
 
         if (!empty($version_id)) {
-            update_option('ti_legal_privacy_version_id', $version_id);
+            update_option('ti_legal_privacy_version_id', sanitize_text_field((string) $version_id));
         }
     }
 }

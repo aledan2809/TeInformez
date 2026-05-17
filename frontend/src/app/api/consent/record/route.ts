@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   if (body.consentText.length > 2000) {
     return NextResponse.json({ error: "consentText must not exceed 2000 characters" }, { status: 400 });
   }
-  if (!body.userId) {
+  if (!body.userId || typeof body.userId !== "string") {
     return NextResponse.json({ error: "userId required" }, { status: 400 });
   }
 
@@ -46,17 +46,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Consent signing misconfigured" }, { status: 500 });
   }
 
-  const res = await fetch(`${legalUrl.replace(/\/$/, "")}/api/v1/consents/record`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-forwarded-for": ip,
-      "user-agent": userAgent,
-      ...signedHeaders,
-    },
-    body: bodyText,
-    signal: AbortSignal.timeout(8000),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${legalUrl.replace(/\/$/, "")}/api/v1/consents/record`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-forwarded-for": ip,
+        "user-agent": userAgent,
+        ...signedHeaders,
+      },
+      body: bodyText,
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "unknown";
+    return NextResponse.json({ error: "Eroare de conexiune.", detail: msg }, { status: 502 });
+  }
 
   const data = await res.json().catch(() => null);
   if (data === null) {

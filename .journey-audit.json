@@ -12,15 +12,37 @@
     "emailEnv": "JOURNEY_EMAIL",
     "passwordEnv": "JOURNEY_PASSWORD"
   },
+  "startUrl": "https://legal.knowbest.ro",
   "navLinks": [
-    { "name": "Home", "href": "/" },
-    { "name": "Stiri", "href": "/news" },
-    { "name": "Dashboard", "href": "/dashboard" },
-    { "name": "Profil", "href": "/profile" },
-    { "name": "Setari", "href": "/settings" },
+    { "name": "Legal Hub", "href": "https://legal.knowbest.ro" },
+    { "name": "Legal Hub DSR", "href": "https://legal.knowbest.ro/dsr" },
+    { "name": "Legal Hub Privacy", "href": "https://legal.knowbest.ro/privacy" },
+    { "name": "Legal Hub Health", "href": "/api/legal-hub/health" },
+    { "name": "Legal Privacy Version API", "href": "/wp-json/teinformez/v1/legal/privacy-version" },
     { "name": "GDPR", "href": "/gdpr" },
     { "name": "Privacy", "href": "/privacy" },
-    { "name": "Terms", "href": "/terms" }
+    { "name": "Terms", "href": "/terms" },
+    { "name": "Home", "href": "/" },
+    { "name": "Dashboard", "href": "/dashboard" },
+    { "name": "Profil", "href": "/profile" },
+    { "name": "Setari", "href": "/settings" }
+  ],
+  "apiTests": [
+    {
+      "name": "DSR email trim + description cap",
+      "url": "/wp-json/teinformez/v1/legal/dsr",
+      "method": "POST",
+      "body": { "name": "Test User", "email": " test@example.com ", "type": "ACCESS", "description": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+      "expectFields": ["requestId", "originalType"],
+      "expectStatus": 200
+    },
+    {
+      "name": "Consent record GDPR guard — missing documentVersionId",
+      "url": "/api/consent/record",
+      "method": "POST",
+      "body": { "consentText": "Am citit politica.", "userId": "test-123" },
+      "expectStatus": 400
+    }
   ],
   "onboardingMarkers": "Alege categorii|selecteaza|interese|onboarding|preferences",
   "emptyStateMarkers": "Nu exista|nicio stire|empty|no results|Niciun",

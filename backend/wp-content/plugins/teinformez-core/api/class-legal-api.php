@@ -14,6 +14,10 @@ class Legal_API {
     }
 
     public function register_routes(): void {
+        if (!did_action('rest_api_init') && !doing_action('rest_api_init')) {
+            return;
+        }
+
         register_rest_route('teinformez/v1', '/legal/dsr', [
             'methods'             => 'POST',
             'callback'            => [$this, 'submit_dsr'],
@@ -37,6 +41,12 @@ class Legal_API {
                 'description' => [
                     'required'          => false,
                     'sanitize_callback' => 'sanitize_textarea_field',
+                    'validate_callback' => function ($v) {
+                        if ($v === null || $v === '') {
+                            return true;
+                        }
+                        return is_string($v) && mb_strlen($v) <= 500;
+                    },
                 ],
             ],
         ]);
