@@ -19,6 +19,19 @@ class Legal_Client {
         return rtrim($env ?: 'https://legal.knowbest.ro', '/');
     }
 
+    /** Maps WP DSR type codes to Legal Hub enum values (export|delete|rectify). */
+    private static function map_dsr_type(string $type): string {
+        $map = [
+            'ACCESS'      => 'export',
+            'PORTABILITY' => 'export',
+            'DELETE'      => 'delete',
+            'RECTIFY'     => 'rectify',
+            'OBJECTION'   => 'export',  // closest match — enters DPO queue
+            'OTHER'       => 'export',
+        ];
+        return $map[$type] ?? 'export';
+    }
+
     private static function api_key(): string {
         if (defined('TI_LEGAL_API_KEY')) {
             return TI_LEGAL_API_KEY;
@@ -77,7 +90,7 @@ class Legal_Client {
             'body'     => wp_json_encode([
                 'name'        => $name,
                 'email'       => $email,
-                'type'        => $type,
+                'type'        => self::map_dsr_type($type),
                 'description' => $description,
                 'appSlug'     => self::APP_SLUG,
             ]),
