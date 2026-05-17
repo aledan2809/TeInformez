@@ -980,6 +980,9 @@ class News_API extends REST_API {
             'language' => ($item->target_language ?? '') ?: \TeInformez\Config::SITE_LANGUAGE,
             'view_count' => (int) ($item->view_count ?? 0),
             'is_premium' => (bool) ($item->is_premium ?? false),
+            'paywall_message' => (bool) ($item->is_premium ?? false)
+                ? get_option('teinformez_paywall_message', 'Articolul complet este disponibil doar pentru abonații Premium. Abonează-te pentru acces nelimitat la toate știrile.')
+                : null,
         ];
     }
 
