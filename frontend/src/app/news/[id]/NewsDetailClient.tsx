@@ -40,7 +40,7 @@ export default function NewsDetailClient() {
 
   const { isBookmarked, toggleBookmark } = useBookmarkStore();
   const { markAsRead } = useReadingStore();
-  const { isPremium } = useSubscription();
+  const { isPremium, loading: subscriptionLoading } = useSubscription();
 
   useEffect(() => {
     const newsId = Number(params.id);
@@ -401,8 +401,10 @@ export default function NewsDetailClient() {
             </motion.div>
           )}
 
-          {/* Content — gated for premium articles */}
-          {news.is_premium && !isPremium ? (
+          {/* Content — gated for premium articles; hold render during subscription fetch to avoid flicker */}
+          {news.is_premium && subscriptionLoading ? (
+            <div className="h-40 rounded-xl bg-amber-50 dark:bg-amber-900/20 animate-pulse" />
+          ) : news.is_premium && !isPremium ? (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}

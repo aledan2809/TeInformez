@@ -45,6 +45,8 @@ export function useSubscription(): SubscriptionState {
 
   useEffect(() => {
     if (!user) {
+      cachedSub = null;
+      cacheExpiry = 0;
       setSub(null);
       setLoading(false);
       return;

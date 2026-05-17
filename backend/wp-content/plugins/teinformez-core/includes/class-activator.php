@@ -474,7 +474,7 @@ class Activator {
             ));
             if (empty($col_exists)) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-                $wpdb->query("ALTER TABLE {$tbl} ADD COLUMN is_premium TINYINT(1) NOT NULL DEFAULT 0 AFTER view_count");
+                $wpdb->query("ALTER TABLE `{$tbl}` ADD COLUMN `is_premium` TINYINT(1) NOT NULL DEFAULT 0 AFTER `view_count`");
             }
         }
     }
