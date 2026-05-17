@@ -11,6 +11,7 @@ interface Article {
   source: string;
   categories: string[];
   published_at: string;
+  is_premium?: boolean;
 }
 
 interface CategorySectionProps {
@@ -54,6 +55,7 @@ export default function CategorySection({ slug, label, emoji, articles }: Catego
             categories={lead.categories}
             published_at={lead.published_at}
             showImage={true}
+            is_premium={lead.is_premium}
           />
         </div>
 
@@ -69,6 +71,7 @@ export default function CategorySection({ slug, label, emoji, articles }: Catego
               categories={article.categories}
               published_at={article.published_at}
               compact={true}
+              is_premium={article.is_premium}
             />
           ))}
         </div>

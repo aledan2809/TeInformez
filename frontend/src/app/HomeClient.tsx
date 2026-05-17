@@ -20,6 +20,7 @@ interface Article {
   source: string;
   categories: string[];
   published_at: string;
+  is_premium?: boolean;
 }
 
 interface Section {

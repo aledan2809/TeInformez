@@ -339,7 +339,7 @@ class News_API extends REST_API {
         $where_sql = implode(' AND ', $where);
 
         // Shared column list (archive has extra archived_at, so we must use explicit columns for UNION)
-        $shared_cols = 'id, original_url, original_title, original_content, original_language, source_name, source_type, processed_title, processed_summary, processed_content, target_language, ai_generated_image_url, youtube_embed, status, admin_notes, categories, tags, view_count, fetched_at, processed_at, reviewed_at, published_at';
+        $shared_cols = 'id, original_url, original_title, original_content, original_language, source_name, source_type, processed_title, processed_summary, processed_content, target_language, ai_generated_image_url, youtube_embed, status, admin_notes, categories, tags, view_count, is_premium, fetched_at, processed_at, reviewed_at, published_at';
 
         // Build query: active queue + optionally archive
         if ($include_archive) {
@@ -979,6 +979,7 @@ class News_API extends REST_API {
             'original_url' => $item->original_url ?? null,
             'language' => ($item->target_language ?? '') ?: \TeInformez\Config::SITE_LANGUAGE,
             'view_count' => (int) ($item->view_count ?? 0),
+            'is_premium' => (bool) ($item->is_premium ?? false),
         ];
     }
 

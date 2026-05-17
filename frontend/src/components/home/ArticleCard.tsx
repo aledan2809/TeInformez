@@ -14,11 +14,12 @@ interface ArticleCardProps {
   published_at: string;
   showImage?: boolean;
   compact?: boolean;
+  is_premium?: boolean;
 }
 
 export default function ArticleCard({
   id, title, summary, image, imageSource, source, categories, published_at,
-  showImage = true, compact = false,
+  showImage = true, compact = false, is_premium = false,
 }: ArticleCardProps) {
   const primaryCat = categories[0] || '';
   const colorClass = CATEGORY_COLORS[primaryCat] || 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300';
@@ -57,12 +58,19 @@ export default function ArticleCard({
         {/* Source name SMALL at TOP — Biziday style */}
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{source}</p>
 
-        {/* Category badge */}
-        {primaryCat && (
-          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium mb-2 ${colorClass}`}>
-            {getCategoryLabel(primaryCat)}
-          </span>
-        )}
+        {/* Category badge + premium badge */}
+        <div className="flex flex-wrap items-center gap-1 mb-2">
+          {primaryCat && (
+            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${colorClass}`}>
+              {getCategoryLabel(primaryCat)}
+            </span>
+          )}
+          {is_premium && (
+            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-700">
+              ⭐ Premium
+            </span>
+          )}
+        </div>
 
         {/* Title — bolder, newspaper-style */}
         <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug text-base">

@@ -100,6 +100,7 @@ export interface PublicNewsItem {
   original_url: string;
   language: string;
   view_count?: number;
+  is_premium?: boolean;
 }
 
 export interface PublicNewsListResponse {

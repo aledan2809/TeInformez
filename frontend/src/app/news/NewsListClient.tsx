@@ -812,6 +812,11 @@ function BookmarksButton() {
 function BadgesRow({ item }: { item: NewsItem }) {
   return (
     <>
+      {item.is_premium && (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-700">
+          ⭐ Premium
+        </span>
+      )}
       {item.summary && (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
           <Sparkles className="h-3 w-3" />

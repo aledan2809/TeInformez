@@ -19,6 +19,7 @@ import ReadingProgressBar from '@/components/ReadingProgressBar';
 import ScrollToTop from '@/components/ScrollToTop';
 import AffiliateWidget from '@/components/AffiliateWidget';
 import type { ApiErrorShape, PublicNewsItem, AffiliateInfo } from '@/types';
+import { useSubscription } from '@/hooks/useSubscription';
 
 type NewsItem = PublicNewsItem;
 
@@ -39,6 +40,7 @@ export default function NewsDetailClient() {
 
   const { isBookmarked, toggleBookmark } = useBookmarkStore();
   const { markAsRead } = useReadingStore();
+  const { isPremium } = useSubscription();
 
   useEffect(() => {
     const newsId = Number(params.id);
@@ -399,14 +401,37 @@ export default function NewsDetailClient() {
             </motion.div>
           )}
 
-          {/* Content */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-            className="prose prose-lg dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(news.content) }}
-          />
+          {/* Content — gated for premium articles */}
+          {news.is_premium && !isPremium ? (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.4 }}
+              className="rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-6 text-center"
+            >
+              <div className="mb-3 text-3xl">⭐</div>
+              <h3 className="text-lg font-bold text-amber-800 dark:text-amber-200 mb-2">
+                Conținut exclusiv Premium
+              </h3>
+              <p className="text-sm text-amber-700 dark:text-amber-300 mb-5 max-w-sm mx-auto">
+                Articolul complet este disponibil doar pentru abonații Premium. Abonează-te pentru acces nelimitat la toate știrile.
+              </p>
+              <Link
+                href="/account/subscription"
+                className="inline-block px-6 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm transition-colors"
+              >
+                Abonează-te Premium →
+              </Link>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="prose prose-lg dark:prose-invert max-w-none"
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(news.content) }}
+            />
+          )}
 
           {/* Affiliate Widget */}
           {affiliate && <AffiliateWidget affiliate={affiliate} />}

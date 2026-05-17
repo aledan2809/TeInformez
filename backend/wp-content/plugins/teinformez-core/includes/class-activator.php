@@ -78,6 +78,7 @@ class Activator {
             tags TEXT,
 
             view_count BIGINT(20) UNSIGNED DEFAULT 0,
+            is_premium TINYINT(1) NOT NULL DEFAULT 0,
 
             fetched_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             processed_at DATETIME DEFAULT NULL,
@@ -201,6 +202,7 @@ class Activator {
             tags TEXT,
 
             view_count BIGINT(20) UNSIGNED DEFAULT 0,
+            is_premium TINYINT(1) NOT NULL DEFAULT 0,
 
             fetched_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             processed_at DATETIME DEFAULT NULL,
@@ -459,6 +461,21 @@ class Activator {
             } while (count($rows) === $batch_size);
 
             update_option('teinformez_gdpr_ip_hashed', '1');
+        }
+
+        // v1.4.0: is_premium column on news_queue + news_archive (MN-03 soft paywall)
+        foreach (['teinformez_news_queue', 'teinformez_news_archive'] as $tbl_suffix) {
+            $tbl = $wpdb->prefix . $tbl_suffix;
+            $col_exists = $wpdb->get_results($wpdb->prepare(
+                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s",
+                DB_NAME,
+                $tbl,
+                'is_premium'
+            ));
+            if (empty($col_exists)) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+                $wpdb->query("ALTER TABLE {$tbl} ADD COLUMN is_premium TINYINT(1) NOT NULL DEFAULT 0 AFTER view_count");
+            }
         }
     }
 
