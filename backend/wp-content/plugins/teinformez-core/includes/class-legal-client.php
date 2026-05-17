@@ -119,6 +119,11 @@ class Legal_Client {
             return;
         }
 
+        $code = wp_remote_retrieve_response_code($response);
+        if ($code < 200 || $code >= 300) {
+            return;
+        }
+
         $body       = json_decode(wp_remote_retrieve_body($response), true);
         $version_id = $body['version']['id'] ?? '';
 

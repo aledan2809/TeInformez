@@ -65,8 +65,9 @@ class Legal_API {
         }
 
         return rest_ensure_response([
-            'requestId' => $request_id,
-            'message'   => 'Cererea ta a fost înregistrată. Vei primi un răspuns în termen de 30 de zile.',
+            'requestId'    => $request_id,
+            'originalType' => $type,
+            'message'      => 'Cererea ta a fost înregistrată. Vei primi un răspuns în termen de 30 de zile.',
         ]);
     }
 

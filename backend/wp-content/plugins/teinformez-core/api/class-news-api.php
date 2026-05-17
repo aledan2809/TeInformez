@@ -832,10 +832,12 @@ class News_API extends REST_API {
         }
 
         // Record GDPR consent in Legal Hub (fire-and-forget — does not block response)
-        \TeInformez\Legal_Client::record_newsletter_consent(
-            $ip_address,
-            $request->get_header('user-agent') ?? ''
-        );
+        if ($gdpr) {
+            \TeInformez\Legal_Client::record_newsletter_consent(
+                $ip_address,
+                $request->get_header('user-agent') ?? ''
+            );
+        }
 
         // Send confirmation email
         $email_sender = new \TeInformez\Email_Sender();
