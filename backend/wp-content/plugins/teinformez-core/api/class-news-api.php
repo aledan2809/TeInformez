@@ -831,6 +831,12 @@ class News_API extends REST_API {
             $wpdb->insert($table, $insert_data);
         }
 
+        // Record GDPR consent in Legal Hub (fire-and-forget — does not block response)
+        \TeInformez\Legal_Client::record_newsletter_consent(
+            $ip_address,
+            $request->get_header('user-agent') ?? ''
+        );
+
         // Send confirmation email
         $email_sender = new \TeInformez\Email_Sender();
         $confirm_link = rtrim(Config::FRONTEND_URL, '/') . '/newsletter/confirm?token=' . urlencode($token);

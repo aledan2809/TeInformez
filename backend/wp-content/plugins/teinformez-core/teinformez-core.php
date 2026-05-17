@@ -77,6 +77,7 @@ function teinformez_init() {
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-ma-client.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-visitor-analytics.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-cas-telemetry.php';
+    require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-legal-client.php';
 
     // Load news processing classes (Phase B)
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-news-source-manager.php';
@@ -103,6 +104,7 @@ function teinformez_init() {
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-analytics-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-cas-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-stripe-api.php';
+    require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-legal-api.php';
     // Initialize REST API
     new TeInformez\API\REST_API();
     new TeInformez\API\Auth_API();
@@ -113,6 +115,7 @@ function teinformez_init() {
     new TeInformez\API\Analytics_API();
     new TeInformez\API\CAS_API();
     new TeInformez\API\Stripe_API();
+    new TeInformez\API\Legal_API();
 
     // Auto-merge new categories into stored option
     $current_cats = get_option('teinformez_categories', []);
@@ -191,6 +194,8 @@ add_action('teinformez_check_delivery_health', function() {
 add_action('teinformez_daily_cleanup', function() {
     $publisher = new TeInformez\News_Publisher();
     $publisher->cleanup_old_items(30);
+    // Refresh cached Legal Hub privacy version ID
+    TeInformez\Legal_Client::refresh_privacy_version();
 });
 
 // GDPR consent retention cleanup — delete records older than 7 years
