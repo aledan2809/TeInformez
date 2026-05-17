@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import { WebVitals } from '@/components/WebVitals';
 import PushPrompt from '@/components/PushPrompt';
+import { TIConsentGate } from '@/components/consent/TIConsentGate';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -71,6 +72,7 @@ export default function RootLayout({
         <WebVitals />
         <ThemeProvider>{children}</ThemeProvider>
         <PushPrompt />
+        <TIConsentGate />
       </body>
     </html>
   );
