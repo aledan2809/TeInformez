@@ -251,7 +251,7 @@ export default function RegisterPage() {
               </li>
               <li className="flex items-center">
                 <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
-                Fără reclame (deocamdată)
+                10 surse de știri verificate
               </li>
             </ul>
           </div>

@@ -66,7 +66,7 @@ export default function HomeClient({ hero, sections }: HomeClientProps) {
                 </p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
                   <span className="text-xs text-gray-500 dark:text-gray-400">✓ Gratuit</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">✓ Fără reclame</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">✓ 10 surse verificate</span>
                   <span className="text-xs text-gray-500 dark:text-gray-400">✓ Anulezi oricând</span>
                 </div>
               </div>
@@ -130,8 +130,8 @@ export default function HomeClient({ hero, sections }: HomeClientProps) {
                 <span>Email<br/>personalizat</span>
               </span>
               <span className="flex flex-col items-center gap-1">
-                <span className="text-xl">🚫</span>
-                <span>Zero<br/>reclame</span>
+                <span className="text-xl">🇷🇴</span>
+                <span>Știri<br/>românești</span>
               </span>
             </div>
             <Link href="/register" className="btn-primary px-7 py-3 text-sm font-semibold">

@@ -44,7 +44,7 @@
 - **Backend**: WP cron `teinformez_check_expiring_subs` runs daily, scans `wp_teinformez_subscriptions WHERE expires_at BETWEEN NOW()+3d AND NOW()+4d AND status='active'`, sends Brevo transactional email "Reînnoiește acum — ofertă 10% dacă reînnoiești azi" with one-time discount code (Stripe coupon API)
 - **AFTER**: `/review` + TWG manual trigger test: seed test subscription with `expires_at = NOW() + 3.5 days`, force-run cron, verify Brevo email arrives, click discount link, complete checkout with discount applied
 
-#### Step 6 — OP-02 (Onboarding Premium wizard) — depends on Step 3 DONE
+#### [~] Step 6 — OP-02 (Onboarding Premium wizard) — DEFERRED 2026-08-01 (nu activăm Premium payments deocamdată)
 - **Scope**: post-upgrade 1-step wizard activates Telegram push subscription + sets all category subscriptions ON → reduces time-to-value gap between payment and feature use
 - **Trigger**: redirect from Stripe success URL → `/account/welcome-premium` (1 page, 1 form, ~30s flow)
 - **Persistence**: `wp_user_meta` flag `teinformez_premium_onboarded=1` so wizard shows only once

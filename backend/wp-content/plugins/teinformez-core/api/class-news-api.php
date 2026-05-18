@@ -597,7 +597,7 @@ class News_API extends REST_API {
                 "SELECT id, processed_title, original_title, processed_summary,
                         ai_generated_image_url, youtube_embed, source_name, categories, tags,
                         published_at, original_url, target_language, view_count
-                 FROM `%i`
+                 FROM %i
                  WHERE status = 'published'
                    AND (
                         (ai_generated_image_url IS NOT NULL AND ai_generated_image_url <> '')

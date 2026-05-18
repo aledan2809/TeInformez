@@ -178,7 +178,7 @@ export default function SubscriptionContent() {
                 'Filtre avansate de categorii',
                 'Export știri în PDF',
                 'Notificări prioritare',
-                'Fără reclame',
+                'Conținut premium selectat',
                 'Arhivă completă',
               ].map((f) => (
                 <li key={f} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
