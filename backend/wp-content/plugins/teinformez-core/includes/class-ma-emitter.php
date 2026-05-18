@@ -45,8 +45,9 @@ class MA_Emitter {
     // -------------------------------------------------------------------------
 
     public static function run(): void {
-        $webhook_url    = getenv('TEINFORMEZ_MA_WEBHOOK_URL');
-        $webhook_secret = getenv('TEINFORMEZ_MA_WEBHOOK_SECRET');
+        // Support both wp-config.php define() constants and system env vars
+        $webhook_url    = defined('TEINFORMEZ_MA_WEBHOOK_URL')    ? TEINFORMEZ_MA_WEBHOOK_URL    : getenv('TEINFORMEZ_MA_WEBHOOK_URL');
+        $webhook_secret = defined('TEINFORMEZ_MA_WEBHOOK_SECRET') ? TEINFORMEZ_MA_WEBHOOK_SECRET : getenv('TEINFORMEZ_MA_WEBHOOK_SECRET');
 
         if (!$webhook_url || !$webhook_secret) {
             error_log('[MA_Emitter] Missing TEINFORMEZ_MA_WEBHOOK_URL or TEINFORMEZ_MA_WEBHOOK_SECRET — skipping.');
