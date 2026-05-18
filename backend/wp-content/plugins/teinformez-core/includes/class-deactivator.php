@@ -19,7 +19,8 @@ class Deactivator {
             'teinformez_check_deliveries',
             'teinformez_check_delivery_health',
             'teinformez_daily_cleanup',
-            'teinformez_gdpr_retention_cleanup'
+            'teinformez_gdpr_retention_cleanup',
+            'teinformez_emit_to_ma',
         ];
 
         foreach ($cron_hooks as $hook) {

@@ -75,6 +75,7 @@ function teinformez_init() {
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-gdpr-handler.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-email-sender.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-ma-client.php';
+    require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-ma-emitter.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-visitor-analytics.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-cas-telemetry.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-legal-client.php';
@@ -135,6 +136,9 @@ function teinformez_init() {
     if (defined('WP_CLI') && WP_CLI) {
         require_once TEINFORMEZ_PLUGIN_DIR . 'cli/class-cli-commands.php';
     }
+
+    // Register MA emitter cron (idempotent — skips if already scheduled)
+    TeInformez\MA_Emitter::register_cron();
 }
 add_action('plugins_loaded', 'teinformez_init');
 
@@ -189,6 +193,10 @@ add_action('teinformez_news_published', function() {
 add_action('teinformez_check_delivery_health', function() {
     $handler = new TeInformez\Delivery_Handler();
     $handler->check_delivery_health();
+});
+
+add_action('teinformez_emit_to_ma', function() {
+    TeInformez\MA_Emitter::run();
 });
 
 add_action('teinformez_daily_cleanup', function() {
@@ -278,6 +286,10 @@ add_action('teinformez_welcome_d1_email', function($user_id) {
 
 // Custom cron intervals (must be registered early, before scheduling)
 add_filter('cron_schedules', function($schedules) {
+    $schedules['every_5min'] = [
+        'interval' => 300,
+        'display' => 'Every 5 minutes'
+    ];
     $schedules['every_15_minutes'] = [
         'interval' => 900,
         'display' => 'Every 15 minutes'
