@@ -201,7 +201,7 @@ class MA_Emitter {
             return true;
         }
 
-        $response = wp_remote_post($url, [
+        $response = wp_safe_remote_post($url, [
             'timeout'  => 15,
             'blocking' => true,
             'headers'  => [
@@ -222,7 +222,9 @@ class MA_Emitter {
             return false;
         }
 
-        error_log('[MA_Emitter] Sent ' . count($events) . ' events → HTTP ' . $code);
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('[MA_Emitter] Sent ' . count($events) . ' events → HTTP ' . $code);
+        }
         return true;
     }
 

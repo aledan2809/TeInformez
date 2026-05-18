@@ -222,7 +222,7 @@ After ABIP2 + both Triage sessions land:
   - Live verified: bot UA dropped (`{tracked:false, reason:bot_ua_filtered}`), test event UTM `?utm_source=test&utm_medium=verify&utm_campaign=an02-deploy-check` cu referer `google.com/search?q=teinformez` → DB row are `source_bucket=organic_google` (referer overrides UTM `test`). tg-walk-analytics.mjs 14/14 PASS = nicio regresie pe AN-01 features.
   - **Forward-only data**: legacy events (1,566 din 1,567 page_views în primele 7 zile) sunt NULL bucket → afișat ca "(neînregistrat)" 99.9%. Ratio real apare progresiv pe măsură ce noi events se acumulează.
 
-- [ ] **AN-02-followup** (când AN-02 acumulează ≥7 zile de date noi cu source attribution):
+- [~] **AN-02-followup** — data insufficient — reschedule 2026-05-22 (gate NOT MET 2026-05-18, AN-02 deploy 2026-05-15, need ≥7 days):
   - Schema migration: mută `referer`, `utm_*`, `source_bucket`, `is_bot` din `metadata` JSON în coloane indexed dedicate (perf pe Top Sources query care va deveni lent la 100k+ events).
   - Sub-buckets pentru referral_other: top 10 unique referers afișate separat (e.g., dacă cineva linkează din wikipedia.org sau forumuri).
   - Geo / IP-based country breakdown (necesită lib MaxMind GeoIP sau Cloudflare CF-IPCountry header).
