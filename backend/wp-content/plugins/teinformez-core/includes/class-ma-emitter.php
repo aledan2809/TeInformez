@@ -9,8 +9,10 @@ if (!defined('ABSPATH')) {
  * Emits TeInformez DB events to MarketingAutomation external webhook for analytics attribution.
  *
  * Runs on a 5-min WP cron and batch-POSTs new events since the last cursor
- * to TEINFORMEZ_MA_WEBHOOK_URL (env var) with X-Webhook-Secret auth.
- * Cursor stored per source in wp_options; idempotency handled upstream by MA.
+ * to TEINFORMEZ_MA_WEBHOOK_URL with X-Webhook-Secret auth.
+ * Cursor stored per source as last-processed row ID in wp_options; advances only on HTTP 2xx.
+ * Drains all pending rows per cron run (loop until empty), capped at MAX_DRAIN_SECONDS wall-clock
+ * to stay within safe WP-cron execution limits.
  *
  * Sources:
  *   users           → TEINFORMEZ_USER_REGISTERED
@@ -19,9 +21,10 @@ if (!defined('ABSPATH')) {
  */
 class MA_Emitter {
 
-    const CRON_HOOK     = 'teinformez_emit_to_ma';
-    const CRON_INTERVAL = 'every_5min';
-    const BATCH_LIMIT   = 200;
+    const CRON_HOOK         = 'teinformez_emit_to_ma';
+    const CRON_INTERVAL     = 'every_5min';
+    const BATCH_LIMIT       = 200;
+    const MAX_DRAIN_SECONDS = 25;
 
     // -------------------------------------------------------------------------
     // Cron lifecycle
@@ -45,7 +48,6 @@ class MA_Emitter {
     // -------------------------------------------------------------------------
 
     public static function run(): void {
-        // Support both wp-config.php define() constants and system env vars
         $webhook_url    = defined('TEINFORMEZ_MA_WEBHOOK_URL')    ? TEINFORMEZ_MA_WEBHOOK_URL    : getenv('TEINFORMEZ_MA_WEBHOOK_URL');
         $webhook_secret = defined('TEINFORMEZ_MA_WEBHOOK_SECRET') ? TEINFORMEZ_MA_WEBHOOK_SECRET : getenv('TEINFORMEZ_MA_WEBHOOK_SECRET');
 
@@ -66,32 +68,41 @@ class MA_Emitter {
     private static function emit_user_registrations(string $url, string $secret): void {
         global $wpdb;
 
-        $cursor = self::get_cursor('users');
-        $rows   = $wpdb->get_results($wpdb->prepare(
-            "SELECT ID, user_registered FROM {$wpdb->users}
-             WHERE user_registered > %s
-             ORDER BY user_registered ASC
-             LIMIT %d",
-            $cursor,
-            self::BATCH_LIMIT
-        ), ARRAY_A);
+        $deadline = microtime(true) + self::MAX_DRAIN_SECONDS;
 
-        if (empty($rows)) {
-            return;
-        }
+        do {
+            $cursor = self::get_cursor_id('users');
 
-        $events = [];
-        foreach ($rows as $row) {
-            $events[] = [
-                'event_type'  => 'TEINFORMEZ_USER_REGISTERED',
-                'occurred_at' => self::to_iso($row['user_registered']),
-            ];
-        }
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT ID, user_email, user_registered FROM {$wpdb->users}
+                 WHERE ID > %d
+                 ORDER BY ID ASC
+                 LIMIT %d",
+                $cursor,
+                self::BATCH_LIMIT
+            ), ARRAY_A);
 
-        $last = end($rows);
-        if (self::batch_post($url, $secret, $events)) {
-            self::set_cursor('users', $last['user_registered']);
-        }
+            if (empty($rows)) {
+                break;
+            }
+
+            $events = [];
+            foreach ($rows as $row) {
+                $events[] = [
+                    'event_type'  => 'TEINFORMEZ_USER_REGISTERED',
+                    'occurred_at' => self::to_iso($row['user_registered']),
+                    'user_id'     => (int) $row['ID'],
+                    'email'       => $row['user_email'],
+                ];
+            }
+
+            $last = end($rows);
+            if (!self::batch_post($url, $secret, $events)) {
+                break;
+            }
+            self::set_cursor_id('users', (int) $last['ID']);
+
+        } while (count($rows) === self::BATCH_LIMIT && microtime(true) < $deadline);
     }
 
     // -------------------------------------------------------------------------
@@ -101,39 +112,46 @@ class MA_Emitter {
     private static function emit_newsletter_subscriptions(string $url, string $secret): void {
         global $wpdb;
 
-        $table  = $wpdb->prefix . 'teinformez_newsletter';
-        $cursor = self::get_cursor('newsletter');
+        $table    = $wpdb->prefix . 'teinformez_newsletter';
+        $deadline = microtime(true) + self::MAX_DRAIN_SECONDS;
 
-        $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, confirmed_at, utm_source, utm_medium, utm_campaign
-             FROM {$table}
-             WHERE confirmed = 1 AND confirmed_at IS NOT NULL AND confirmed_at > %s
-             ORDER BY confirmed_at ASC
-             LIMIT %d",
-            $cursor,
-            self::BATCH_LIMIT
-        ), ARRAY_A);
+        do {
+            $cursor = self::get_cursor_id('newsletter');
 
-        if (empty($rows)) {
-            return;
-        }
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT id, email, confirmed_at, utm_source, utm_medium, utm_campaign
+                 FROM {$table}
+                 WHERE confirmed = 1 AND confirmed_at IS NOT NULL AND id > %d
+                 ORDER BY id ASC
+                 LIMIT %d",
+                $cursor,
+                self::BATCH_LIMIT
+            ), ARRAY_A);
 
-        $events = [];
-        foreach ($rows as $row) {
-            $event = [
-                'event_type'  => 'TEINFORMEZ_NEWSLETTER_SUBSCRIBED',
-                'occurred_at' => self::to_iso($row['confirmed_at']),
-            ];
-            if (!empty($row['utm_source']))   $event['utm_source']   = $row['utm_source'];
-            if (!empty($row['utm_medium']))   $event['utm_medium']   = $row['utm_medium'];
-            if (!empty($row['utm_campaign'])) $event['utm_campaign'] = $row['utm_campaign'];
-            $events[] = $event;
-        }
+            if (empty($rows)) {
+                break;
+            }
 
-        $last = end($rows);
-        if (self::batch_post($url, $secret, $events)) {
-            self::set_cursor('newsletter', $last['confirmed_at']);
-        }
+            $events = [];
+            foreach ($rows as $row) {
+                $event = [
+                    'event_type'  => 'TEINFORMEZ_NEWSLETTER_SUBSCRIBED',
+                    'occurred_at' => self::to_iso($row['confirmed_at']),
+                    'email'       => $row['email'],
+                ];
+                if (!empty($row['utm_source']))   $event['utm_source']   = $row['utm_source'];
+                if (!empty($row['utm_medium']))   $event['utm_medium']   = $row['utm_medium'];
+                if (!empty($row['utm_campaign'])) $event['utm_campaign'] = $row['utm_campaign'];
+                $events[] = $event;
+            }
+
+            $last = end($rows);
+            if (!self::batch_post($url, $secret, $events)) {
+                break;
+            }
+            self::set_cursor_id('newsletter', (int) $last['id']);
+
+        } while (count($rows) === self::BATCH_LIMIT && microtime(true) < $deadline);
     }
 
     // -------------------------------------------------------------------------
@@ -143,53 +161,58 @@ class MA_Emitter {
     private static function emit_article_events(string $url, string $secret): void {
         global $wpdb;
 
-        $table  = $wpdb->prefix . 'teinformez_visitor_events';
-        $cursor = self::get_cursor('visitor_events');
+        $table    = $wpdb->prefix . 'teinformez_visitor_events';
+        $deadline = microtime(true) + self::MAX_DRAIN_SECONDS;
 
-        $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, event_type, metadata, created_at
-             FROM {$table}
-             WHERE event_type IN ('article_read', 'article_shared') AND created_at > %s
-             ORDER BY created_at ASC
-             LIMIT %d",
-            $cursor,
-            self::BATCH_LIMIT
-        ), ARRAY_A);
+        do {
+            $cursor = self::get_cursor_id('visitor_events');
 
-        if (empty($rows)) {
-            return;
-        }
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT id, event_type, metadata, created_at
+                 FROM {$table}
+                 WHERE event_type IN ('article_read', 'article_shared') AND id > %d
+                 ORDER BY id ASC
+                 LIMIT %d",
+                $cursor,
+                self::BATCH_LIMIT
+            ), ARRAY_A);
 
-        $events = [];
-        foreach ($rows as $row) {
-            $type  = $row['event_type'] === 'article_shared'
-                ? 'TEINFORMEZ_ARTICLE_SHARED'
-                : 'TEINFORMEZ_ARTICLE_READ';
+            if (empty($rows)) {
+                break;
+            }
 
-            $event = [
-                'event_type'  => $type,
-                'occurred_at' => self::to_iso($row['created_at']),
-            ];
+            $events = [];
+            foreach ($rows as $row) {
+                $type = $row['event_type'] === 'article_shared'
+                    ? 'TEINFORMEZ_ARTICLE_SHARED'
+                    : 'TEINFORMEZ_ARTICLE_READ';
 
-            // Extract UTM fields from metadata JSON for attribution tracking
-            if (!empty($row['metadata'])) {
-                $meta = json_decode($row['metadata'], true);
-                if (is_array($meta)) {
-                    foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'] as $utm_key) {
-                        if (!empty($meta[$utm_key])) {
-                            $event[$utm_key] = (string) $meta[$utm_key];
+                $event = [
+                    'event_type'  => $type,
+                    'occurred_at' => self::to_iso($row['created_at']),
+                ];
+
+                if (!empty($row['metadata'])) {
+                    $meta = json_decode($row['metadata'], true);
+                    if (is_array($meta)) {
+                        foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'] as $utm_key) {
+                            if (!empty($meta[$utm_key])) {
+                                $event[$utm_key] = (string) $meta[$utm_key];
+                            }
                         }
                     }
                 }
+
+                $events[] = $event;
             }
 
-            $events[] = $event;
-        }
+            $last = end($rows);
+            if (!self::batch_post($url, $secret, $events)) {
+                break;
+            }
+            self::set_cursor_id('visitor_events', (int) $last['id']);
 
-        $last = end($rows);
-        if (self::batch_post($url, $secret, $events)) {
-            self::set_cursor('visitor_events', $last['created_at']);
-        }
+        } while (count($rows) === self::BATCH_LIMIT && microtime(true) < $deadline);
     }
 
     // -------------------------------------------------------------------------
@@ -229,28 +252,26 @@ class MA_Emitter {
     }
 
     // -------------------------------------------------------------------------
-    // Cursor helpers (wp_options, per-source, autoload=false)
+    // Cursor helpers — ID-based (autoload=false)
+    // Stored as integers in wp_options key: teinformez_ma_cursor_id_{source}
     // -------------------------------------------------------------------------
 
-    private static function get_cursor(string $source): string {
-        $stored = get_option('teinformez_ma_cursor_' . $source, '');
-        if ($stored) {
-            return $stored;
-        }
-        // First run: start 7 days back to capture recent activity
-        return date('Y-m-d H:i:s', strtotime('-7 days'));
+    private static function get_cursor_id(string $source): int {
+        $stored = get_option('teinformez_ma_cursor_id_' . $source, false);
+        return $stored !== false ? (int) $stored : 0;
     }
 
-    private static function set_cursor(string $source, string $datetime): void {
-        update_option('teinformez_ma_cursor_' . $source, $datetime, false);
+    private static function set_cursor_id(string $source, int $id): void {
+        update_option('teinformez_ma_cursor_id_' . $source, $id, false);
     }
 
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 
-    /** Convert MySQL DATETIME (Y-m-d H:i:s, stored UTC) to ISO-8601 UTC string. */
+    /** Convert MySQL DATETIME (stored as UTC) to ISO-8601 UTC string. */
     private static function to_iso(string $mysql_datetime): string {
-        return str_replace(' ', 'T', $mysql_datetime) . 'Z';
+        $dt = \DateTime::createFromFormat('Y-m-d H:i:s', $mysql_datetime, new \DateTimeZone('UTC'));
+        return $dt ? $dt->format('Y-m-d\TH:i:s\Z') : $mysql_datetime . 'Z';
     }
 }
