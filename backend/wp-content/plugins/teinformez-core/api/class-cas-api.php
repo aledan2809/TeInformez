@@ -58,9 +58,13 @@ class CAS_API extends REST_API {
             ? hash('sha256', $visitor_token . self::get_setting('TEINFORMEZ_CAS_SALT', 'cas_salt', ''))
             : '';
 
+        // Map TeInformez placements → MA CAS slots that carry inventory.
+        // 'banner' (homepage) → WEBSITE_SIDEBAR; 'infeed' (/news) → WEBSITE_INFEED.
+        // MA alias-resolves the `slot` param (not `placement`), so we send `slot`.
+        $slot_map = ['banner' => 'sidebar', 'infeed' => 'infeed'];
         $query = [
-            'placement' => $placement,
-            'source'    => 'teinformez',
+            'slot'   => $slot_map[$placement] ?? $placement,
+            'source' => 'teinformez',
         ];
         if ($visitor_hash !== '') {
             $query['visitor'] = $visitor_hash;
