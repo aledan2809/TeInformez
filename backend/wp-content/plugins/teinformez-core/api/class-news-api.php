@@ -14,9 +14,39 @@ if (!defined('ABSPATH')) {
  */
 class News_API extends REST_API {
     private const CATEGORY_ALIASES = [
+        // Legacy English slugs
         'news' => 'actualitate',
         'world' => 'international',
         'health' => 'sanatate',
+        // Romanian free-text AI categories → canonical slugs.
+        // Keys are diacritic-transliterated, lowercased, alnum-only (see normalize_category_slug).
+        'finante' => 'finance',
+        'politica' => 'politics',
+        'politice' => 'politics',
+        'politicipublice' => 'politics',
+        'politicainternationala' => 'politics',
+        'stiinta' => 'science',
+        'stiintasitehnologie' => 'science',
+        'tehnologie' => 'tech',
+        'afaceri' => 'business',
+        'economie' => 'business',
+        'divertisment' => 'entertainment',
+        'cultura' => 'culture',
+        'educatie' => 'education',
+        'stiri' => 'actualitate',
+        'stiriinternationale' => 'international',
+        'stiriauto' => 'auto',
+        'internacional' => 'international',
+        'sport' => 'sports',
+        'sanatatepublica' => 'sanatate',
+        'politicasanatatii' => 'sanatate',
+    ];
+
+    /** Canonical category slugs — must mirror frontend src/lib/categories.ts. */
+    private const CANONICAL_SLUGS = [
+        'actualitate', 'politics', 'international', 'justitie', 'business', 'finance',
+        'tech', 'sanatate', 'science', 'sports', 'entertainment', 'auto', 'lifestyle', 'opinii',
+        'news', 'world', 'health', 'history', 'local', 'culture', 'education', 'media', 'military',
     ];
 
     private const HOMEPAGE_SECTION_ORDER = [
@@ -1002,8 +1032,25 @@ class News_API extends REST_API {
     }
 
     private function normalize_category_slug(string $slug): string {
-        $slug = sanitize_key(trim($slug));
-        return self::CATEGORY_ALIASES[$slug] ?? $slug;
+        $original = trim($slug);
+        if ($original === '') {
+            return '';
+        }
+        // WordPress sanitize_key() DELETES non-ASCII chars (ă→''), which mangled "Sănătate"→"sntate".
+        // Transliterate Romanian diacritics first, then collapse to alnum for matching.
+        $translit = strtr($original, [
+            'ă' => 'a', 'â' => 'a', 'î' => 'i', 'ș' => 's', 'ş' => 's', 'ț' => 't', 'ţ' => 't',
+            'Ă' => 'A', 'Â' => 'A', 'Î' => 'I', 'Ș' => 'S', 'Ş' => 'S', 'Ț' => 'T', 'Ţ' => 'T',
+        ]);
+        $key = preg_replace('/[^a-z0-9]+/', '', strtolower($translit));
+        if (isset(self::CATEGORY_ALIASES[$key])) {
+            return self::CATEGORY_ALIASES[$key];
+        }
+        if (in_array($key, self::CANONICAL_SLUGS, true)) {
+            return $key;
+        }
+        // Unknown category → keep the human-readable original (with diacritics), never a mangled ASCII-stripped form.
+        return $original;
     }
 
     private function normalize_categories_array(array $categories): array {
