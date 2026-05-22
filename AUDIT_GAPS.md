@@ -89,6 +89,35 @@
 
 ---
 
+## Operational Incidents (2026-05-22)
+
+> **Note:** these are VPS-live changes to files NOT tracked in the GitHub repo. The WP plugin (`teinformez-core`) and the `ai-router-service` are live-only on VPS2 — `deploy.sh teinformez` (git pull on `teinformez-repo`) does NOT touch them. Backups kept on VPS2 as `.bak-2026-05-22-*`.
+
+**INCIDENT — News processing silent 5 days (2026-05-17 → 2026-05-22).** Symptom: no fresh news published since 2026-05-17 14:40. RSS fetch kept working (no AI), so 2572 articles piled up in `wp_teinformez_news_queue` status `fetched`.
+
+Root-cause chain:
+1. `ai-router-service` (port 3100, `/var/www/ai-router-service`) — the multi-provider HTTP microservice the plugin's `AI_Processor::call_ai_router()` calls FIRST — was **stopped and not under PM2** (likely stopped around the 2026-05-16 secrets rotation, never restarted).
+2. OpenAI account out of quota (`429 insufficient_quota` on both old + rotated keys — same broke account); Anthropic API low; Claude CLI subscription rate-limited until 2026-05-25.
+3. The 3 cron events `teinformez_process_news` + `teinformez_check_deliveries` + `teinformez_check_delivery_health` became **unscheduled** on/around 2026-05-17 14:40 (exact cause undetermined — NOT the AI-parse: `call_openai`/`call_groq` already guard `isset($body['error'])` + `empty(choices)`). 10 articles left stuck in `processing`.
+
+Fixes applied (VPS2):
+| Item | Action | Verification |
+|------|--------|--------------|
+| AI Router down | Started `ai-router-service` under PM2 (`pm2 start server.js --name ai-router-service && pm2 save`) | `/api/ai/chat` returns valid text via free provider (mistral, 330ms) |
+| Backlog | Marked 1330 `fetched` items older than 48h → `rejected` (per user choice B); kept 1297 recent | status breakdown query |
+| Cron unscheduled | Re-scheduled the 3 missing hooks (`every_30/15_minutes`) | `wp cron event list` shows all 7 teinformez hooks |
+| Verify | Ran `process_news` manually | article #25735 published 2026-05-22 11:43 live on teinformez.eu; processed_at/published_at advanced |
+
+**ROBUSTNESS-1 — Claude CLI as permanent default provider.** `ai-router-service/server.js` patched: `tryClaudeCli()` spawns `claude -p --output-format json --model sonnet` (ANTHROPIC_API_KEY stripped from env → forces subscription auth, $0 API). Tried FIRST on every `/api/ai/chat`; on failure/rate-limit sets a 15-min cooldown and falls back to the existing AIRouter free-provider chain (Groq/Gemini/Mistral). Toggle `CLAUDE_CLI_DEFAULT=0` disables without code change. CLI becomes primary automatically after the subscription rate-limit resets (2026-05-25). Per user directive 2026-05-22 ("Claude CLI by default for good"). Backup: `server.js.bak-2026-05-22-claudecli`. Verified: CLI tried → rate-limited → mistral fallback; 2nd call in cooldown → 0.4s instant.
+
+**ROBUSTNESS-2 — Cron self-heal.** `teinformez-core.php` `teinformez_fetch_news` handler (always-alive, every 30 min) patched to re-schedule any of the 3 sibling cron events if `!wp_next_scheduled($hook)` — logs `TeInformez: self-healed missing cron <hook>`. Prevents a recurrence of the 5-day silent outage regardless of what unschedules an event. Backup: `teinformez-core.php.bak-2026-05-22-cron-selfheal`. Verified: deleted `check_delivery_health` → `fetch_news` run re-added it.
+
+**Open follow-ups (not done — out of scope this session):**
+- Processing capacity: fetch ~648/day > process ~480/day (`LIMIT 10` per 30-min run) — queue never fully drains. Raise batch size or interval in a dedicated session.
+- Exact cause of the 2026-05-17 cron unschedule remains undetermined (self-heal makes it moot).
+
+---
+
 ---
 
 ## Summary
