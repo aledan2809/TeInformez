@@ -79,4 +79,25 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Attention-grabbing pulse for the primary signup CTA (primary-600 #2563eb) */
+  @keyframes cta-pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5); transform: scale(1); }
+    50% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); transform: scale(1.04); }
+  }
+  .cta-pulse {
+    animation: cta-pulse-glow 1.8s ease-in-out infinite;
+  }
+
+  @keyframes cta-card-glow {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.15), 0 4px 18px -6px rgba(37, 99, 235, 0.18); }
+    50% { box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.4), 0 10px 30px -6px rgba(37, 99, 235, 0.35); }
+  }
+  .cta-card-glow {
+    animation: cta-card-glow 3s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cta-pulse, .cta-card-glow { animation: none; }
+  }
 }

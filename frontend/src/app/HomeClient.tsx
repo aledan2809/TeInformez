@@ -55,7 +55,7 @@ export default function HomeClient({ hero, sections }: HomeClientProps) {
       <main className="container-custom py-6">
         {/* Value proposition banner — hidden for logged-in users */}
         {!isAuthenticated && (
-          <div className="mb-6 rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 px-5 py-4">
+          <div className="cta-card-glow mb-6 rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 px-5 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex-1">
                 <p className="text-base font-bold text-primary-800 dark:text-primary-200 leading-snug">
@@ -70,7 +70,7 @@ export default function HomeClient({ hero, sections }: HomeClientProps) {
                   <span className="text-xs text-gray-500 dark:text-gray-400">✓ Anulezi oricând</span>
                 </div>
               </div>
-              <Link href="/register" className="btn-primary text-sm px-5 py-2.5 whitespace-nowrap self-start sm:self-auto">
+              <Link href="/register" className="cta-pulse btn-primary text-sm px-5 py-2.5 whitespace-nowrap self-start sm:self-auto font-semibold">
                 Înregistrare gratuită →
               </Link>
             </div>
