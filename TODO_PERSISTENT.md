@@ -201,6 +201,8 @@ After ABIP2 + both Triage sessions land:
   - **`/review`**: APPROVE — XSS risk acoperit deja de `G-TI-CAS-XSS-RISK` (filed pentru CAS-04, se aplică și aici; **mitigated `b533883` 2026-05-15** — DOMPurify pe useCasSlot hook protejează ambele consumere InFeedAd + BannerSlot).
   - **TWG**: explicit skip (same reason ca CAS-04 — Anthropic credit blocks vision; Playwright walk + `/review` = equivalent validation).
 
+- [ ] **CAS-06 — Launch Plan attribution emitter (reverse direction, pending)** — adăugat 2026-05-22 din MA Launch Plan Final Verification. CAS-04/05 acoperă render-side (TeInformez **trage** reclame din MA). Direcția inversă NU e încă wired: TeInformez ar trebui să **emită** evenimente de attribution (`TEINFORMEZ_USER_REGISTERED` etc.) către MA `POST https://ma.techbiz.ae/api/external/teinformez/events` cu `X-Internal-Key` + `trackingCode` (din redirect-ul CAS click `utm_content`), ca MA să atribuie signups/conversii la `LaunchPlanAction.metrics`. **MA-side receiver e gata** (`/api/external/teinformez/events`, atomic JSONB increment — vezi `MarketingAutomation/knowledge/launch-plan-module.md`). **Emitter TeInformez deferred** — sesiune dedicată propose-confirm-apply (RESTRICT). Estimat ~1-2h: hook pe user-register WP action → POST către MA cu trackingCode capturat la signup.
+
 ### Analytics redesign (3 faze)
 
 > **Scop:** simplifică dashboard-ul de la 25+ metrici GA-style la 3 secțiuni utile pentru owner non-marketeer. Răspunde la 3 întrebări: "cresc/scad?", "ce a funcționat?", "ce trebuie să fac?"
