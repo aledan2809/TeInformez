@@ -144,6 +144,19 @@ add_action('plugins_loaded', 'teinformez_init');
 
 // Cron job handlers (Phase B - News Aggregation)
 add_action('teinformez_fetch_news', function() {
+    // Self-heal: re-schedule sibling cron events if any got unscheduled (2026-05-22 incident: 3 hooks vanished, news silent 5 days).
+    $teinformez_crons = array(
+        'teinformez_process_news'          => 'every_30_minutes',
+        'teinformez_check_deliveries'      => 'every_15_minutes',
+        'teinformez_check_delivery_health' => 'every_15_minutes',
+    );
+    foreach ($teinformez_crons as $hook => $recurrence) {
+        if (!wp_next_scheduled($hook)) {
+            wp_schedule_event(time(), $recurrence, $hook);
+            error_log('TeInformez: self-healed missing cron ' . $hook);
+        }
+    }
+
     $fetcher = new TeInformez\News_Fetcher();
     $fetcher->fetch_all();
 });

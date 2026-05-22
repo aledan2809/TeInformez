@@ -91,7 +91,7 @@
 
 ## Operational Incidents (2026-05-22)
 
-> **Note:** these are VPS-live changes to files NOT tracked in the GitHub repo. The WP plugin (`teinformez-core`) and the `ai-router-service` are live-only on VPS2 — `deploy.sh teinformez` (git pull on `teinformez-repo`) does NOT touch them. Backups kept on VPS2 as `.bak-2026-05-22-*`.
+> **Note (corrected):** the WP plugin `teinformez-core` IS version-controlled — the live install `/var/www/teinformez/wp-content/plugins/teinformez-core` is a **symlink** to `/var/www/teinformez-repo/backend/wp-content/plugins/teinformez-core` (tracked in this repo at `backend/wp-content/plugins/teinformez-core/`). So the cron self-heal edit IS committed here and picked up by `deploy.sh teinformez` (git pull). The `ai-router-service` (port 3100, `/var/www/ai-router-service`) is a separate directory **NOT in any repo** — it is genuinely live-only on VPS2. VPS backups kept as `.bak-2026-05-22-*`.
 
 **INCIDENT — News processing silent 5 days (2026-05-17 → 2026-05-22).** Symptom: no fresh news published since 2026-05-17 14:40. RSS fetch kept working (no AI), so 2572 articles piled up in `wp_teinformez_news_queue` status `fetched`.
 
