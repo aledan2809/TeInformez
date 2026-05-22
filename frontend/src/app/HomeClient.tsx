@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import SharedHeader from '@/components/SharedHeader';
 import CategoryNavBar from '@/components/home/CategoryNavBar';
 import HeroArticle from '@/components/home/HeroArticle';
@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { Newspaper } from 'lucide-react';
 import { createTimeSpentTracker, trackPageView } from '@/lib/visitorAnalytics';
 import { useAuthStore } from '@/store/authStore';
+import { api } from '@/lib/api';
 
 interface Article {
   id: number;
@@ -35,7 +36,9 @@ interface HomeClientProps {
   sections: Section[];
 }
 
-export default function HomeClient({ hero, sections }: HomeClientProps) {
+export default function HomeClient({ hero: ssrHero, sections: ssrSections }: HomeClientProps) {
+  const [hero, setHero] = useState<Article | null>(ssrHero);
+  const [sections, setSections] = useState<Section[]>(ssrSections);
   const activeSlugs = sections.map(s => s.slug);
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
 
@@ -46,6 +49,21 @@ export default function HomeClient({ hero, sections }: HomeClientProps) {
       flushTimeSpent();
     };
   }, []);
+
+  // SSR fallback: if the server-side homepage fetch returned null (e.g. ISR cached an empty
+  // build-time render), recover on the client so the page never stays stuck on the spinner.
+  useEffect(() => {
+    if (ssrHero || (ssrSections && ssrSections.length > 0)) return;
+    let cancelled = false;
+    api.getHomepageData()
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.hero) setHero(data.hero as unknown as Article);
+        if (data?.sections) setSections(data.sections as unknown as Section[]);
+      })
+      .catch(() => { /* keep spinner; ISR will revalidate */ });
+    return () => { cancelled = true; };
+  }, [ssrHero, ssrSections]);
 
   return (
     <>
