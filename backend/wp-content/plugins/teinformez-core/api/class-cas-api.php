@@ -90,11 +90,19 @@ class CAS_API extends REST_API {
         // Fire-and-forget telemetry (AN-03 revenue dashboard).
         CAS_Telemetry::record($placement, $was_filled);
 
-        $response = new \WP_REST_Response(null, $was_filled ? 200 : 204);
-        $response->header('Content-Type', 'text/html; charset=utf-8');
-        $response->header('Cache-Control', self::CACHE_CONTROL_HEADER);
-        $response->set_data($was_filled ? $body : '');
-        return $response;
+        // Return RAW HTML, not WP_REST_Response: WordPress JSON-encodes any WP_REST_Response
+        // body regardless of the Content-Type header, which double-escaped the MA creative
+        // (the frontend's resp.text() then rendered the escaped JSON string as text). Echo +
+        // exit bypasses the REST JSON serializer so the client receives clean HTML for
+        // dangerouslySetInnerHTML (sanitized client-side via DOMPurify).
+        status_header($was_filled ? 200 : 204);
+        header('Content-Type: text/html; charset=utf-8');
+        header('Cache-Control: ' . self::CACHE_CONTROL_HEADER);
+        header('X-Content-Type-Options: nosniff');
+        if ($was_filled) {
+            echo $body; // trusted upstream HTML; sanitized client-side via DOMPurify
+        }
+        exit;
     }
 
     /**
