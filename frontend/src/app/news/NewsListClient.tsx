@@ -677,7 +677,8 @@ export default function NewsListClient() {
                   // After every 5th item (i=4,9,14,...) inject InFeedAd spanning full row
                   const adAfter = (i + 1) % 5 === 0 ? (
                     <div key={`ad-${i}`} className="md:col-span-2 lg:col-span-3">
-                      <InFeedAd />
+                      {/* index = slot ordinal (0,1,2…) so each slot shows a distinct campaign */}
+                      <InFeedAd index={Math.floor(i / 5)} />
                     </div>
                   ) : null;
 
@@ -686,7 +687,7 @@ export default function NewsListClient() {
                 {/* Minimum 1 InFeedAd at end if total articles < 5 (no ad was injected above) */}
                 {gridItems.length < 5 && (
                   <div className="md:col-span-2 lg:col-span-3">
-                    <InFeedAd />
+                    <InFeedAd index={0} />
                   </div>
                 )}
               </div>

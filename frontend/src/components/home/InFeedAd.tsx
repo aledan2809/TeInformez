@@ -14,13 +14,13 @@ import { useCasSlot } from '@/lib/useCasSlot';
  * key never ships in the client bundle.
  */
 
-function CasInFeedSlot() {
-  const { html, loaded } = useCasSlot('infeed');
+function CasInFeedSlot({ index }: { index?: number }) {
+  const { html, loaded } = useCasSlot('infeed', index);
   if (!loaded || !html) return null;
   return <div className="my-2" dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
-export default function InFeedAd() {
+export default function InFeedAd({ index }: { index?: number } = {}) {
   const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
   const adsenseSlot = process.env.NEXT_PUBLIC_ADSENSE_SLOT;
   const casEnabled = process.env.NEXT_PUBLIC_CAS_ENABLED === 'true';
@@ -43,7 +43,7 @@ export default function InFeedAd() {
 
   // 2. CAS — dynamic fetch through WP proxy
   if (casEnabled) {
-    return <CasInFeedSlot />;
+    return <CasInFeedSlot index={index} />;
   }
 
   // 3. Default — empty

@@ -42,7 +42,7 @@ export interface CasSlotResult {
   loaded: boolean;
 }
 
-export function useCasSlot(placement: CasPlacement): CasSlotResult {
+export function useCasSlot(placement: CasPlacement, index?: number): CasSlotResult {
   const [html, setHtml] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -50,7 +50,9 @@ export function useCasSlot(placement: CasPlacement): CasSlotResult {
     const controller = new AbortController();
     const visitor = getOrCreateVisitorToken();
     const apiBase = process.env.NEXT_PUBLIC_WP_API_URL || 'https://teinformez.eu/wp-json';
-    const url = `${apiBase}/teinformez/v1/cas/render?placement=${placement}&visitor=${encodeURIComponent(visitor)}`;
+    // Carousel: pass the slot index so MA returns a distinct campaign per slot on the page.
+    const nParam = typeof index === 'number' ? `&n=${index}` : '';
+    const url = `${apiBase}/teinformez/v1/cas/render?placement=${placement}&visitor=${encodeURIComponent(visitor)}${nParam}`;
 
     fetch(url, { signal: controller.signal, credentials: 'omit' })
       .then(async (resp) => {
@@ -74,7 +76,7 @@ export function useCasSlot(placement: CasPlacement): CasSlotResult {
       });
 
     return () => controller.abort();
-  }, [placement]);
+  }, [placement, index]);
 
   return { html, loaded };
 }

@@ -70,6 +70,11 @@ class CAS_API extends REST_API {
         if ($visitor_hash !== '') {
             $query['visitor'] = $visitor_hash;
         }
+        // Carousel slot index — forwarded so MA returns a distinct campaign per slot.
+        $n = $request->get_param('n');
+        if ($n !== null && $n !== '' && is_numeric($n)) {
+            $query['n'] = (int) $n;
+        }
 
         $endpoint = rtrim($url, '/') . '/api/cas/render?' . http_build_query($query);
         $resp = wp_remote_get($endpoint, [
