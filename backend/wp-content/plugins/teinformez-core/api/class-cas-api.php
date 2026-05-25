@@ -59,9 +59,10 @@ class CAS_API extends REST_API {
             : '';
 
         // Map TeInformez placements → MA CAS slots that carry inventory.
-        // 'banner' (homepage) → WEBSITE_SIDEBAR; 'infeed' (/news) → WEBSITE_INFEED.
-        // MA alias-resolves the `slot` param (not `placement`), so we send `slot`.
-        $slot_map = ['banner' => 'sidebar', 'infeed' => 'infeed'];
+        // Both map to WEBSITE_INFEED — that's where the live "Banner CAS — X pe TeInformez"
+        // cross-promo campaigns are assigned (SIDEBAR has only a test ad). MA alias-resolves
+        // the `slot` param (not `placement`), so we send `slot`.
+        $slot_map = ['banner' => 'infeed', 'infeed' => 'infeed'];
         $query = [
             'slot'   => $slot_map[$placement] ?? $placement,
             'source' => 'teinformez',

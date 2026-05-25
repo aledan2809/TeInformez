@@ -653,9 +653,10 @@ class Delivery_Handler {
             if ($cas_enabled && !empty($cas_url) && !empty($cas_key)) {
                 $salt = defined('TEINFORMEZ_CAS_SALT') ? TEINFORMEZ_CAS_SALT : \TeInformez\Config::get('cas_salt', '');
                 $recipient_hash = hash('sha256', (string) ($user->user_email ?? '') . $salt);
-                // MA alias-resolves `slot`; 'newsletter_inline' → NEWSLETTER_INLINE (carries inventory).
+                // MA alias-resolves `slot`; 'infeed' → WEBSITE_INFEED (live "pe TeInformez" cross-promo ads;
+                // NEWSLETTER_INLINE ads are all SKIPPED, so reuse the active INFEED pool).
                 $endpoint = rtrim($cas_url, '/') . '/api/cas/render?' . http_build_query([
-                    'slot'      => 'newsletter_inline',
+                    'slot'      => 'infeed',
                     'source'    => 'teinformez',
                     'recipient' => $recipient_hash,
                 ]);
