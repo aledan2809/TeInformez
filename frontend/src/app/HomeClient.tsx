@@ -126,7 +126,7 @@ export default function HomeClient({ hero: ssrHero, sections: ssrSections }: Hom
                 articles={section.articles}
               />
             </div>
-            {[1, 4, 7].includes(idx) && sections.length > idx + 1 ? <BannerSlot /> : null}
+            {[1, 4, 7].includes(idx) && sections.length > idx + 1 ? <BannerSlot index={[1, 4, 7].indexOf(idx)} /> : null}
           </div>
         ))}
 
