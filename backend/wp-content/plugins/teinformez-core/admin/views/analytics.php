@@ -18,6 +18,12 @@ $has_events = $exists($events_table);
 $has_newsletter = $exists($newsletter_table);
 $has_news = $exists($news_table);
 
+// Test-user filter — exclude flagged users + test emails from admin analytics widgets.
+$tu_events   = 'is_test = 0';
+$tu_events_e = 'e.is_test = 0';
+$tu_user     = class_exists('TeInformez\\User_Helper') ? \TeInformez\User_Helper::sql_not_test('u.ID') : '1=1';
+$tu_email    = class_exists('TeInformez\\User_Helper') ? \TeInformez\User_Helper::sql_email_not_test('email') : '1=1';
+
 $tz = wp_timezone();
 $now = new DateTimeImmutable('now', $tz);
 
@@ -51,11 +57,11 @@ $detail_base_url = static function(string $detail_key) {
 $c1_curr = 0; $c1_prev = 0;
 if ($has_events) {
     $c1_curr = (int) $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(DISTINCT visitor_hash) FROM {$events_table} WHERE created_at BETWEEN %s AND %s",
+        "SELECT COUNT(DISTINCT visitor_hash) FROM {$events_table} WHERE {$tu_events} AND created_at BETWEEN %s AND %s",
         $fmt($week1_start), $fmt($week1_end)
     ));
     $c1_prev = (int) $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(DISTINCT visitor_hash) FROM {$events_table} WHERE created_at BETWEEN %s AND %s",
+        "SELECT COUNT(DISTINCT visitor_hash) FROM {$events_table} WHERE {$tu_events} AND created_at BETWEEN %s AND %s",
         $fmt($week2_start), $fmt($week2_end)
     ));
 }
@@ -64,10 +70,10 @@ if ($has_events) {
 // Card 2 — WordPress subscribers (total + new today)
 // ---------------------------------------------------------------------------
 $c2_total = (int) $wpdb->get_var(
-    "SELECT COUNT(*) FROM {$wpdb->users} u INNER JOIN {$wpdb->usermeta} m ON m.user_id = u.ID WHERE m.meta_key = '{$wpdb->prefix}capabilities' AND m.meta_value LIKE '%subscriber%'"
+    "SELECT COUNT(*) FROM {$wpdb->users} u INNER JOIN {$wpdb->usermeta} m ON m.user_id = u.ID WHERE m.meta_key = '{$wpdb->prefix}capabilities' AND m.meta_value LIKE '%subscriber%' AND {$tu_user}"
 );
 $c2_new_today = (int) $wpdb->get_var($wpdb->prepare(
-    "SELECT COUNT(*) FROM {$wpdb->users} u INNER JOIN {$wpdb->usermeta} m ON m.user_id = u.ID WHERE m.meta_key = '{$wpdb->prefix}capabilities' AND m.meta_value LIKE '%subscriber%' AND u.user_registered BETWEEN %s AND %s",
+    "SELECT COUNT(*) FROM {$wpdb->users} u INNER JOIN {$wpdb->usermeta} m ON m.user_id = u.ID WHERE m.meta_key = '{$wpdb->prefix}capabilities' AND m.meta_value LIKE '%subscriber%' AND {$tu_user} AND u.user_registered BETWEEN %s AND %s",
     $fmt($today_start), $fmt($today_end)
 ));
 
@@ -76,9 +82,9 @@ $c2_new_today = (int) $wpdb->get_var($wpdb->prepare(
 // ---------------------------------------------------------------------------
 $c3_total = 0; $c3_new_today = 0;
 if ($has_newsletter) {
-    $c3_total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$newsletter_table} WHERE status='active'");
+    $c3_total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$newsletter_table} WHERE {$tu_email} AND status='active'");
     $c3_new_today = (int) $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM {$newsletter_table} WHERE subscribed_at BETWEEN %s AND %s",
+        "SELECT COUNT(*) FROM {$newsletter_table} WHERE {$tu_email} AND subscribed_at BETWEEN %s AND %s",
         $fmt($today_start), $fmt($today_end)
     ));
 }
@@ -89,11 +95,11 @@ if ($has_newsletter) {
 $c4_curr = 0; $c4_prev = 0;
 if ($has_events) {
     $c4_curr = (int) $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM {$events_table} WHERE event_type='page_view' AND page_type='news' AND created_at BETWEEN %s AND %s",
+        "SELECT COUNT(*) FROM {$events_table} WHERE {$tu_events} AND event_type='page_view' AND page_type='news' AND created_at BETWEEN %s AND %s",
         $fmt($week1_start), $fmt($week1_end)
     ));
     $c4_prev = (int) $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM {$events_table} WHERE event_type='page_view' AND page_type='news' AND created_at BETWEEN %s AND %s",
+        "SELECT COUNT(*) FROM {$events_table} WHERE {$tu_events} AND event_type='page_view' AND page_type='news' AND created_at BETWEEN %s AND %s",
         $fmt($week2_start), $fmt($week2_end)
     ));
 }
@@ -109,7 +115,7 @@ if ($has_events) {
 $c5_label = '—'; $c5_pct = 0; $c5_count = 0; $c5_total_impressions = 0;
 if ($has_events && $has_news) {
     $rows = $wpdb->get_results($wpdb->prepare(
-        "SELECT n.categories, COUNT(*) AS views FROM {$events_table} e INNER JOIN {$news_table} n ON n.id = e.page_id WHERE e.event_type='page_view' AND e.page_type='news' AND e.page_id > 0 AND e.created_at BETWEEN %s AND %s GROUP BY n.id, n.categories",
+        "SELECT n.categories, COUNT(*) AS views FROM {$events_table} e INNER JOIN {$news_table} n ON n.id = e.page_id WHERE {$tu_events_e} AND e.event_type='page_view' AND e.page_type='news' AND e.page_id > 0 AND e.created_at BETWEEN %s AND %s GROUP BY n.id, n.categories",
         $fmt($week1_start), $fmt($week1_end)
     ));
     $cat_views = [];
@@ -156,7 +162,7 @@ if ($has_events && $has_news) {
 $top_articles = [];
 if ($has_events && $has_news) {
     $top_articles = $wpdb->get_results($wpdb->prepare(
-        "SELECT e.page_id, COUNT(*) views, MAX(n.processed_title) processed_title, MAX(n.original_title) original_title FROM {$events_table} e LEFT JOIN {$news_table} n ON n.id = e.page_id WHERE e.event_type='page_view' AND e.page_type='news' AND e.page_id > 0 AND e.created_at BETWEEN %s AND %s GROUP BY e.page_id ORDER BY views DESC LIMIT 5",
+        "SELECT e.page_id, COUNT(*) views, MAX(n.processed_title) processed_title, MAX(n.original_title) original_title FROM {$events_table} e LEFT JOIN {$news_table} n ON n.id = e.page_id WHERE {$tu_events_e} AND e.event_type='page_view' AND e.page_type='news' AND e.page_id > 0 AND e.created_at BETWEEN %s AND %s GROUP BY e.page_id ORDER BY views DESC LIMIT 5",
         $fmt($week1_start), $fmt($week1_end)
     ));
 }
@@ -168,7 +174,7 @@ $sources_unknown = 0;
 if ($has_events) {
     // Pull all events with source data + count of those without (legacy/no-tracker events)
     $rows = $wpdb->get_results($wpdb->prepare(
-        "SELECT metadata FROM {$events_table} WHERE event_type='page_view' AND created_at BETWEEN %s AND %s",
+        "SELECT metadata FROM {$events_table} WHERE {$tu_events} AND event_type='page_view' AND created_at BETWEEN %s AND %s",
         $fmt($week1_start), $fmt($week1_end)
     ));
     $bucket_counts = [];
@@ -262,13 +268,13 @@ $g1_curr = []; $g1_prev = []; $g2_curr = []; $g2_prev = []; $g3_curr = []; $g3_p
 
 if ($has_events) {
     $g1_curr = $build_daily_series(
-        "SELECT DATE(created_at) AS day, COUNT(DISTINCT session_id) AS n FROM {$events_table} WHERE created_at BETWEEN %s AND %s GROUP BY DATE(created_at)",
+        "SELECT DATE(created_at) AS day, COUNT(DISTINCT session_id) AS n FROM {$events_table} WHERE {$tu_events} AND created_at BETWEEN %s AND %s GROUP BY DATE(created_at)",
         [$fmt($chart_start), $fmt($chart_end)],
         $chart_start,
         30
     );
     $g1_prev = $build_daily_series(
-        "SELECT DATE(created_at) AS day, COUNT(DISTINCT session_id) AS n FROM {$events_table} WHERE created_at BETWEEN %s AND %s GROUP BY DATE(created_at)",
+        "SELECT DATE(created_at) AS day, COUNT(DISTINCT session_id) AS n FROM {$events_table} WHERE {$tu_events} AND created_at BETWEEN %s AND %s GROUP BY DATE(created_at)",
         [$fmt($chart_prev_start), $fmt($chart_prev_end)],
         $chart_prev_start,
         30
@@ -276,13 +282,13 @@ if ($has_events) {
 }
 
 $g2_curr = $build_daily_series(
-    "SELECT DATE(u.user_registered) AS day, COUNT(*) AS n FROM {$wpdb->users} u INNER JOIN {$wpdb->usermeta} m ON m.user_id = u.ID WHERE m.meta_key = '{$wpdb->prefix}capabilities' AND m.meta_value LIKE '%subscriber%' AND u.user_registered BETWEEN %s AND %s GROUP BY DATE(u.user_registered)",
+    "SELECT DATE(u.user_registered) AS day, COUNT(*) AS n FROM {$wpdb->users} u INNER JOIN {$wpdb->usermeta} m ON m.user_id = u.ID WHERE m.meta_key = '{$wpdb->prefix}capabilities' AND m.meta_value LIKE '%subscriber%' AND {$tu_user} AND u.user_registered BETWEEN %s AND %s GROUP BY DATE(u.user_registered)",
     [$fmt($chart_start), $fmt($chart_end)],
     $chart_start,
     30
 );
 $g2_prev = $build_daily_series(
-    "SELECT DATE(u.user_registered) AS day, COUNT(*) AS n FROM {$wpdb->users} u INNER JOIN {$wpdb->usermeta} m ON m.user_id = u.ID WHERE m.meta_key = '{$wpdb->prefix}capabilities' AND m.meta_value LIKE '%subscriber%' AND u.user_registered BETWEEN %s AND %s GROUP BY DATE(u.user_registered)",
+    "SELECT DATE(u.user_registered) AS day, COUNT(*) AS n FROM {$wpdb->users} u INNER JOIN {$wpdb->usermeta} m ON m.user_id = u.ID WHERE m.meta_key = '{$wpdb->prefix}capabilities' AND m.meta_value LIKE '%subscriber%' AND {$tu_user} AND u.user_registered BETWEEN %s AND %s GROUP BY DATE(u.user_registered)",
     [$fmt($chart_prev_start), $fmt($chart_prev_end)],
     $chart_prev_start,
     30
@@ -290,13 +296,13 @@ $g2_prev = $build_daily_series(
 
 if ($has_newsletter) {
     $g3_curr = $build_daily_series(
-        "SELECT DATE(subscribed_at) AS day, COUNT(*) AS n FROM {$newsletter_table} WHERE status='active' AND subscribed_at BETWEEN %s AND %s GROUP BY DATE(subscribed_at)",
+        "SELECT DATE(subscribed_at) AS day, COUNT(*) AS n FROM {$newsletter_table} WHERE {$tu_email} AND status='active' AND subscribed_at BETWEEN %s AND %s GROUP BY DATE(subscribed_at)",
         [$fmt($chart_start), $fmt($chart_end)],
         $chart_start,
         30
     );
     $g3_prev = $build_daily_series(
-        "SELECT DATE(subscribed_at) AS day, COUNT(*) AS n FROM {$newsletter_table} WHERE status='active' AND subscribed_at BETWEEN %s AND %s GROUP BY DATE(subscribed_at)",
+        "SELECT DATE(subscribed_at) AS day, COUNT(*) AS n FROM {$newsletter_table} WHERE {$tu_email} AND status='active' AND subscribed_at BETWEEN %s AND %s GROUP BY DATE(subscribed_at)",
         [$fmt($chart_prev_start), $fmt($chart_prev_end)],
         $chart_prev_start,
         30

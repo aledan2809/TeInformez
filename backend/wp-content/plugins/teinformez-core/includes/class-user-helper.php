@@ -119,6 +119,25 @@ class User_Helper {
         return "({$user_id_column} NOT IN ({$list}))";
     }
 
+    /**
+     * SQL fragment to exclude test emails from queries on tables that have NO
+     * user_id FK (e.g. wp_teinformez_newsletter). Combines: (1) email IS NOT IN
+     * the set of emails belonging to flagged WP users, (2) email doesn't match
+     * a known test pattern (@teinformez.test, @example.{com,org,net}).
+     */
+    public static function sql_email_not_test(string $email_column): string {
+        global $wpdb;
+        $patterns = [];
+        foreach (self::TEST_EMAIL_PATTERNS as $p) {
+            // sanitize against backslash + percent in pattern string (defense in depth — patterns are constants)
+            $esc = esc_sql($p);
+            $patterns[] = "LOWER({$email_column}) NOT LIKE '%" . $esc . "'";
+        }
+        $pattern_sql = implode(' AND ', $patterns);
+        $flagged_emails_subq = "SELECT u.user_email FROM {$wpdb->users} u INNER JOIN {$wpdb->usermeta} m ON m.user_id = u.ID WHERE m.meta_key = '" . esc_sql(self::META_KEY) . "' AND m.meta_value = '1'";
+        return "({$email_column} NOT IN ({$flagged_emails_subq}) AND {$pattern_sql})";
+    }
+
     /** Set/unset the test-user flag for a given user. */
     public static function set_test_flag(int $user_id, bool $is_test): void {
         if ($is_test) {
