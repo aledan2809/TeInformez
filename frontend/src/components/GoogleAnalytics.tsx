@@ -38,7 +38,7 @@ function UserTypeTagger() {
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.gtag !== 'function') return;
     const apply = (t: string) => {
-      try { window.gtag('set', 'user_properties', { user_type: t }); } catch {}
+      try { window.gtag?.('set', 'user_properties', { user_type: t }); } catch {}
     };
     let cached: string | null = null;
     try { cached = sessionStorage.getItem('teinformez_user_type'); } catch {}
