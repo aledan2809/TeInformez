@@ -847,13 +847,18 @@ class Delivery_Handler {
      * Search YouTube for a relevant video.
      */
     private function search_youtube($query, $api_key) {
+        // relevanceLanguage + regionCode are HINTS, not strict filters — YouTube still
+        // returns non-RO videos for popular topics. Fetch a small pool and post-filter
+        // any item whose title/channel contains non-Latin script (Cyrillic, CJK,
+        // Arabic, Hebrew, Devanagari, Thai, Hangul, Hiragana/Katakana).
         $url = Config::YOUTUBE_API . '/search?' . http_build_query([
             'part' => 'snippet',
             'q' => $query,
             'type' => 'video',
-            'maxResults' => 1,
+            'maxResults' => 5,
             'order' => 'relevance',
             'relevanceLanguage' => 'ro',
+            'regionCode' => 'RO',
             'publishedAfter' => date('Y-m-d\TH:i:s\Z', strtotime('-7 days')),
             'key' => $api_key,
         ]);
@@ -867,23 +872,42 @@ class Delivery_Handler {
 
         $body = json_decode(wp_remote_retrieve_body($response), true);
 
-        if (empty($body['items'][0])) {
+        if (empty($body['items']) || !is_array($body['items'])) {
             return null;
         }
 
-        $item = $body['items'][0];
-        $video_id = $item['id']['videoId'] ?? '';
-        if (empty($video_id)) {
-            return null;
+        foreach ($body['items'] as $item) {
+            $video_id = $item['id']['videoId'] ?? '';
+            if (empty($video_id)) {
+                continue;
+            }
+            $title   = (string) ($item['snippet']['title'] ?? '');
+            $channel = (string) ($item['snippet']['channelTitle'] ?? '');
+            if (!$this->is_latin_script_text($title . ' ' . $channel)) {
+                continue;
+            }
+            return [
+                'id' => $video_id,
+                'title' => $title,
+                'channel' => $channel,
+                'thumbnail' => $item['snippet']['thumbnails']['medium']['url'] ?? $item['snippet']['thumbnails']['default']['url'] ?? '',
+                'url' => 'https://www.youtube.com/watch?v=' . $video_id,
+            ];
         }
+        return null;
+    }
 
-        return [
-            'id' => $video_id,
-            'title' => $item['snippet']['title'] ?? '',
-            'channel' => $item['snippet']['channelTitle'] ?? '',
-            'thumbnail' => $item['snippet']['thumbnails']['medium']['url'] ?? $item['snippet']['thumbnails']['default']['url'] ?? '',
-            'url' => 'https://www.youtube.com/watch?v=' . $video_id,
-        ];
+    /**
+     * Returns false if $text contains any character from non-Latin scripts we
+     * don't want surfacing in a Romanian-language newsletter (Cyrillic, Arabic,
+     * Hebrew, Devanagari, Thai, Hiragana/Katakana, Hangul, CJK Unified).
+     * Latin (including ăâîșț) + digits + punctuation pass through.
+     */
+    private function is_latin_script_text(string $text): bool {
+        return !preg_match(
+            '/[\x{0400}-\x{04FF}\x{0500}-\x{052F}\x{0590}-\x{05FF}\x{0600}-\x{06FF}\x{0900}-\x{097F}\x{0E00}-\x{0E7F}\x{3040}-\x{309F}\x{30A0}-\x{30FF}\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}\x{AC00}-\x{D7AF}]/u',
+            $text
+        );
     }
 
     /**

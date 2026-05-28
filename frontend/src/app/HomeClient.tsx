@@ -114,7 +114,8 @@ export default function HomeClient({ hero: ssrHero, sections: ssrSections }: Hom
           </div>
         )}
 
-        {/* Category sections — CAS banner injected between sections 2 and 3 (after index 1) */}
+        {/* Category sections — CAS banner injected after sections 2, 5, 8 (idx 1, 4, 7).
+            Each slot rotates independently across the active CAS inventory. */}
         {sections.map((section, idx) => (
           <div key={section.slug}>
             <div id={`cat-${section.slug}`}>
@@ -125,7 +126,7 @@ export default function HomeClient({ hero: ssrHero, sections: ssrSections }: Hom
                 articles={section.articles}
               />
             </div>
-            {idx === 1 && sections.length > 2 ? <BannerSlot /> : null}
+            {[1, 4, 7].includes(idx) && sections.length > idx + 1 ? <BannerSlot /> : null}
           </div>
         ))}
 
