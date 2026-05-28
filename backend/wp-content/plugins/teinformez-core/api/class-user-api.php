@@ -175,7 +175,16 @@ class User_API extends REST_API {
         $user_manager = new User_Manager();
         $preferences = $user_manager->get_user_preferences($user_id);
 
-        return $this->success(['preferences' => $preferences]);
+        // Surface the test-user flag so frontend can set GA4 user_property `user_type=test`
+        // and exclude its own session events from analytics dashboards.
+        $is_test = class_exists('TeInformez\\User_Helper')
+            ? \TeInformez\User_Helper::is_test_user((int) $user_id)
+            : false;
+
+        return $this->success([
+            'preferences' => $preferences,
+            'is_test_user' => $is_test,
+        ]);
     }
 
     /**

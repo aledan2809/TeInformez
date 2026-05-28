@@ -76,6 +76,7 @@ function teinformez_init() {
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-email-sender.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-ma-client.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-ma-emitter.php';
+    require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-user-helper.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-visitor-analytics.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-cas-telemetry.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-legal-client.php';
@@ -327,3 +328,95 @@ add_action('rest_api_init', function() {
 
     TeInformez\CORS::init();
 });
+
+// =====================================================================
+// Test-user flagging (excludes test/dev users from analytics).
+// Helper: User_Helper. Meta key: teinformez_is_test_user='1'.
+// Surfaces filtered: visitor_events insert, news track_view, /admin/analytics
+// aggregates, MA emitter event dispatch, GA4 user_property via /user/preferences.
+// =====================================================================
+
+// Auto-flag pattern-matching emails on registration (@teinformez.test, @example.{com,org,net}).
+add_action('user_register', ['TeInformez\\User_Helper', 'auto_flag_on_register']);
+
+// WP admin: users list — "Test user" column + value renderer.
+add_filter('manage_users_columns', function ($columns) {
+    $columns['teinformez_test_user'] = __('Test user', 'teinformez');
+    return $columns;
+});
+add_filter('manage_users_custom_column', function ($value, $column_name, $user_id) {
+    if ($column_name !== 'teinformez_test_user') {
+        return $value;
+    }
+    return \TeInformez\User_Helper::is_test_user((int) $user_id)
+        ? '<span style="color:#d63638;font-weight:bold;">✓ TEST</span>'
+        : '<span style="color:#999;">—</span>';
+}, 10, 3);
+
+// WP admin: bulk actions on users list (Mark / Unmark as test).
+add_filter('bulk_actions-users', function ($actions) {
+    $actions['teinformez_mark_test']   = __('Mark as test user', 'teinformez');
+    $actions['teinformez_unmark_test'] = __('Unmark as test user', 'teinformez');
+    return $actions;
+});
+add_filter('handle_bulk_actions-users', function ($redirect_to, $doaction, $user_ids) {
+    if ($doaction !== 'teinformez_mark_test' && $doaction !== 'teinformez_unmark_test') {
+        return $redirect_to;
+    }
+    if (!current_user_can('edit_users')) {
+        return $redirect_to;
+    }
+    $flag = ($doaction === 'teinformez_mark_test');
+    $count = 0;
+    foreach ((array) $user_ids as $uid) {
+        \TeInformez\User_Helper::set_test_flag((int) $uid, $flag);
+        $count++;
+    }
+    $key = $flag ? 'teinformez_marked_test' : 'teinformez_unmarked_test';
+    return add_query_arg($key, $count, $redirect_to);
+}, 10, 3);
+add_action('admin_notices', function () {
+    if (!empty($_GET['teinformez_marked_test'])) {
+        $n = (int) $_GET['teinformez_marked_test'];
+        echo '<div class="notice notice-success is-dismissible"><p>' . sprintf(esc_html__('Marked %d user(s) as test.', 'teinformez'), $n) . '</p></div>';
+    }
+    if (!empty($_GET['teinformez_unmarked_test'])) {
+        $n = (int) $_GET['teinformez_unmarked_test'];
+        echo '<div class="notice notice-success is-dismissible"><p>' . sprintf(esc_html__('Unmarked %d user(s) as test.', 'teinformez'), $n) . '</p></div>';
+    }
+});
+
+// WP admin: user-edit profile — checkbox to toggle flag.
+$teinformez_render_test_checkbox = function (\WP_User $user) {
+    if (!current_user_can('edit_users')) {
+        return;
+    }
+    $is_test = \TeInformez\User_Helper::is_test_user((int) $user->ID);
+    ?>
+    <h2><?php esc_html_e('TeInformez', 'teinformez'); ?></h2>
+    <table class="form-table" role="presentation">
+        <tr>
+            <th><label for="teinformez_is_test_user"><?php esc_html_e('Test user', 'teinformez'); ?></label></th>
+            <td>
+                <label>
+                    <input type="checkbox" name="teinformez_is_test_user" id="teinformez_is_test_user" value="1" <?php checked($is_test); ?> />
+                    <?php esc_html_e('Mark as test/dev user (excluded from analytics, MA events, GA4)', 'teinformez'); ?>
+                </label>
+                <p class="description"><?php esc_html_e('Visitor tracking, view counts, MA emitter and admin analytics queries skip this user.', 'teinformez'); ?></p>
+            </td>
+        </tr>
+    </table>
+    <?php
+};
+add_action('show_user_profile', $teinformez_render_test_checkbox);
+add_action('edit_user_profile', $teinformez_render_test_checkbox);
+
+$teinformez_save_test_checkbox = function ($user_id) {
+    if (!current_user_can('edit_users')) {
+        return;
+    }
+    $is_test = !empty($_POST['teinformez_is_test_user']);
+    \TeInformez\User_Helper::set_test_flag((int) $user_id, $is_test);
+};
+add_action('personal_options_update', $teinformez_save_test_checkbox);
+add_action('edit_user_profile_update', $teinformez_save_test_checkbox);

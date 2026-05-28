@@ -88,6 +88,10 @@ class MA_Emitter {
 
             $events = [];
             foreach ($rows as $row) {
+                // Skip test/dev users — they don't feed MA lead-nurture pipeline.
+                if (class_exists('TeInformez\\User_Helper') && \TeInformez\User_Helper::is_test_user((int) $row['ID'])) {
+                    continue;
+                }
                 $events[] = [
                     'event_type'  => 'TEINFORMEZ_USER_REGISTERED',
                     'occurred_at' => self::to_iso($row['user_registered']),
@@ -134,6 +138,10 @@ class MA_Emitter {
 
             $events = [];
             foreach ($rows as $row) {
+                // Skip test/dev subscribers (email pattern or flagged WP user).
+                if (class_exists('TeInformez\\User_Helper') && \TeInformez\User_Helper::is_test_user($row['email'])) {
+                    continue;
+                }
                 $event = [
                     'event_type'  => 'TEINFORMEZ_NEWSLETTER_SUBSCRIBED',
                     'occurred_at' => self::to_iso($row['confirmed_at']),
@@ -170,7 +178,7 @@ class MA_Emitter {
             $rows = $wpdb->get_results($wpdb->prepare(
                 "SELECT id, event_type, metadata, created_at
                  FROM {$table}
-                 WHERE event_type IN ('article_read', 'article_shared') AND id > %d
+                 WHERE event_type IN ('article_read', 'article_shared') AND is_test = 0 AND id > %d
                  ORDER BY id ASC
                  LIMIT %d",
                 $cursor,

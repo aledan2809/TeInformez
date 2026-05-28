@@ -19,35 +19,45 @@ class Visitor_Analytics {
 
         $table = self::table_name();
         $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
-        if ($exists === $table) {
+        if ($exists !== $table) {
+            require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+            $charset_collate = $wpdb->get_charset_collate();
+
+            $sql = "CREATE TABLE {$table} (
+                id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+                visitor_hash CHAR(64) NOT NULL,
+                session_id VARCHAR(64) NOT NULL,
+                user_id BIGINT(20) UNSIGNED DEFAULT NULL,
+                event_type VARCHAR(40) NOT NULL,
+                page_type VARCHAR(40) DEFAULT '',
+                page_id BIGINT(20) UNSIGNED DEFAULT NULL,
+                page_path VARCHAR(255) DEFAULT '',
+                duration_seconds INT UNSIGNED DEFAULT 0,
+                metadata LONGTEXT,
+                is_test TINYINT(1) NOT NULL DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                KEY created_at (created_at),
+                KEY event_type (event_type),
+                KEY page_type (page_type),
+                KEY page_id (page_id),
+                KEY visitor_hash (visitor_hash),
+                KEY session_id (session_id),
+                KEY is_test (is_test)
+            ) {$charset_collate};";
+
+            dbDelta($sql);
             return;
         }
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        $charset_collate = $wpdb->get_charset_collate();
-
-        $sql = "CREATE TABLE {$table} (
-            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-            visitor_hash CHAR(64) NOT NULL,
-            session_id VARCHAR(64) NOT NULL,
-            user_id BIGINT(20) UNSIGNED DEFAULT NULL,
-            event_type VARCHAR(40) NOT NULL,
-            page_type VARCHAR(40) DEFAULT '',
-            page_id BIGINT(20) UNSIGNED DEFAULT NULL,
-            page_path VARCHAR(255) DEFAULT '',
-            duration_seconds INT UNSIGNED DEFAULT 0,
-            metadata LONGTEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            KEY created_at (created_at),
-            KEY event_type (event_type),
-            KEY page_type (page_type),
-            KEY page_id (page_id),
-            KEY visitor_hash (visitor_hash),
-            KEY session_id (session_id)
-        ) {$charset_collate};";
-
-        dbDelta($sql);
+        // Table exists — idempotent ALTER for the is_test column (added 2026-05-28).
+        $col = $wpdb->get_var($wpdb->prepare(
+            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = 'is_test'",
+            $table
+        ));
+        if (!$col) {
+            $wpdb->query("ALTER TABLE {$table} ADD COLUMN is_test TINYINT(1) NOT NULL DEFAULT 0, ADD KEY is_test (is_test)");
+        }
     }
 
     public static function track_event(array $payload): bool {
@@ -116,20 +126,23 @@ class Visitor_Analytics {
         }
 
         $visitor_hash = hash('sha256', $visitor_id);
+        $user_id_int  = get_current_user_id() ?: null;
+        $is_test = ($user_id_int && class_exists('TeInformez\\User_Helper') && \TeInformez\User_Helper::is_test_user((int) $user_id_int)) ? 1 : 0;
 
         $inserted = $wpdb->insert(self::table_name(), [
             'visitor_hash' => $visitor_hash,
             'session_id' => $session_id,
-            'user_id' => get_current_user_id() ?: null,
+            'user_id' => $user_id_int,
             'event_type' => $event_type,
             'page_type' => $page_type,
             'page_id' => $page_id,
             'page_path' => $page_path,
             'duration_seconds' => $duration_seconds,
             'metadata' => $metadata,
+            'is_test' => $is_test,
             'created_at' => current_time('mysql'),
         ], [
-            '%s', '%s', '%d', '%s', '%s', '%d', '%s', '%d', '%s', '%s'
+            '%s', '%s', '%d', '%s', '%s', '%d', '%s', '%d', '%s', '%d', '%s'
         ]);
 
         return $inserted !== false;

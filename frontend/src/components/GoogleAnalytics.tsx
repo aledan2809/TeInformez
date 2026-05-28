@@ -28,6 +28,36 @@ function PageViewTracker() {
   return null;
 }
 
+/**
+ * Sets GA4 user_property `user_type` once we know whether the visitor is a
+ * test/dev user (logged-in WP user flagged via teinformez_is_test_user). Uses
+ * sessionStorage to avoid refetching on every page nav. Lets the admin filter
+ * `user_type = test` out of GA4 reports (per user choice "option B").
+ */
+function UserTypeTagger() {
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.gtag !== 'function') return;
+    const apply = (t: string) => {
+      try { window.gtag('set', 'user_properties', { user_type: t }); } catch {}
+    };
+    let cached: string | null = null;
+    try { cached = sessionStorage.getItem('teinformez_user_type'); } catch {}
+    if (cached) { apply(cached); return; }
+    const base = process.env.NEXT_PUBLIC_WP_API_URL || 'https://teinformez.eu/wp-json';
+    fetch(`${base}/teinformez/v1/user/preferences`, { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (!json) return; // not logged-in or upstream error → leave unset (real visitor by default)
+        const flag = json?.data?.is_test_user ?? json?.is_test_user;
+        const t = flag ? 'test' : 'real';
+        try { sessionStorage.setItem('teinformez_user_type', t); } catch {}
+        apply(t);
+      })
+      .catch(() => {});
+  }, []);
+  return null;
+}
+
 export default function GoogleAnalytics() {
   if (!GA_MEASUREMENT_ID || process.env.NODE_ENV !== 'production') return null;
 
@@ -48,6 +78,7 @@ export default function GoogleAnalytics() {
       <Suspense fallback={null}>
         <PageViewTracker />
       </Suspense>
+      <UserTypeTagger />
     </>
   );
 }

@@ -726,6 +726,12 @@ class News_API extends REST_API {
         $id = (int) $request->get_param('id');
         $table = $wpdb->prefix . 'teinformez_news_queue';
 
+        // Test users don't increment view counters — keeps admin analytics honest.
+        $uid = get_current_user_id();
+        if ($uid && class_exists('TeInformez\\User_Helper') && \TeInformez\User_Helper::is_test_user((int) $uid)) {
+            return $this->success(['tracked' => false, 'reason' => 'test_user']);
+        }
+
         $wpdb->query($wpdb->prepare(
             "UPDATE {$table} SET view_count = view_count + 1 WHERE id = %d AND status = 'published'",
             $id
@@ -759,23 +765,24 @@ class News_API extends REST_API {
              ORDER BY view_count DESC LIMIT 10"
         );
 
-        // User stats
-        $total_users = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$users_table}");
+        // User stats — exclude test users so admin sees real numbers.
+        $not_test = class_exists('TeInformez\\User_Helper') ? \TeInformez\User_Helper::sql_not_test('user_id') : '1=1';
+        $total_users = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$users_table} WHERE {$not_test}");
         $users_last_7d = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$users_table} WHERE created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)"
+            "SELECT COUNT(*) FROM {$users_table} WHERE created_at > DATE_SUB(NOW(), INTERVAL 7 DAY) AND {$not_test}"
         );
 
-        // Subscription stats
-        $total_subs = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$subs_table} WHERE is_active = 1");
+        // Subscription stats — same filter.
+        $total_subs = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$subs_table} WHERE is_active = 1 AND {$not_test}");
         $top_categories = $wpdb->get_results(
             "SELECT category_slug, COUNT(*) as count FROM {$subs_table}
-             WHERE is_active = 1 GROUP BY category_slug ORDER BY count DESC LIMIT 10",
+             WHERE is_active = 1 AND {$not_test} GROUP BY category_slug ORDER BY count DESC LIMIT 10",
             ARRAY_A
         );
 
-        // Delivery stats
-        $deliveries_sent = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$delivery_table} WHERE status = 'sent'");
-        $deliveries_failed = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$delivery_table} WHERE status = 'failed'");
+        // Delivery stats — exclude deliveries to test users from sent/failed totals.
+        $deliveries_sent = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$delivery_table} WHERE status = 'sent' AND {$not_test}");
+        $deliveries_failed = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$delivery_table} WHERE status = 'failed' AND {$not_test}");
 
         return $this->success([
             'news' => $news_stats,
