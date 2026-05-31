@@ -51,16 +51,20 @@ class AI_Processor {
             "UPDATE {$table} SET status = 'fetched', claimed_at = NULL WHERE status = 'processing' AND claimed_at < DATE_SUB(NOW(), INTERVAL 60 SECOND)"
         );
 
+        // Batch size per cron run. Raised 10→30 (2026-05-31): fetch ~700/day exceeded the old
+        // 480/day cap (10 × 48 runs) → ~3.3-day backlog. 30/30min = 1440/day drains it + stays fresh.
+        $batch = 30;
+
         // L-09: Atomic claim — prevents concurrent cron runs from claiming overlapping items
         $wpdb->query(
-            "UPDATE {$table} SET status = 'processing', claimed_at = NOW() WHERE status = 'fetched' ORDER BY fetched_at ASC LIMIT 10"
+            "UPDATE {$table} SET status = 'processing', claimed_at = NOW() WHERE status = 'fetched' ORDER BY fetched_at ASC LIMIT {$batch}"
         );
 
         // Fetch the batch we just claimed
         $items = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT * FROM {$table} WHERE status = 'processing' AND claimed_at >= DATE_SUB(NOW(), INTERVAL 60 SECOND) ORDER BY fetched_at ASC LIMIT %d",
-                10
+                $batch
             )
         );
 
@@ -116,7 +120,7 @@ class AI_Processor {
 
             // Fallback to direct provider calls if AI Router is down
             if (!$result['success'] && strpos($result['error'] ?? '', 'AI Router') !== false) {
-                error_log('TeInformez AI: AI Router unavailable, falling back to direct provider calls');
+                error_log('TeInformez AI: AI Router unavailable (' . ($result['error'] ?? 'unknown') . '), falling back to direct provider calls');
 
                 if ($this->provider === 'anthropic') {
                     $result = $this->call_anthropic($data);
