@@ -46,9 +46,12 @@ class AI_Processor {
             $wpdb->query("ALTER TABLE {$table} ADD COLUMN claimed_at DATETIME DEFAULT NULL AFTER status");
         }
 
-        // L-09: Recover stale claims — items stuck in 'processing' for >60s revert to 'fetched'
+        // L-09: Recover stale claims — items stuck in 'processing' revert to 'fetched'.
+        // Window must exceed a full batch run (batch 30 × up to 90s/item router timeout) so a
+        // concurrent cron run (WP-CLI ignores the doing_cron lock; */5 + */30 coincide every 30min)
+        // can't revert in-flight items and reprocess them. 600s > worst-case run duration.
         $wpdb->query(
-            "UPDATE {$table} SET status = 'fetched', claimed_at = NULL WHERE status = 'processing' AND claimed_at < DATE_SUB(NOW(), INTERVAL 60 SECOND)"
+            "UPDATE {$table} SET status = 'fetched', claimed_at = NULL WHERE status = 'processing' AND claimed_at < DATE_SUB(NOW(), INTERVAL 600 SECOND)"
         );
 
         // Batch size per cron run. Raised 10→30 (2026-05-31): fetch ~700/day exceeded the old
@@ -63,7 +66,7 @@ class AI_Processor {
         // Fetch the batch we just claimed
         $items = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE status = 'processing' AND claimed_at >= DATE_SUB(NOW(), INTERVAL 60 SECOND) ORDER BY fetched_at ASC LIMIT %d",
+                "SELECT * FROM {$table} WHERE status = 'processing' AND claimed_at >= DATE_SUB(NOW(), INTERVAL 600 SECOND) ORDER BY fetched_at ASC LIMIT %d",
                 $batch
             )
         );
@@ -154,14 +157,22 @@ class AI_Processor {
                 throw new \Exception($result['error']);
             }
 
-            // Update item with processed data
+            // Guard incomplete AI output (more likely now that groq llama-3.3-70b serves most
+            // articles). Missing core fields → treat as failure so the catch reverts the item to
+            // 'fetched' for retry, instead of writing a blank article that would auto-publish.
+            $d = $result['data'] ?? [];
+            if (empty($d['title']) || empty($d['summary']) || empty($d['content'])) {
+                throw new \Exception('AI returned incomplete data (missing title/summary/content)');
+            }
+
+            // Update item with processed data (categories/tags optional → default to [])
             $wpdb->update($table, [
-                'processed_title' => sanitize_text_field($result['data']['title']),
-                'processed_summary' => sanitize_textarea_field($result['data']['summary']),
-                'processed_content' => wp_kses_post($result['data']['content']),
+                'processed_title' => sanitize_text_field($d['title']),
+                'processed_summary' => sanitize_textarea_field($d['summary']),
+                'processed_content' => wp_kses_post($d['content']),
                 'target_language' => $target_language,
-                'categories' => json_encode($result['data']['categories']),
-                'tags' => json_encode($result['data']['tags']),
+                'categories' => json_encode($d['categories'] ?? []),
+                'tags' => json_encode($d['tags'] ?? []),
                 'status' => 'pending_review',
                 'processed_at' => current_time('mysql')
             ], ['id' => $item->id]);
