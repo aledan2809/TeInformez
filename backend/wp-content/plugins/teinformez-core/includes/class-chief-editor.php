@@ -157,7 +157,15 @@ class Chief_Editor {
     private function call_ai($user_message) {
         $system_prompt = $this->get_system_prompt();
 
-        // Try AI Router microservice first
+        // Bulk review prefers groq directly (fast + free) — see AI_Processor note. The router routes
+        // to slow claude-cli and anthropic/openai are out of credit, so groq is the de-facto provider.
+        // Reversible: set option teinformez_prefer_groq_bulk = '0' to restore router-first.
+        if (get_option('teinformez_prefer_groq_bulk', '1') === '1' && !empty($this->groq_key)) {
+            $result = $this->call_groq($system_prompt, $user_message);
+            if ($result['success']) return array_merge($result, ['provider' => 'groq']);
+        }
+
+        // Try AI Router microservice
         $result = $this->call_ai_router($system_prompt, $user_message);
         if ($result['success']) return $result;
 

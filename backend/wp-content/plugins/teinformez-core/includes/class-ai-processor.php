@@ -115,8 +115,19 @@ class AI_Processor {
                 'categories' => json_decode($item->categories, true) ?? []
             ];
 
-            // Try AI Router microservice first (smart multi-provider routing)
-            $result = $this->call_ai_router($data);
+            // Bulk processing prefers groq directly (fast + free). The AI Router routes summaries to
+            // claude-cli (slow serial subprocess) and anthropic/openai are currently out of credit, so
+            // groq is the de-facto provider anyway — trying it first cuts per-item latency ~58s→~8s.
+            // Reversible: set option teinformez_prefer_groq_bulk = '0' to restore router-first.
+            $result = ['success' => false, 'error' => ''];
+            if (get_option('teinformez_prefer_groq_bulk', '1') === '1' && !empty($this->groq_key)) {
+                $result = $this->call_groq($data);
+            }
+
+            // AI Router microservice (smart multi-provider routing) if groq is off or failed
+            if (!$result['success']) {
+                $result = $this->call_ai_router($data);
+            }
 
             // Fallback to direct provider calls if AI Router is down
             if (!$result['success'] && strpos($result['error'] ?? '', 'AI Router') !== false) {
