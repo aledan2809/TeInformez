@@ -1,8 +1,32 @@
 # TODO Persistent — TeInformez
 > Items rămân până marcate DONE cu dată + commit.
-> Last updated: 2026-05-17
+> Last updated: 2026-05-31
 
 ---
+
+## [ ] 🚀 WOW/VIRAL — ELI12 (creat 2026-05-31)
+
+**Sursă/context**: `STRATEGY.md` secțiunea „WOW / Viralitate". Diagnostic onest: produsul e azi un agregator commodity (~2/10 pe „viral"). Diferențiator ales (user, 2026-05-31): **„Explică-mi simplu" (ELI12)** — apolitic, simplu tehnic, foarte distribuibil.
+
+**Principiu**: întâi un motiv să existe (ELI12), apoi bucla de share în jurul lui. NU lipim mecanică virală pe commodity.
+
+**Governance**: TeInformez = RESTRICT → confirmare prealabilă per modificare. Per-milestone: `/review` + TWG după implementare (la fel ca SEQUENTIAL plan).
+
+### Milestones
+- [x] **M0 — Prospețime** (prerequisit absolut) — DONE 2026-05-31. Backlog ~3.3 zile eliminat: batch 10→30 (`fc7e72f`) + groq-first 58s→3s/item (`38445fb`). News fresh.
+- [ ] **M1 — ELI12 backend** (~1 sesiune): câmpuri AI noi `simple_explanation` (3 fraze ELI12) + `why_it_matters` (ce înseamnă pentru tine) → adăugate în promptul de procesare + coloane DB (`ALTER TABLE wp_teinformez_news_queue`) + expuse în `api/class-news-api.php`. Files: `includes/class-ai-processor.php` (build_prompt + update), DB migration, news API.
+- [ ] **M2 — ELI12 frontend** (~1 sesiune): secțiune „🧒 Pe scurt" pe pagina de știre (vizibilă default) + toggle „Mod simplu" site-wide. Files: `frontend/src/app/news/...`.
+- [ ] **M3 — Share cards (AICR)** (~1-2 sesiuni): imagine per știre cu explicația ELI12 = artefactul distribuibil (story FB/IG/WhatsApp), NU link-ul. Wire share buttons → imagine. Reuses `@aledan/aicr`.
+- [ ] **M4 — „Explică-mi asta" interactiv** (~1 sesiune): tool public — lipești titlu/subiect → ELI12 instant (utilitate virală + lead-gen).
+- [ ] **M5 — Share-to-unlock / referral** (~1 sesiune): referral cu payoff real (digest fără reclame / premium), nu leaderboard sec. (referral mutat Out-of-Scope → In-Scope).
+- [ ] **M6 — Distribuție** (~2 sesiuni): clipuri scurte verticale (ELI12 + TTS, TikTok/Reels/Shorts) + auto-post **card ELI12** pe Telegram/FB (nu link) + SEO conținut ELI12 unic.
+
+### Opțional / rezervă (NU pe drumul critic)
+- [ ] **OPT-1 — Buton „Ascultă știrea" (TTS)**: hands-free (ex: la volan/ocupat). Reutilizează textul ELI12 sau articolul. Feature de accesibilitate, prioritate joasă, opțional — NU produs flagship.
+- [ ] **OPT-2 — Bias / spin-meter**: rezervă. Se activează DOAR dacă ELI12 prinde tracțiune (al doilea cârlig). Mai greu + divizant.
+
+### Metrici de „viral" (de urmărit, altele decât pageviews)
+Share rate (% citite → distribuite), K-factor (invitați → signup), trafic organic din share, timp pe site, retenție digest.
 
 ## [ ] 🎯 SEQUENTIAL AUTONOMOUS EXECUTION PLAN — 6 steps + /review + TWG per step (creat 2026-05-16)
 
