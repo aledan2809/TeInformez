@@ -1021,6 +1021,10 @@ class News_API extends REST_API {
             'title' => ($item->processed_title ?? '') ?: ($item->original_title ?? ''),
             'summary' => $item->processed_summary ?? null,
             'content' => $content,
+            // ELI12 (M1 WOW/viral) — present on the single-article view (SELECT *); null in list
+            // ($shared_cols omits them) and on pre-M1 archived items, by design.
+            'simple_explanation' => ($item->simple_explanation ?? null) ?: null,
+            'why_it_matters' => ($item->why_it_matters ?? null) ?: null,
             'image' => $image ?: null,
             'image_source' => $image_source,
             'youtube_url' => $youtube ?: null,

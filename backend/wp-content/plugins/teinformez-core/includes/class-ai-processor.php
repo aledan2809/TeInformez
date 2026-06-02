@@ -46,6 +46,13 @@ class AI_Processor {
             $wpdb->query("ALTER TABLE {$table} ADD COLUMN claimed_at DATETIME DEFAULT NULL AFTER status");
         }
 
+        // Ensure ELI12 columns exist (M1 WOW/viral — "Explică-mi simplu" + "Ce înseamnă pentru tine")
+        foreach (['simple_explanation', 'why_it_matters'] as $eli_col) {
+            if (empty($wpdb->get_results("SHOW COLUMNS FROM {$table} LIKE '{$eli_col}'"))) {
+                $wpdb->query("ALTER TABLE {$table} ADD COLUMN {$eli_col} TEXT DEFAULT NULL AFTER processed_content");
+            }
+        }
+
         // L-09: Recover stale claims — items stuck in 'processing' revert to 'fetched'.
         // Window must exceed a full batch run (batch 30 × up to 90s/item router timeout) so a
         // concurrent cron run (WP-CLI ignores the doing_cron lock; */5 + */30 coincide every 30min)
@@ -170,6 +177,8 @@ class AI_Processor {
                 'processed_title' => sanitize_text_field($d['title']),
                 'processed_summary' => sanitize_textarea_field($d['summary']),
                 'processed_content' => wp_kses_post($d['content']),
+                'simple_explanation' => sanitize_textarea_field($d['simple_explanation'] ?? ''),
+                'why_it_matters' => sanitize_textarea_field($d['why_it_matters'] ?? ''),
                 'target_language' => $target_language,
                 'categories' => json_encode($d['categories'] ?? []),
                 'tags' => json_encode($d['tags'] ?? []),
@@ -443,6 +452,8 @@ You are a news editor for TeInformez.eu. Process this {$source_lang_name} articl
     "title": "A fresh, engaging headline (NOT a copy of the original — rephrase it)",
     "summary": "2-3 sentence summary capturing the key facts (max 100 words)",
     "content": "A condensed version of the article (3-5 paragraphs, ~300-500 words). Keep all key facts, quotes, and data points. Write in clear, neutral journalistic {$target_lang_name}. Do NOT copy sentences verbatim — rephrase everything in your own words.",
+    "simple_explanation": "Explică despre ce e vorba în 2-3 fraze SIMPLE, pe înțelesul unui copil de 12 ani, în {$target_lang_name}. Fără jargon, fără termeni tehnici. Ca și cum ai explica unui prieten care n-a auzit de subiect.",
+    "why_it_matters": "1-2 fraze în {$target_lang_name}: de ce contează / ce înseamnă CONCRET pentru cititorul obișnuit (impact pe buzunar, drepturi, viața de zi cu zi). Dacă nu are impact direct, spune pe scurt de ce e relevant.",
     "categories": ["category_slugs"],
     "tags": ["relevant_tags_in_{$target_lang_name}"]
 }
@@ -472,6 +483,8 @@ You are a news editor and translator for TeInformez.eu. Process this article and
     "title": "An engaging headline in {$target_lang_name} (NOT a literal translation — adapt it naturally)",
     "summary": "2-3 sentence summary in {$target_lang_name} (max 100 words)",
     "content": "The article rewritten in professional {$target_lang_name} (3-5 paragraphs, ~300-500 words). Translate and rephrase — do not translate word-for-word.",
+    "simple_explanation": "Explică despre ce e vorba în 2-3 fraze SIMPLE, pe înțelesul unui copil de 12 ani, în {$target_lang_name}. Fără jargon, fără termeni tehnici. Ca și cum ai explica unui prieten care n-a auzit de subiect.",
+    "why_it_matters": "1-2 fraze în {$target_lang_name}: de ce contează / ce înseamnă CONCRET pentru cititorul obișnuit (impact pe buzunar, drepturi, viața de zi cu zi). Dacă nu are impact direct, spune pe scurt de ce e relevant.",
     "categories": ["category_slugs"],
     "tags": ["relevant_tags_in_{$target_lang_name}"]
 }
