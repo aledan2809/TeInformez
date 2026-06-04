@@ -14,7 +14,7 @@
 
 ### Milestones
 - [x] **M0 — Prospețime** (prerequisit absolut) — DONE 2026-05-31. Backlog ~3.3 zile eliminat: batch 10→30 (`fc7e72f`) + groq-first 58s→3s/item (`38445fb`). News fresh.
-- [ ] **M1 — ELI12 backend** (~1 sesiune): câmpuri AI noi `simple_explanation` (3 fraze ELI12) + `why_it_matters` (ce înseamnă pentru tine) → adăugate în promptul de procesare + coloane DB (`ALTER TABLE wp_teinformez_news_queue`) + expuse în `api/class-news-api.php`. Files: `includes/class-ai-processor.php` (build_prompt + update), DB migration, news API.
+- [x] **M1 — ELI12 backend** — DONE 2026-06-04 (`2d0e008`). Câmpuri AI `simple_explanation` + `why_it_matters` în ambele ramuri build_prompt, scrise în process_item (opționale `?? ''`), expuse în `format_news_item` (API single-article). Coloane DB idempotent în process_queue (live) + activator CREATE TABLE (fresh). `$shared_cols`/archive neatinse (zero regresie read-path). Verificat live: ELI12 RO pe articol nou + API `/news/{id}` expune câmpurile.
 - [ ] **M2 — ELI12 frontend** (~1 sesiune): secțiune „🧒 Pe scurt" pe pagina de știre (vizibilă default) + toggle „Mod simplu" site-wide. Files: `frontend/src/app/news/...`.
 - [ ] **M3 — Share cards (AICR)** (~1-2 sesiuni): imagine per știre cu explicația ELI12 = artefactul distribuibil (story FB/IG/WhatsApp), NU link-ul. Wire share buttons → imagine. Reuses `@aledan/aicr`.
 - [ ] **M4 — „Explică-mi asta" interactiv** (~1 sesiune): tool public — lipești titlu/subiect → ELI12 instant (utilitate virală + lead-gen).
