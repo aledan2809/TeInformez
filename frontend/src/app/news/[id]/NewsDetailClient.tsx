@@ -18,6 +18,7 @@ import { useReadingStore } from '@/store/readingStore';
 import { useSimpleModeStore } from '@/store/simpleModeStore';
 import ReadingProgressBar from '@/components/ReadingProgressBar';
 import ScrollToTop from '@/components/ScrollToTop';
+import { SimpleModeToggle } from '@/components/SimpleModeToggle';
 import AffiliateWidget from '@/components/AffiliateWidget';
 import type { ApiErrorShape, PublicNewsItem, AffiliateInfo } from '@/types';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -214,6 +215,8 @@ export default function NewsDetailClient() {
               Înapoi la știri
             </Link>
             <div className="flex items-center space-x-2">
+              {/* Simple mode toggle */}
+              <SimpleModeToggle />
               {/* Bookmark button */}
               <motion.button
                 whileTap={{ scale: 0.9 }}
