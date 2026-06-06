@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Newspaper, User, LogIn } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { SimpleModeToggle } from '@/components/SimpleModeToggle';
 import { useAuthStore } from '@/store/authStore';
 
 export default function SharedHeader() {
@@ -20,6 +21,7 @@ export default function SharedHeader() {
           <Link href="/news" className="text-sm font-medium hover:text-primary-600 hidden sm:block">
             Toate știrile
           </Link>
+          <SimpleModeToggle />
           <ThemeToggle />
           {isAuthenticated ? (
             <Link href="/dashboard" className="flex items-center gap-1.5 text-sm font-medium hover:text-primary-600">

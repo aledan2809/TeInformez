@@ -101,6 +101,8 @@ export interface PublicNewsItem {
   language: string;
   view_count?: number;
   is_premium?: boolean;
+  simple_explanation?: string | null;
+  why_it_matters?: string | null;
 }
 
 export interface PublicNewsListResponse {

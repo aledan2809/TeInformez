@@ -8,13 +8,14 @@ import { motion } from 'framer-motion';
 import {
   ArrowLeft, Calendar, ExternalLink, Tag, Loader2, Share2,
   Bookmark, BookmarkCheck, Copy, Check, Clock, Sparkles,
-  PlayCircle,
+  PlayCircle, Lightbulb, Target, BookOpen, ChevronDown,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { createTimeSpentTracker, trackArticleClick, trackPageView } from '@/lib/visitorAnalytics';
 import { gtagEvent } from '@/lib/gtag';
 import { useBookmarkStore } from '@/store/bookmarkStore';
 import { useReadingStore } from '@/store/readingStore';
+import { useSimpleModeStore } from '@/store/simpleModeStore';
 import ReadingProgressBar from '@/components/ReadingProgressBar';
 import ScrollToTop from '@/components/ScrollToTop';
 import AffiliateWidget from '@/components/AffiliateWidget';
@@ -37,7 +38,9 @@ export default function NewsDetailClient() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [relatedArticles, setRelatedArticles] = useState<NewsItem[]>([]);
+  const [contentExpanded, setContentExpanded] = useState(false);
 
+  const { simpleMode } = useSimpleModeStore();
   const { isBookmarked, toggleBookmark } = useBookmarkStore();
   const { markAsRead } = useReadingStore();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
@@ -62,6 +65,7 @@ export default function NewsDetailClient() {
   const fetchNews = async () => {
     setLoading(true);
     setError(null);
+    setContentExpanded(false);
 
     try {
       const newsId = parseInt(params.id as string);
@@ -401,6 +405,39 @@ export default function NewsDetailClient() {
             </motion.div>
           )}
 
+          {/* ELI12 — „Pe scurt" + „De ce contează" (visible by default when present) */}
+          {(news.simple_explanation || news.why_it_matters) && (
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.35, duration: 0.4 }}
+              className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-l-4 border-emerald-500"
+            >
+              {news.simple_explanation && (
+                <>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Lightbulb className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Pe scurt</span>
+                  </div>
+                  <p className="text-base text-gray-900 dark:text-gray-100 leading-relaxed mb-3">
+                    {news.simple_explanation}
+                  </p>
+                </>
+              )}
+              {news.why_it_matters && (
+                <div className="rounded-md bg-white/70 dark:bg-gray-900/40 p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Target className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">De ce contează</span>
+                  </div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {news.why_it_matters}
+                  </p>
+                </div>
+              )}
+            </motion.div>
+          )}
+
           {/* Content — gated for premium articles; hold render during subscription fetch to avoid flicker */}
           {news.is_premium && subscriptionLoading ? (
             <div className="h-40 rounded-xl bg-amber-50 dark:bg-amber-900/20 animate-pulse" />
@@ -425,6 +462,15 @@ export default function NewsDetailClient() {
                 Abonează-te Premium →
               </Link>
             </motion.div>
+          ) : simpleMode && !contentExpanded ? (
+            <button
+              onClick={() => setContentExpanded(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <BookOpen className="h-4 w-4" />
+              Citește articolul complet
+              <ChevronDown className="h-4 w-4" />
+            </button>
           ) : (
             <motion.div
               initial={{ opacity: 0 }}
