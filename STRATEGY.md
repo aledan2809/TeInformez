@@ -69,10 +69,10 @@ De ce ELI12 (vs bias-meter / audio digest):
 
 ### Plan pe niveluri
 - **Nivel 0 — prospețime** ✅ DONE 2026-05-31 (batch 30 + groq-first; news fresh, nu de 3 zile). Prerequisit absolut.
-- **Nivel 1 — ELI12 (motivul de a exista)**: câmpuri AI noi `simple_explanation` + `why_it_matters` per articol; UI „🧒 Pe scurt" vizibil default + toggle „Mod simplu" pe tot site-ul.
+- **Nivel 1 — ELI12 (motivul de a exista)**: câmpuri AI noi `simple_explanation` + `why_it_matters` per articol; UI **opt-in** — buton „💡 Explică pe scurt" pulsatoriu (cu tooltip) pe fiecare știre + toggle „Mod simplu" pe tot site-ul. NU afișat din oficiu (evită percepția condescendentă „te luăm de prost"); cititorul alege.
 - **Nivel 2 — mecanica virală (construită ÎN JURUL ELI12)**:
-  - **Share cards** generate cu AICR: o imagine per știre cu explicația ELI12 = artefactul distribuibil (story FB/IG/WhatsApp), NU link-ul.
-  - **„Explică-mi asta"** interactiv: lipești orice titlu/subiect → explicație ELI12 instant (utilitate virală + lead-gen).
+  - **Share cards** (via `next/og`, nu AICR — zero deps, $0): o imagine per știre cu explicația ELI12 = artefactul distribuibil (story FB/IG/WhatsApp), NU link-ul.
+  - ~~**„Explică-mi asta" interactiv** (tool public unde lipești orice)~~ — **ABANDONAT 2026-06-06**: fără moat vs Google/ChatGPT. Înlocuit cu butonul „Explică pe scurt" direct pe fiecare știre (Nivel 1) — noi facem efortul pentru cititor, doar pe știri.
   - **Share-to-unlock / referral** cu payoff real (digest fără reclame / premium), nu leaderboard sec.
 - **Nivel 3 — distribuție activă**:
   - Clipuri scurte verticale (ELI12 → 20-30s TikTok/Reels/Shorts, text-on-screen + TTS).

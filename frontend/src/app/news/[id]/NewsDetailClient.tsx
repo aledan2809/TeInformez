@@ -40,8 +40,9 @@ export default function NewsDetailClient() {
   const [copied, setCopied] = useState(false);
   const [relatedArticles, setRelatedArticles] = useState<NewsItem[]>([]);
   const [contentExpanded, setContentExpanded] = useState(false);
+  const [eli12Revealed, setEli12Revealed] = useState(false);
 
-  const { simpleMode } = useSimpleModeStore();
+  const { simpleMode, eli12Discovered, markEli12Discovered } = useSimpleModeStore();
   const { isBookmarked, toggleBookmark } = useBookmarkStore();
   const { markAsRead } = useReadingStore();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
@@ -67,6 +68,7 @@ export default function NewsDetailClient() {
     setLoading(true);
     setError(null);
     setContentExpanded(false);
+    setEli12Revealed(false);
 
     const newsId = parseInt(params.id as string);
     if (!Number.isFinite(newsId) || newsId <= 0) {
@@ -419,44 +421,66 @@ export default function NewsDetailClient() {
             </motion.div>
           )}
 
-          {/* ELI12 — „Pe scurt" + „De ce contează" (visible by default when present) */}
+          {/* ELI12 — on-demand: "Explică pe scurt" button reveals the card; auto-shown when „Mod simplu" is ON */}
           {(news.simple_explanation || news.why_it_matters) && (
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.35, duration: 0.4 }}
-              className="mb-8 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-l-4 border-emerald-500"
-            >
-              {news.simple_explanation && (
-                <>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Lightbulb className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Pe scurt</span>
+            simpleMode || eli12Revealed ? (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4 }}
+                className="mb-8 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-l-4 border-emerald-500"
+              >
+                {news.simple_explanation && (
+                  <>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Lightbulb className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Pe scurt</span>
+                    </div>
+                    <p className="text-base text-gray-900 dark:text-gray-100 leading-relaxed mb-3">
+                      {(() => {
+                        const sentences = news.simple_explanation.match(/[^.!?]+[.!?]+/g);
+                        if (sentences && sentences.length > 3) return sentences.slice(0, 3).join('').trim();
+                        return news.simple_explanation;
+                      })()}
+                    </p>
+                  </>
+                )}
+                {news.why_it_matters && (
+                  <div className="mt-4 pt-4 border-t border-emerald-200 dark:border-emerald-700/40 rounded-md bg-white/70 dark:bg-gray-900/40 p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Target className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">De ce contează</span>
+                    </div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {news.why_it_matters}
+                    </p>
                   </div>
-                  <p className="text-base text-gray-900 dark:text-gray-100 leading-relaxed mb-3">
-                    {(() => {
-                      const sentences = news.simple_explanation.match(/[^.!?]+[.!?]+/g);
-                      if (sentences && sentences.length > 3) return sentences.slice(0, 3).join('').trim();
-                      return news.simple_explanation;
-                    })()}
-                  </p>
-                </>
-              )}
-              {news.why_it_matters && (
-                <div className="mt-4 pt-4 border-t border-purple-200 dark:border-purple-700/40 rounded-md bg-white/70 dark:bg-gray-900/40 p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Target className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">De ce contează</span>
-                  </div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                    {news.why_it_matters}
-                  </p>
+                )}
+                <div className="flex justify-center mt-5 pt-3 border-t border-emerald-200 dark:border-emerald-700/40">
+                  <ShareImageButton newsId={news.id} title={news.title} />
                 </div>
-              )}
-              <div className="flex justify-center mt-5 pt-3 border-t border-purple-200 dark:border-purple-700/40">
-                <ShareImageButton newsId={news.id} title={news.title} />
-              </div>
-            </motion.div>
+              </motion.div>
+            ) : (
+              <motion.button
+                onClick={() => { setEli12Revealed(true); markEli12Discovered(); }}
+                title="Vezi pe scurt despre ce e știrea — explicat simplu. Vrei explicația automat la toate știrile? Activează «Mod simplu» din bara de sus."
+                initial={{ opacity: 0 }}
+                animate={
+                  eli12Discovered
+                    ? { opacity: 1 }
+                    : { opacity: 1, boxShadow: ['0 0 0 0 rgba(16,185,129,0.45)', '0 0 0 10px rgba(16,185,129,0)'] }
+                }
+                transition={
+                  eli12Discovered
+                    ? { duration: 0.3 }
+                    : { opacity: { duration: 0.3 }, boxShadow: { duration: 1.6, repeat: Infinity } }
+                }
+                className="mb-8 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+              >
+                <Lightbulb className="h-5 w-5" />
+                Explică pe scurt
+              </motion.button>
+            )
           )}
 
           {/* Content — gated for premium articles; hold render during subscription fetch to avoid flicker */}
