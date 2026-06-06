@@ -60,7 +60,7 @@ export default function NewsDetailClient() {
   }, [params.id]);
 
   useEffect(() => {
-    fetchNews();
+    fetchNews().catch(() => {});
   }, [params.id]);
 
   const fetchNews = async () => {
@@ -68,9 +68,20 @@ export default function NewsDetailClient() {
     setError(null);
     setContentExpanded(false);
 
+    const newsId = parseInt(params.id as string);
+    if (!Number.isFinite(newsId) || newsId <= 0) {
+      setError('ID invalid pentru știre');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const newsId = parseInt(params.id as string);
       const { news: data, affiliate: aff } = await api.getNewsItem(newsId);
+      if (!data) {
+        setError('Știrea nu a fost găsită');
+        setLoading(false);
+        return;
+      }
       setNews(data);
       setAffiliate(aff);
       markAsRead(newsId);
@@ -115,16 +126,16 @@ export default function NewsDetailClient() {
   };
 
   const handleShare = async () => {
-    if (navigator.share && news) {
-      try {
+    try {
+      if (navigator.share && news) {
         await navigator.share({
           title: news.title,
           text: news.summary,
           url: window.location.href
         });
-      } catch {
-        // User cancelled
       }
+    } catch {
+      // User cancelled or share not available
     }
   };
 
@@ -214,14 +225,14 @@ export default function NewsDetailClient() {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Înapoi la știri
             </Link>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
               {/* Simple mode toggle */}
               <SimpleModeToggle />
               {/* Bookmark button */}
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={handleToggleBookmark}
-                className={`inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                className={`inline-flex items-center px-3 py-1.5 min-h-[44px] rounded-md text-sm font-medium transition-colors ${
                   bookmarked
                     ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -238,7 +249,7 @@ export default function NewsDetailClient() {
               {/* Copy link */}
               <button
                 onClick={handleCopyLink}
-                className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                className="inline-flex items-center px-3 py-1.5 min-h-[44px] rounded-md text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               >
                 {copied ? (
                   <>
@@ -396,7 +407,7 @@ export default function NewsDetailClient() {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3, duration: 0.4 }}
-              className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border-l-4 border-purple-500"
+              className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border-l-4 border-purple-600"
             >
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
@@ -414,7 +425,7 @@ export default function NewsDetailClient() {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.35, duration: 0.4 }}
-              className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-l-4 border-emerald-500"
+              className="mb-8 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-l-4 border-emerald-500"
             >
               {news.simple_explanation && (
                 <>
@@ -423,12 +434,16 @@ export default function NewsDetailClient() {
                     <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Pe scurt</span>
                   </div>
                   <p className="text-base text-gray-900 dark:text-gray-100 leading-relaxed mb-3">
-                    {news.simple_explanation}
+                    {(() => {
+                      const sentences = news.simple_explanation.match(/[^.!?]+[.!?]+/g);
+                      if (sentences && sentences.length > 3) return sentences.slice(0, 3).join('').trim();
+                      return news.simple_explanation;
+                    })()}
                   </p>
                 </>
               )}
               {news.why_it_matters && (
-                <div className="rounded-md bg-white/70 dark:bg-gray-900/40 p-3">
+                <div className="mt-4 pt-4 border-t border-purple-200 dark:border-purple-700/40 rounded-md bg-white/70 dark:bg-gray-900/40 p-3">
                   <div className="flex items-center gap-2 mb-1">
                     <Target className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                     <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">De ce contează</span>
@@ -438,7 +453,9 @@ export default function NewsDetailClient() {
                   </p>
                 </div>
               )}
-              <ShareImageButton newsId={news.id} title={news.title} />
+              <div className="flex justify-center mt-5 pt-3 border-t border-purple-200 dark:border-purple-700/40">
+                <ShareImageButton newsId={news.id} title={news.title} />
+              </div>
             </motion.div>
           )}
 
@@ -503,7 +520,7 @@ export default function NewsDetailClient() {
                 <Link
                   key={article.id}
                   href={`/news/${article.id}`}
-                  className="card hover:shadow-lg transition-shadow overflow-hidden group"
+                  className="card hover:shadow-lg transition-shadow overflow-hidden group flex flex-col min-h-[280px]"
                   onClick={() => trackArticleClick(article.id, { source: 'related_articles' })}
                 >
                   {article.image && (
@@ -522,7 +539,7 @@ export default function NewsDetailClient() {
                   <h3 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-primary-600 transition-colors">
                     {article.title}
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{article.summary}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 flex-1">{article.summary}</p>
                   <div className="mt-3 flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-2">
                     <Clock className="h-3 w-3" />
                     <span>{estimateReadingTime(article.content)} min</span>
@@ -587,7 +604,7 @@ function ShareImageButton({ newsId, title }: { newsId: number; title: string }) 
     <button
       onClick={handleShareImage}
       disabled={busy}
-      className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white transition-colors"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white transition-colors"
     >
       <ImageDown className="h-4 w-4" />
       {busy ? 'Se pregătește…' : 'Distribuie ca imagine'}

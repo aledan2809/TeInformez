@@ -20,6 +20,7 @@ async function getNewsItem(id: string): Promise<ShareNewsItem | null> {
     });
     if (!res.ok) return null;
     const json = await res.json();
+    if (!json || typeof json !== 'object') return null;
     return json.data?.news || null;
   } catch {
     return null;
@@ -39,13 +40,19 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  if (!id || !/^\d+$/.test(id)) {
+    return new Response('Invalid id', { status: 400 });
+  }
   const news = await getNewsItem(id);
+  if (!news) {
+    return new Response('News item not found', { status: 404 });
+  }
 
-  const title = truncate(news?.title || 'TeInformez.eu', 120);
+  const title = truncate(news.title || 'TeInformez.eu', 120);
   // ELI12 hero: prefer simple_explanation, fall back to summary
-  const eli = truncate(news?.simple_explanation || news?.summary || '', 300);
-  const why = truncate(news?.why_it_matters || '', 200);
-  const category = news?.categories?.[0] || '';
+  const eli = truncate(news.simple_explanation || news.summary || '', 300);
+  const why = truncate(news.why_it_matters || '', 200);
+  const category = news.categories?.[0] || '';
 
   return new ImageResponse(
     (
