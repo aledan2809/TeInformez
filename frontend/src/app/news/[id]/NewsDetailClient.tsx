@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import {
   ArrowLeft, Calendar, ExternalLink, Tag, Loader2, Share2,
   Bookmark, BookmarkCheck, Copy, Check, Clock, Sparkles,
-  PlayCircle, Lightbulb, Target, BookOpen, ChevronDown,
+  PlayCircle, Lightbulb, Target, BookOpen, ChevronDown, ImageDown,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { createTimeSpentTracker, trackArticleClick, trackPageView } from '@/lib/visitorAnalytics';
@@ -438,6 +438,7 @@ export default function NewsDetailClient() {
                   </p>
                 </div>
               )}
+              <ShareImageButton newsId={news.id} title={news.title} />
             </motion.div>
           )}
 
@@ -543,6 +544,54 @@ export default function NewsDetailClient() {
         </div>
       </motion.article>
     </main>
+  );
+}
+
+/* ── Share as image (ELI12 card) ── */
+function ShareImageButton({ newsId, title }: { newsId: number; title: string }) {
+  const [busy, setBusy] = useState(false);
+
+  const handleShareImage = async () => {
+    if (busy) return;
+    const url = `${window.location.origin}/api/share-card/${newsId}`;
+    setBusy(true);
+    try {
+      let file: File | null = null;
+      if (typeof navigator !== 'undefined' && typeof navigator.canShare === 'function') {
+        try {
+          const res = await fetch(url);
+          if (res.ok) {
+            const blob = await res.blob();
+            const candidate = new File([blob], `teinformez-${newsId}.png`, { type: 'image/png' });
+            if (navigator.canShare({ files: [candidate] })) file = candidate;
+          }
+        } catch {
+          // network/CORS — fall back to opening the image
+        }
+      }
+      if (file) {
+        try {
+          await navigator.share({ files: [file], title });
+        } catch {
+          // user dismissed the share sheet — no-op
+        }
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleShareImage}
+      disabled={busy}
+      className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white transition-colors"
+    >
+      <ImageDown className="h-4 w-4" />
+      {busy ? 'Se pregătește…' : 'Distribuie ca imagine'}
+    </button>
   );
 }
 
