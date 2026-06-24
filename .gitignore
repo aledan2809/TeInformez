@@ -59,3 +59,8 @@ frontend/tsconfig.tsbuildinfo
 frontend/.tester/
 frontend/.tester-screenshots/
 frontend/test-results/
+
+# Retired insecure deploy scripts (weak hardcoded secrets) — never re-track (2026-06-24)
+backend/deploy.php
+backend/webhook.php
+backend/deploy-download.php
