@@ -128,13 +128,28 @@ class Chief_Editor {
             }
         }
 
-        // Always publish — set status and timestamp
+        $update_data['reviewed_at'] = current_time('mysql');
+        $change_count = count($changes);
+
+        // Cadence throttle: at most ONE story per ~6-8h window (News_Publisher is the
+        // single source of truth for the gate). When the gap hasn't elapsed, keep the
+        // already-reviewed article as 'approved' so the throttled cron releases it later.
+        if (!News_Publisher::auto_publish_allowed()) {
+            $update_data['status'] = 'approved';
+            $update_data['admin_notes'] = 'Reviewed by Chief Editor AI — queued for throttled release (~6-8h)' . (!empty($review['media_notes']) ? ' | Media: ' . $review['media_notes'] : '');
+            $wpdb->update($table, $update_data, ['id' => $article_id]);
+            $this->log($article_id, 'approved', !empty($changes) ? json_encode($changes, JSON_UNESCAPED_UNICODE) : null, $used_provider);
+            error_log("TeInformez Chief Editor: queued (throttled) article #{$article_id} with {$change_count} change(s) via {$used_provider}");
+            return true;
+        }
+
+        // Gap elapsed — publish now.
         $update_data['status'] = 'published';
         $update_data['published_at'] = current_time('mysql');
-        $update_data['reviewed_at'] = current_time('mysql');
         $update_data['admin_notes'] = 'Published by Chief Editor AI' . (!empty($review['media_notes']) ? ' | Media: ' . $review['media_notes'] : '');
 
         $wpdb->update($table, $update_data, ['id' => $article_id]);
+        News_Publisher::mark_auto_published();
 
         // Log the review
         $this->log($article_id, 'published', !empty($changes) ? json_encode($changes, JSON_UNESCAPED_UNICODE) : null, $used_provider);
@@ -145,7 +160,6 @@ class Chief_Editor {
             do_action('teinformez_news_published', $published_article);
         }
 
-        $change_count = count($changes);
         error_log("TeInformez Chief Editor: Published article #{$article_id} with {$change_count} change(s) via {$used_provider}");
 
         return true;

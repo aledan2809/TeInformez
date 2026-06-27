@@ -290,6 +290,105 @@ class News_Publisher {
     }
 
     /**
+     * Default gap between auto-published stories (seconds). ~7h → a story every 6-8h
+     * once the every-30-min cron ticks. Tunable via Config option 'publish_min_gap'.
+     */
+    const PUBLISH_MIN_GAP = 25200;
+
+    /**
+     * Single source of truth for the auto-publish cadence gate. Shared by the
+     * throttled cron path AND the Chief Editor agent so BOTH respect ~6-8h.
+     */
+    public static function auto_publish_allowed() {
+        $gap  = (int) Config::get('publish_min_gap', self::PUBLISH_MIN_GAP);
+        $last = (int) get_option('teinformez_last_publish_ts', 0);
+        return ($last === 0) || (time() - $last) >= $gap;
+    }
+
+    /**
+     * Stamp the moment a story was auto-published. Resets the cadence window.
+     */
+    public static function mark_auto_published() {
+        update_option('teinformez_last_publish_ts', time());
+    }
+
+    /**
+     * Throttled auto-publish for the cron path: publish AT MOST one story per
+     * PUBLISH_MIN_GAP. This is the cadence governor the user asked for ("o știre la 6-8h").
+     * Manual admin publishing (publish_approved) is intentionally NOT throttled.
+     */
+    public function publish_throttled() {
+        if (!self::auto_publish_allowed()) {
+            return ['published' => 0, 'throttled' => true];
+        }
+
+        $item = $this->next_auto_candidate();
+        if (!$item) {
+            return ['published' => 0];
+        }
+
+        // Admin-approved items are already approved; auto-picked ones need approval first.
+        if ($item->status !== 'approved') {
+            $this->approve($item->id, 'Auto-approved (throttled cadence ~6-8h)');
+        }
+
+        $ok = $this->publish_item($item);
+        if ($ok) {
+            self::mark_auto_published();
+            error_log('TeInformez: throttled auto-publish item #' . $item->id);
+            return ['published' => 1];
+        }
+        return ['published' => 0];
+    }
+
+    /**
+     * Pick the single best item to auto-publish. It's a news site, so freshness wins:
+     *   1) freshest reviewed item (status 'approved'), else
+     *   2) freshest fully-processed item (status 'pending_review').
+     * Older un-published items age out via expire_unpublished_stale() (daily cleanup).
+     */
+    private function next_auto_candidate() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'teinformez_news_queue';
+
+        $approved = $wpdb->get_row(
+            "SELECT * FROM {$table} WHERE status = 'approved' ORDER BY reviewed_at DESC LIMIT 1"
+        );
+        if ($approved) {
+            return $approved;
+        }
+
+        return $wpdb->get_row(
+            "SELECT * FROM {$table} WHERE status = 'pending_review' ORDER BY processed_at DESC LIMIT 1"
+        );
+    }
+
+    /**
+     * Expire un-published items that are too old to still be "news". With the ~6-8h
+     * cadence the queue intakes far more than it publishes, so without this the
+     * 'approved'/'pending_review'/'fetched' rows would grow without bound. Marks them
+     * 'rejected' (then cleanup_old_items deletes rejected rows on the daily run).
+     */
+    public function expire_unpublished_stale($days = 2) {
+        global $wpdb;
+        $table  = $wpdb->prefix . 'teinformez_news_queue';
+        $cutoff = date('Y-m-d H:i:s', strtotime("-{$days} days"));
+
+        $expired = $wpdb->query($wpdb->prepare(
+            "UPDATE {$table}
+             SET status = 'rejected', admin_notes = 'Expired — not published within freshness window'
+             WHERE status IN ('fetched', 'pending_review', 'approved')
+             AND fetched_at < %s",
+            $cutoff
+        ));
+
+        if ($expired) {
+            error_log('TeInformez: expired ' . $expired . ' stale unpublished items (older than ' . $days . 'd)');
+        }
+        return ['expired' => (int) $expired];
+    }
+
+    /**
      * Publish a single news item
      */
     private function publish_item($item) {

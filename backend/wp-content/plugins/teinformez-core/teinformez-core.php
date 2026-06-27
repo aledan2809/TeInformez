@@ -140,36 +140,54 @@ function teinformez_init() {
 
     // Register MA emitter cron (idempotent — skips if already scheduled)
     TeInformez\MA_Emitter::register_cron();
+
+    // Self-heal all recurring crons on every load (cron tick loads plugins too).
+    // Centralized so it survives ANY single hook dying — see teinformez_ensure_crons().
+    teinformez_ensure_crons();
 }
 add_action('plugins_loaded', 'teinformez_init');
 
-// Cron job handlers (Phase B - News Aggregation)
-add_action('teinformez_fetch_news', function() {
-    // Self-heal: re-schedule sibling cron events if any got unscheduled (2026-05-22 incident: 3 hooks vanished, news silent 5 days).
-    $teinformez_crons = array(
+/**
+ * Ensure all recurring TeInformez crons are scheduled. Idempotent.
+ *
+ * History: 2026-05-22 — 3 hooks vanished, news silent 5 days; a self-heal was
+ * added INSIDE the teinformez_fetch_news handler. 2026-06-27 — fetch_news itself
+ * vanished and the self-heal that lived inside it died with it → news silent 16 days.
+ * Lesson: the healer must not depend on the thing it heals. Now it runs on
+ * plugins_loaded (every page load + every cron tick) and covers fetch_news too.
+ */
+function teinformez_ensure_crons() {
+    $crons = array(
+        'teinformez_fetch_news'            => 'every_30_minutes',
         'teinformez_process_news'          => 'every_30_minutes',
         'teinformez_check_deliveries'      => 'every_15_minutes',
         'teinformez_check_delivery_health' => 'every_15_minutes',
     );
-    foreach ($teinformez_crons as $hook => $recurrence) {
+    foreach ($crons as $hook => $recurrence) {
         if (!wp_next_scheduled($hook)) {
             wp_schedule_event(time(), $recurrence, $hook);
             error_log('TeInformez: self-healed missing cron ' . $hook);
         }
     }
+}
 
+// Cron job handlers (Phase B - News Aggregation)
+add_action('teinformez_fetch_news', function() {
+    teinformez_ensure_crons(); // belt-and-suspenders (also runs on plugins_loaded)
     $fetcher = new TeInformez\News_Fetcher();
     $fetcher->fetch_all();
 });
 
 add_action('teinformez_process_news', function() {
+    teinformez_ensure_crons(); // belt-and-suspenders (also runs on plugins_loaded)
+
     $processor = new TeInformez\AI_Processor();
     $processor->process_queue();
 
-    // Also check for auto-publish
+    // Throttled cadence: publish at most ONE story per ~6-8h window.
+    // Manual admin publishing (publish_approved) stays UNthrottled by design.
     $publisher = new TeInformez\News_Publisher();
-    $publisher->auto_publish_expired();
-    $publisher->publish_approved();
+    $publisher->publish_throttled();
 });
 
 add_action('teinformez_check_deliveries', function() {
@@ -215,6 +233,9 @@ add_action('teinformez_emit_to_ma', function() {
 
 add_action('teinformez_daily_cleanup', function() {
     $publisher = new TeInformez\News_Publisher();
+    // Age out un-published items first (throttled cadence intakes >> it publishes),
+    // then the existing routine archives old published + deletes rejected rows.
+    $publisher->expire_unpublished_stale(2);
     $publisher->cleanup_old_items(30);
     // Refresh cached Legal Hub privacy version ID
     TeInformez\Legal_Client::refresh_privacy_version();
