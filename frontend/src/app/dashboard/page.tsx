@@ -56,6 +56,38 @@ export default function DashboardPage() {
     fetchPersonalizedNews();
   }, []);
 
+  // Next-best-action: surface the single most useful next step from account state,
+  // so the user is guided instead of having to hunt through the menu.
+  const [nbaDismissed, setNbaDismissed] = useState<string[]>([]);
+  useEffect(() => {
+    try { setNbaDismissed(JSON.parse(localStorage.getItem('ti_nba_dismissed') || '[]')); } catch { /* ignore */ }
+  }, []);
+  const dismissNba = (key: string) => {
+    setNbaDismissed((prev) => {
+      const next = prev.includes(key) ? prev : [...prev, key];
+      try { localStorage.setItem('ti_nba_dismissed', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
+  const channels = user?.preferences?.delivery_channels || [];
+  const hasTelegram = channels.some((c) => String(c).toLowerCase().includes('telegram'));
+  const setupSteps = [
+    { key: 'topics', done: (stats?.by_category?.length || 0) >= 1 },
+    { key: 'telegram', done: hasTelegram },
+    { key: 'schedule', done: !!user?.preferences?.delivery_schedule },
+    { key: 'bookmark', done: bookmarkCount >= 1 },
+  ];
+  const doneCount = setupSteps.filter((s) => s.done).length;
+  const nbaCatalog: Record<string, { q: string; cta: string; href: string }> = {
+    topics: { q: 'Alege primul subiect ca să primești știri exact pe interesele tale.', cta: 'Alege subiecte', href: '/dashboard/subscriptions' },
+    telegram: { q: 'Activează Telegram — primești știrile instant și gratuit, fără să deschizi emailul.', cta: 'Conectează Telegram', href: '/dashboard/telegram' },
+    schedule: { q: 'Spune-ne când vrei rezumatul — zilnic, săptămânal sau în timp real.', cta: 'Setează livrarea', href: '/dashboard/settings' },
+    bookmark: { q: 'Salvează o știre cu semnul 🔖 ca s-o citești mai târziu, de pe orice dispozitiv.', cta: 'Descoperă știri', href: '/news' },
+  };
+  const nextStep = setupSteps.find((s) => !s.done && !nbaDismissed.includes(s.key));
+  const nextAction = nextStep ? nbaCatalog[nextStep.key] : null;
+
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -65,13 +97,48 @@ export default function DashboardPage() {
         <p className="text-gray-600 dark:text-gray-400">Aici găsești un rezumat al preferințelor tale de știri</p>
       </div>
 
+      {!isLoading && nextAction && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="mb-8 rounded-xl border border-primary-200 dark:border-primary-800 bg-primary-50 dark:bg-primary-900/20 p-5"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="h-4 w-4 text-primary-600 dark:text-primary-400" />
+            <span className="text-xs font-semibold uppercase tracking-wide text-primary-700 dark:text-primary-300">Ce urmează pentru tine</span>
+          </div>
+          <p className="text-base font-medium text-gray-900 dark:text-gray-100 mb-4">{nextAction.q}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => router.push(nextAction.href)}
+              className="px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold transition-colors"
+            >
+              {nextAction.cta}
+            </button>
+            <button
+              onClick={() => nextStep && dismissNba(nextStep.key)}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-colors"
+            >
+              Mai târziu
+            </button>
+          </div>
+          <div className="mt-4">
+            <div className="h-1.5 rounded-full bg-primary-100 dark:bg-primary-900/40 overflow-hidden">
+              <div className="h-full bg-primary-600 rounded-full transition-all" style={{ width: `${(doneCount / setupSteps.length) * 100}%` }} />
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 tabular-nums">Cont configurat — {doneCount} din {setupSteps.length} pași</p>
+          </div>
+        </motion.div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
-        <StatCard icon={<Bell className="h-6 w-6 text-primary-600" />} label="Abonamente active" value={stats?.active || 0} isLoading={isLoading} />
-        <StatCard icon={<Calendar className="h-6 w-6 text-blue-600" />} label="Total abonamente" value={stats?.total || 0} isLoading={isLoading} />
-        <StatCard icon={<Mail className="h-6 w-6 text-green-600" />} label="Canale active" value={user?.preferences?.delivery_channels?.length || 0} isLoading={isLoading} />
-        <StatCard icon={<TrendingUp className="h-6 w-6 text-purple-600" />} label="Categorii urmărite" value={stats?.by_category?.length || 0} isLoading={isLoading} />
-        <StatCard icon={<Flame className="h-6 w-6 text-orange-500" />} label="Serie citire" value={currentStreak} isLoading={false} suffix={currentStreak === 1 ? 'zi' : 'zile'} />
-        <StatCard icon={<Bookmark className="h-6 w-6 text-amber-500" />} label="Articole salvate" value={bookmarkCount} isLoading={false} />
+        <StatCard icon={<Bell className="h-6 w-6 text-primary-600" />} label="Abonamente active" value={stats?.active || 0} isLoading={isLoading} hint="subiecte care îți aduc știri acum" />
+        <StatCard icon={<Calendar className="h-6 w-6 text-blue-600" />} label="Total abonamente" value={stats?.total || 0} isLoading={isLoading} hint="toate subiectele, active sau pe pauză" />
+        <StatCard icon={<Mail className="h-6 w-6 text-green-600" />} label="Canale active" value={user?.preferences?.delivery_channels?.length || 0} isLoading={isLoading} hint="unde primești știrile (email, Telegram)" />
+        <StatCard icon={<TrendingUp className="h-6 w-6 text-purple-600" />} label="Categorii urmărite" value={stats?.by_category?.length || 0} isLoading={isLoading} hint="domenii diferite pe care le urmărești" />
+        <StatCard icon={<Flame className="h-6 w-6 text-orange-500" />} label="Serie citire" value={currentStreak} isLoading={false} suffix={currentStreak === 1 ? 'zi' : 'zile'} hint="zile la rând în care ai citit" />
+        <StatCard icon={<Bookmark className="h-6 w-6 text-amber-500" />} label="Articole salvate" value={bookmarkCount} isLoading={false} hint="apasă 🔖 pe o știre ca s-o salvezi" />
       </div>
 
       <div className="card mb-8">
@@ -221,7 +288,7 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({ icon, label, value, isLoading, suffix }: { icon: React.ReactNode; label: string; value: number; isLoading: boolean; suffix?: string }) {
+function StatCard({ icon, label, value, isLoading, suffix, hint }: { icon: React.ReactNode; label: string; value: number; isLoading: boolean; suffix?: string; hint?: string }) {
   const animatedValue = useAnimatedCounter(isLoading ? 0 : value, 800);
 
   return (
@@ -241,6 +308,7 @@ function StatCard({ icon, label, value, isLoading, suffix }: { icon: React.React
               {animatedValue}{suffix ? <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-1">{suffix}</span> : null}
             </p>
           )}
+          {hint ? <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 leading-snug">{hint}</p> : null}
         </div>
       </div>
     </motion.div>
