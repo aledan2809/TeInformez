@@ -7,6 +7,7 @@ interface ArticleCardProps {
   id: number;
   title: string;
   summary?: string;
+  simple_explanation?: string | null;
   image?: string | null;
   imageSource?: string | null;
   source: string;
@@ -18,7 +19,7 @@ interface ArticleCardProps {
 }
 
 export default function ArticleCard({
-  id, title, summary, image, imageSource, source, categories, published_at,
+  id, title, summary, simple_explanation, image, imageSource, source, categories, published_at,
   showImage = true, compact = false, is_premium = false,
 }: ArticleCardProps) {
   const primaryCat = categories[0] || '';
@@ -77,12 +78,17 @@ export default function ArticleCard({
           {title}
         </h3>
 
-        {/* Summary — 2 lines max */}
-        {summary && (
+        {/* „Pe scurt" (plain-language explainer) leads when available; summary is the fallback — 2 lines max */}
+        {simple_explanation ? (
+          <p className="mt-1.5 text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+            <span className="font-semibold text-emerald-700 dark:text-emerald-400">📌 Pe scurt:</span>{' '}
+            {simple_explanation}
+          </p>
+        ) : summary ? (
           <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
             {summary}
           </p>
-        )}
+        ) : null}
 
         {/* Timestamp bottom */}
         <div className="mt-3 text-xs text-gray-500 dark:text-gray-400" suppressHydrationWarning>

@@ -6,6 +6,7 @@ interface Article {
   id: number;
   title: string;
   summary: string;
+  simple_explanation?: string | null;
   image: string | null;
   image_source: string | null;
   source: string;
@@ -49,6 +50,7 @@ export default function CategorySection({ slug, label, emoji, articles }: Catego
             id={lead.id}
             title={lead.title}
             summary={lead.summary}
+            simple_explanation={lead.simple_explanation}
             image={lead.image}
             imageSource={lead.image_source}
             source={lead.source}
