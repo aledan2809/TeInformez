@@ -17,7 +17,12 @@ const MENU_ITEMS = [
   { href: '/dashboard/settings', icon: Settings, label: 'Setări' },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  /** Called after a nav link is clicked — lets the mobile drawer close itself. */
+  onNavigate?: () => void;
+}
+
+export default function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
 
@@ -63,6 +68,7 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 'flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors',
                 isActive
