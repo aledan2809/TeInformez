@@ -22,4 +22,35 @@
 - Shipped client chunk `news/[id]/page-*.js`: opt-in string "Explică pe scurt" = **0 occurrences** (button truly gone); expander "Citește articolul complet" **present**; dashboard "Ce urmează pentru tine" **present** in `dashboard/page-*.js`.
 - Pre-existing non-regression: `sharp` image-optimization warning in standalone mode (predates this deploy; page still 200).
 
-**Follow-up (flagged, not built — surgical scope)**: after WI-2, `simpleModeStore.ts` `eli12Discovered` / `markEli12Discovered` + persisted `eli12` state are orphaned dead code (0 usages outside the store), plus a stale comment referencing the removed button. Tiny cleanup commit when convenient (kept out of the WI-2 commit to stay surgical).
+**Follow-up (flagged, not built — surgical scope)**: after WI-2, `simpleModeStore.ts` `eli12Discovered` / `markEli12Discovered` + persisted `eli12` state are orphaned dead code (0 usages outside the store), plus a stale comment referencing the removed button. Tiny cleanup commit when convenient (kept out of the WI-2 commit to stay surgical). → **DONE same day, see batch below (`65dd221`).**
+
+---
+
+## 2026-07-07 (PM) — Mesh batch: ELI12 cleanup + WI-4 homepage + mobile nav + WI-5 Cabina de comandă (all LIVE)
+
+**Trigger**: user approved "toate, în regim de instrucțiuni mesh" — the remaining UX-proposal items, sequential dev → /review → fix per item.
+
+**Changes (commits on `master`, all pushed)**:
+
+1. **`65dd221` chore(store)** — removed orphaned ELI12 opt-in state (`eli12Discovered`/`markEli12Discovered` + stale comment) from `simpleModeStore.ts`. Stale localStorage keys ignored by zustand persist on rehydrate. Verified absent from deployed chunks.
+
+2. **`1d61897` feat(home) WI-4** — top banner reworked into a 3-step quick-start band („⚡ Pornește în 20 de secunde": cont → categorii → digest), single CTA path to `/register` („Începe acum →"); lead article cards render `simple_explanation` with a „📌 Pe scurt:" marker (line-clamp-2, summary fallback); homepage + metadata copy cleaned of 'AI' wording (active rule). /review: approve (empty-string fallback, single ArticleCard consumer, ol/li semantics noted).
+
+3. **`72bc48e` fix(api)** — found during live verification: `/news/homepage` SELECT omitted the `simple_explanation` column → `format_news_item` emitted null on every card despite **100% ELI12 coverage** on last-14-days published items (verified in DB: 70/70). One column added to the SELECT. This was the handoff's anticipated „verifică dacă API întoarce simple_explanation" case — it half-did (key present, value never selected).
+
+4. **`d3bf346` feat(dashboard)** — responsive mobile nav: sidebar (always-visible `w-64`, crushed phone content) now `hidden md:block`; mobile gets sticky top bar (logo + hamburger) + slide-over drawer reusing the same Sidebar (new `onNavigate` prop). Drawer closes on backdrop / X / nav click / route change. /review fix applied pre-commit: floating X with `calc(theme(...))` was fragile on <301px screens → moved inside the drawer container.
+
+5. **`ba98ffd` feat(admin) WI-5** — „🎛️ Cabina de comandă" replaces the stub TeInformez dashboard: 4 health tiles (Publicare cu status-ul celor 4 cron-uri critice / Livrări 24h / Coadă / Venit) + severity-ordered „📌 De făcut acum" list. Detects the June-outage failure class: cron hook **missing OR overdue >30min** (wp-cron not ticking) → CRIT. `php -l` clean; all SQL prepared or constant; `esc_html`/`wp_kses_post` on output; `manage_options` + ABSPATH guards.
+
+**Deploys**:
+- Frontend: canonical VPS-build recipe (git pull `81eebc2→ba98ffd` then `→72bc48e`, build, static/public copy, rsync, pm2 restart). PM2 stable, 0 unstable; :3002 → 200.
+- Backend: `/var/www/deploy.sh teinformez` ×2 (plugin symlink + PHP-FPM restart), HEAD `72bc48e`.
+
+**Verification (live, real output)**:
+- tsc --noEmit EXIT=0 (whole frontend, items 1+2+4).
+- Homepage SSR (post-ISR revalidate): „Pornește în 20 de secunde" ✅, „Începe acum" ✅, **„Pe scurt:" ×5** (one per section lead) ✅, 'de AI' = 0 ✅.
+- Homepage API: 5/5 section leads + hero now carry `simple_explanation` (was 0/5 + null before `72bc48e`; transient `teinformez_homepage_data` deleted post-deploy).
+- Mobile nav: „Deschide meniul" marker present in deployed `app/dashboard/layout-*.js`; `eli12Discovered` absent from all chunks. (Full click-through is auth-gated — chunk + tsc evidence; visual walk deferred.)
+- WI-5: rendered server-side via `wp eval` with a real admin (user 3): LEN=4754, title OK, 3 tile badges, „Totul funcționează" all-green — consistent with the healthy post-4180a90 state.
+
+**Pre-existing quirk (flagged, NOT touched)**: `deploy.sh teinformez`'s own health check prints „WordPress: HTTP 404 / REST API: HTTP 404" — it probes `http://localhost/wp-json/` with a Host header, which no longer routes (public `https://teinformez.eu/wp-json/...` is 200). The check is broken, not the site. Candidate one-line fix in `deploy.sh` (use the public URL), needs its own confirm since deploy.sh serves multiple projects.
