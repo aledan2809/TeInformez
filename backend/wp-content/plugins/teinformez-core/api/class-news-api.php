@@ -624,7 +624,7 @@ class News_API extends REST_API {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name built from $wpdb->prefix (trusted), no user input; prepare() used for best practice.
         $items = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id, processed_title, original_title, processed_summary,
+                "SELECT id, processed_title, original_title, processed_summary, simple_explanation,
                         ai_generated_image_url, youtube_embed, source_name, categories, tags,
                         published_at, original_url, target_language, view_count
                  FROM %i
