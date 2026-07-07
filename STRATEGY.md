@@ -69,7 +69,7 @@ De ce ELI12 (vs bias-meter / audio digest):
 
 ### Plan pe niveluri
 - **Nivel 0 — prospețime** ✅ DONE 2026-05-31 (batch 30 + groq-first; news fresh, nu de 3 zile). Prerequisit absolut.
-- **Nivel 1 — ELI12 (motivul de a exista)**: câmpuri AI noi `simple_explanation` + `why_it_matters` per articol; UI **opt-in** — buton „💡 Explică pe scurt" pulsatoriu (cu tooltip) pe fiecare știre + toggle „Mod simplu" pe tot site-ul. NU afișat din oficiu (evită percepția condescendentă „te luăm de prost"); cititorul alege.
+- **Nivel 1 — ELI12 (motivul de a exista)**: câmpuri AI noi `simple_explanation` + `why_it_matters` per articol; UI **show-first neutral** (pivot 2026-07-07, aprobat user) — cardul „Pe scurt" + „De ce contează" e afișat **din oficiu** pe pagina de știre, iar articolul integral trece în spatele unui expander („Citește articolul complet"). Cadrarea e neutră (nu „îți explicăm pentru că nu înțelegi", ci „esențialul întâi, detaliul la un click"), plus toggle „Mod simplu" pe tot site-ul. *Istoric: până la 2026-07-07 era opt-in (buton „💡 Explică pe scurt" + argumentul anti-condescendență). **Off-ramp**: dacă show-first nu prinde / percepția devine condescendentă, revert WI-2 (`NewsDetailClient.tsx`) readuce butonul opt-in — implementarea e păstrată în istoricul git.*
 - **Nivel 2 — mecanica virală (construită ÎN JURUL ELI12)**:
   - **Share cards** (via `next/og`, nu AICR — zero deps, $0): o imagine per știre cu explicația ELI12 = artefactul distribuibil (story FB/IG/WhatsApp), NU link-ul.
   - ~~**„Explică-mi asta" interactiv** (tool public unde lipești orice)~~ — **ABANDONAT 2026-06-06**: fără moat vs Google/ChatGPT. Înlocuit cu butonul „Explică pe scurt" direct pe fiecare știre (Nivel 1) — noi facem efortul pentru cititor, doar pe știri.
