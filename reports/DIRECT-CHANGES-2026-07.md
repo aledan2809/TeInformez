@@ -54,3 +54,29 @@
 - WI-5: rendered server-side via `wp eval` with a real admin (user 3): LEN=4754, title OK, 3 tile badges, „Totul funcționează" all-green — consistent with the healthy post-4180a90 state.
 
 **Pre-existing quirk (flagged, NOT touched)**: `deploy.sh teinformez`'s own health check prints „WordPress: HTTP 404 / REST API: HTTP 404" — it probes `http://localhost/wp-json/` with a Host header, which no longer routes (public `https://teinformez.eu/wp-json/...` is 200). The check is broken, not the site. Candidate one-line fix in `deploy.sh` (use the public URL), needs its own confirm since deploy.sh serves multiple projects.
+
+---
+
+## 2026-07-07 (seara) — Mesh batch 2: deploy.sh health-check + mobile-nav verify + npm audit + GDPR gate + SPOF + TODO sync
+
+**Trigger**: user "fa-le acum pe toate in regim de instructiuni mesh" — remaining flags + introspection items verificate ca ne-stale.
+
+**1. deploy.sh teinformez health-check (VPS shared script, 2 linii)**: proba `http://localhost/wp-json/` cu Host header nu mai rutează (vhost servește wp-json doar pe 443) → 404 fals permanent. Patched la URL-ul public https (backup `deploy.sh.bak-2026-07-07-healthcheck`); run real → **200/200**. Template canonic re-sincronizat în Master (`645fdf4`).
+
+**2. Mobile nav — verificare vizuală REALĂ (TWG-style pe `d3bf346`)**: Playwright iPhone 13 pe live, login reader e2e: **7/7 PASS** (hamburger vizibil, sidebar ascuns, drawer se deschide, link navighează + drawer se închide, X închide). Primele 2 run-uri au picat pe bug de locator în SCRIPTUL de test (matcha nav-ul desktop ascuns din DOM) — nu în UI; screenshots confirmă și WI-3 live pe mobil.
+
+**3. npm audit fix (`65ebfc7`)**: **25 vulns → 5** (rămase: next/postcss chain, cer `next@16` breaking — deliberat NEforțat). Incident pe drum: 2 procese `npm audit fix` concurente au corupt node_modules local (erori tsc fantomă `@sentry/nextjs`/`react-hook-form`) → kill ambele + install+fix+tsc serializat → TSC_EXIT=0.
+
+**4. Două bug-uri REALE de lockfile găsite+fixate la deploy** (npm ci pe VPS pica):
+   - `5a3bda0` — integrity stale pt `vendor/stripe-module.tgz` (npm 11 local a înregistrat hash din cache vechi; toate 3 copiile — local/HEAD/VPS — identice) → EINTEGRITY. Patched la sha512 real.
+   - `2a333fa` — 3 intrări stale dintr-un stripe-module.tgz VECHI (placeholder gol `@projects/AIRouter {}` = null-target care crapă reify-ul npm 10 „Cannot destructure property 'package'", link nested spre el, dep `ai-router: file:../AIRouter` deși tgz-ul curent îl are doar ca peer `*`). Rezoluția funcțională păstrată: link `node_modules/ai-router → ../../AIRouter` (sibling, identic pe VPS). Clasa L93, varianta lockfile-level. Post-fix: **npm ci EXIT=0 + BUILD_EXIT=0** pe VPS (gated pe exit code, fără pipe-mask).
+
+**5. GDPR consent-gate LIVE (`5026f15`)**: GA4 se încarcă DOAR după accept explicit; banner NOU pt vizitatori anonimi (gap real: TIConsentGate arăta bannere doar userilor logați); accept-ul COOKIES din fluxul Legal deschide gate-ul; consimțământul server-side existent se oglindește local (nu re-întreabă). + h1 sr-only pe homepage. **Verificare live Playwright context proaspăt: 7/7 PASS** — 0 request-uri GA pre-consent (înainte gtag era preloaded în head pt toți), Accept→GA (persistă la reload), **Refuz→zero GA vreodată**. Rămas: CSP Report-Only (sesiune dedicată).
+
+**6. ai-router-service SPOF**: `git init` + commit `529faac` pe VPS (48 fișiere, `.env*`+`*.bak-*` gitignored, verificat 0 secrete tracked). **Rămas (acțiune user)**: crearea repo-ului GitHub privat a fost blocată de policy la creare autonomă → user creează `aledan2809/ai-router-service` (privat), apoi push-ul de pe VPS merge direct (VPS2 e authed).
+
+**7. TODO_PERSISTENT (`3f8a475`)**: 3 blocuri introspection duplicate consolidate în 1, markeri sincronizați (deploy.php CRITIC era rezolvat din 2026-06-24 dar figura `[ ]`).
+
+**Deploy final**: pull `ba98ffd→2a333fa`, npm ci curat, build, rsync, PM2 stabil 0 unstable, :3002→200, public 200, „Pe scurt:"×5 pe SSR (nota: `grep -c` numără linii nu apariții — fals-alarmă intermediară), gtag 0 refs în HTML-ul pre-consent.
+
+**Decizie de produs rămasă (întrebare pt Alex)**: „Juridic invizibil" — secțiunea juridică din plugin e construită complet dar fără rută publică în Next.js. O expunem public?
