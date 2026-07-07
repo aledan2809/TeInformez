@@ -5,6 +5,7 @@ import GoogleAnalytics from '@/components/GoogleAnalytics';
 import { WebVitals } from '@/components/WebVitals';
 import PushPrompt from '@/components/PushPrompt';
 import { TIConsentGate } from '@/components/consent/TIConsentGate';
+import { AnonCookieBanner } from '@/components/consent/AnonCookieBanner';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -73,6 +74,7 @@ export default function RootLayout({
         <ThemeProvider>{children}</ThemeProvider>
         <PushPrompt />
         <TIConsentGate />
+        <AnonCookieBanner />
       </body>
     </html>
   );

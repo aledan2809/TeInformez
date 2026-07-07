@@ -72,6 +72,9 @@ export default function HomeClient({ hero: ssrHero, sections: ssrSections }: Hom
       <CategoryNavBar activeSections={activeSlugs} />
 
       <main className="container-custom py-6">
+        {/* Page h1 (SEO/a11y) — visually hidden; article titles stay h3, section labels h2 */}
+        <h1 className="sr-only">TeInformez — știri din România și din lume, explicate pe scurt</h1>
+
         {/* Quick-start band (WI-4) — proactive guidance instead of a static value prop; hidden for logged-in users.
             Single signup path: every CTA on this page leads to /register. */}
         {!isAuthenticated && (

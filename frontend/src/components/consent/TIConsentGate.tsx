@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { TIConsentBanner } from './TIConsentBanner';
+import { getCookieConsent, setCookieConsent } from '@/lib/cookieConsent';
 
 interface ConsentItem {
   type: string;
@@ -69,6 +70,19 @@ export function TIConsentGate() {
           setChecked(true);
           return;
         }
+      }
+
+      // If Legal already holds an accepted COOKIES consent for this user,
+      // mirror it into the local cookie-consent flag so the GA gate opens
+      // without re-asking (server record is authoritative).
+      const cookiesItem = items.find((i) => i.type === 'COOKIES');
+      if (
+        cookiesItem &&
+        (cookiesItem.accepted ||
+          localStorage.getItem(`consent_accepted_ti_${cookiesItem.latestVersionId}`) === 'true') &&
+        getCookieConsent() !== 'accepted'
+      ) {
+        setCookieConsent('accepted');
       }
 
       const needsConsent = items.filter((item) => {

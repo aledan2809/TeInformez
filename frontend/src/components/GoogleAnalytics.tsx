@@ -2,7 +2,8 @@
 
 import Script from 'next/script';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, Suspense } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
+import { getCookieConsent, COOKIE_CONSENT_EVENT } from '@/lib/cookieConsent';
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
@@ -59,7 +60,21 @@ function UserTypeTagger() {
 }
 
 export default function GoogleAnalytics() {
+  // Consent gate (GDPR/ANSPDCP): GA scripts mount ONLY after an explicit
+  // 'accepted' cookie choice. No choice yet == declined. The consent surfaces
+  // (TIConsentGate/TIConsentBanner for logged-in, AnonCookieBanner for
+  // visitors) write the choice + dispatch COOKIE_CONSENT_EVENT.
+  const [consented, setConsented] = useState(false);
+
+  useEffect(() => {
+    setConsented(getCookieConsent() === 'accepted');
+    const onChange = () => setConsented(getCookieConsent() === 'accepted');
+    window.addEventListener(COOKIE_CONSENT_EVENT, onChange);
+    return () => window.removeEventListener(COOKIE_CONSENT_EVENT, onChange);
+  }, []);
+
   if (!GA_MEASUREMENT_ID || process.env.NODE_ENV !== 'production') return null;
+  if (!consented) return null;
 
   return (
     <>

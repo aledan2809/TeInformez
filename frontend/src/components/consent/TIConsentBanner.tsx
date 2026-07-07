@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { TIConsentModal } from './TIConsentModal';
+import { setCookieConsent } from '@/lib/cookieConsent';
 
 interface TIConsentBannerProps {
   docType: string;
@@ -40,6 +41,10 @@ export function TIConsentBanner({ docType, versionId, userId, onAgree, onDismiss
       }
     }
     localStorage.setItem(`consent_accepted_ti_${versionId}`, 'true');
+    if (docType === 'COOKIES') {
+      // Open the GA consent gate — analytics may load from this point on.
+      setCookieConsent('accepted');
+    }
     onAgree();
   }
 
