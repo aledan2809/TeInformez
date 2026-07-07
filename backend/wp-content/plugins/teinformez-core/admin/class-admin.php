@@ -133,12 +133,10 @@ class Admin {
     }
 
     /**
-     * Render dashboard page
+     * Render dashboard page — Cabina de comandă (WI-5): health tiles + "De făcut acum".
      */
     public function render_dashboard() {
-        echo '<div class="wrap"><h1>' . __('TeInformez Dashboard', 'teinformez') . '</h1>';
-        echo '<p>' . __('Welcome to TeInformez! Configure your settings and manage news queue.', 'teinformez') . '</p>';
-        echo '</div>';
+        require_once TEINFORMEZ_PLUGIN_DIR . 'admin/views/command-center.php';
     }
 
     /**
