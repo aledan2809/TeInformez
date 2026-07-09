@@ -80,3 +80,18 @@
 **Deploy final**: pull `ba98ffd→2a333fa`, npm ci curat, build, rsync, PM2 stabil 0 unstable, :3002→200, public 200, „Pe scurt:"×5 pe SSR (nota: `grep -c` numără linii nu apariții — fals-alarmă intermediară), gtag 0 refs în HTML-ul pre-consent.
 
 **Decizie de produs rămasă (întrebare pt Alex)**: „Juridic invizibil" — secțiunea juridică din plugin e construită complet dar fără rută publică în Next.js. O expunem public?
+
+---
+
+## 2026-07-07 (noapte) — URGENT: contopire Rezumat→Pe scurt + articol complet vizibil (feedback user)
+
+**Trigger**: user, mid-audit — „știrile conțin Rezumat, Pe scurt și De ce contează, dar mai puțin știrea în sine. Prea multe ajutoare. Comprimă Rezumat cu Pe scurt și adaugă știrea în format complet." Confirmat vizual în walk-ul PA: pagina de știre ducea cu 3 carduri de ajutor (Rezumat mov + Pe scurt verde + De ce contează), iar articolul real era ascuns în spatele expander-ului „Citește articolul complet".
+
+**Change (`1788767`, `NewsDetailClient.tsx` + `SharedHeader.tsx`, −116/+21)**:
+- **Cardul „Rezumat" (mov) eliminat**; „Pe scurt" devine singurul lead scurt = `simple_explanation` cu fallback pe `summary` (cap-ul artificial de 3 fraze scos — `simple_explanation` e deja ~3 fraze). „De ce contează" (`why_it_matters`) păstrat ca bloc distinct de impact.
+- **Articolul complet afișat din oficiu** sub un divider „ARTICOLUL COMPLET" — expander-ul + state-ul `contentExpanded` eliminate. Paywall-ul premium neatins; `DOMPurify.sanitize(content)` neatins.
+- **Toggle „Mod simplu" eliminat** (header + pagina de știre) — după show-first + articol-mereu-vizibil nu mai gata nimic → control mort (mai rău decât să nu existe). `SimpleModeToggle.tsx` + `simpleModeStore.ts` șterse (0 referințe rămase).
+
+**Verificare (live, screenshot real pe hero 44573, content 1375c)**: Rezumat ABSENT · „Pe scurt" prezent (1 bloc) · „De ce contează" prezent · **„ARTICOLUL COMPLET" cu textul integral vizibil** · expander ABSENT · „Mod simplu" ABSENT. tsc EXIT=0, build EXIT=0, PM2 stabil 0 unstable, :3002+public 200. (Assert-ul automat „Articolul complet" a dat fals-negativ — clasa CSS `uppercase` face `innerText` să întoarcă majuscule; screenshot-ul = dovada.)
+
+**STRATEGY.md Nivel 1 actualizat**: descrie noua ordine (Pe scurt → De ce contează → Articolul complet vizibil), eliminarea expander-ului + a toggle-ului „Mod simplu"; off-ramp = git history.
