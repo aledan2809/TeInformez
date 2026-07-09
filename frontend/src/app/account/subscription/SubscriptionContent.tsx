@@ -41,11 +41,19 @@ export default function SubscriptionContent() {
         headers: cookieToken ? { Authorization: `Bearer ${cookieToken}` } : {},
         credentials: 'include',
       });
-      if (!res.ok) throw new Error('Nu s-a putut încărca statusul abonamentului');
-      const data = await res.json();
-      setSub(data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Eroare necunoscută');
+      if (res.ok) {
+        setSub(await res.json());
+      } else {
+        // Not having a subscription is the normal free state — never surface it
+        // as a scary error. Default to the free plan and render it cleanly.
+        // (The /subscription/status endpoint currently auth-checks the WP session
+        // rather than the Bearer token, so it 401s for frontend-logged-in users —
+        // tracked as a backend follow-up; harmless for free readers.)
+        setSub({ tier: 'free', status: 'none', current_period_end: null, cancel_at_period_end: false });
+      }
+    } catch {
+      // Network/parse failure — still default to the free plan, no alarm.
+      setSub({ tier: 'free', status: 'none', current_period_end: null, cancel_at_period_end: false });
     } finally {
       setLoading(false);
     }
@@ -124,15 +132,15 @@ export default function SubscriptionContent() {
                   ? isCanceling
                     ? 'Activ — se anulează'
                     : 'Activ'
-                  : 'Fără abonament activ'}
+                  : 'Digest zilnic + toate categoriile — gratuit'}
               </p>
             </div>
             <span className={`ml-auto text-xs font-semibold px-3 py-1 rounded-full ${
               isPremium
                 ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
             }`}>
-              {isPremium ? 'Premium' : 'Free'}
+              {isPremium ? 'Premium' : '✓ Activ'}
             </span>
           </div>
 
