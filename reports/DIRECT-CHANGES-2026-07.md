@@ -115,3 +115,21 @@
 **Conformanță strategie↔realitate**: Premium „out-of-scope" în STRATEGY dar LIVE (paywall+Stripe+upgrade) → cod înaintea strategiei; hosting „Vercel" în STRATEGY dar pe VPS2; Telegram — flux greșit livrat; Juridic „COMPLETE" dar invizibil; Referral out→in nesincronizat.
 
 **Livrabil**: artifact `claude.ai/code/artifact/0d05589e-e6a3-417b-8172-a390f11b8704` (audit + machete acum-vs-propunere pt Telegram-reader + account/subscription + tabel conformanță + ordine recomandată). NU s-a atins codul findings-urilor deschise — așteaptă decizia user pe ordine/machete.
+
+---
+
+## 2026-07-07 (noapte 3) — Audit findings items 1-3 livrate + verificate (item 4 amânat)
+
+**Trigger**: user „fa 1-3 si lasam 4 pentru alta data (sa ramana in TODO)".
+
+**Item 1 — Telegram admin-tool ascuns din contul reader** (`28b68c1`): sidebar-ul reader expunea „Telegram Workspace" (consolă bulk-messaging admin, backend `manage_options` → 403 pt readeri). Acum: nav-ul apare doar la `role=administrator`; pagina redirectează non-adminii la `/dashboard` + sare fetch-ul admin-gated (fără 403 în consolă). **Verificat live**: sidebar reader fără Telegram ✅, deep-link → redirect ✅, 0 erori 403 ✅. Fluxul reader real „primește știri pe Telegram" (backend + bot) → TODO follow-on.
+
+**Item 2 — „Abonamentul meu" fără eroare falsă** (`cba889e`, frontend): orice răspuns non-OK de la `/subscription/status` arunca eroare → banner roșu + card „Plan Gratuit" simultan. Acum: eșec/gol → default curat „Plan Gratuit · ✓ Activ" (banner roșu rezervat doar erorilor reale de portal facturare). **Verificat live**: banner roșu dispărut ✅, „Plan Gratuit + Activ" ✅ (screenshot = machetă). **Root cause 401** (endpoint auth pe sesiune-WP nu pe Bearer) → TODO backend follow-on.
+
+**Item 3 — „AI" scos din copy** (`6a05d7e`): „Digest AI de azi"→„Rezumatul zilei", newsletter/OG/meta news+newsletter curățate. Tehnic „AI" (topic știre, subcategoria Tehnologie, comentarii cod) neatins. **Verificat live**: „Digest AI" dispărut ✅, „Rezumatul zilei" prezent ✅.
+
+**Item 4 (Juridic) — AMÂNAT** la cererea user, rămâne în TODO (decizie produs: expui public sau marchezi amânat).
+
+**Follow-on-uri backend puse în TODO** (necesită sesiune dedicată): (a) reader Telegram connect-flow real (@aledan/telegram + bot); (b) `/subscription/status` auth Bearer-aware; (c) sincronizare STRATEGY.md (Premium live, hosting VPS, referral).
+
+Deploy: build+rsync+restart, PM2 stabil 0 unstable, :3002 200. tsc EXIT=0.
