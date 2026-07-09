@@ -95,3 +95,23 @@
 **Verificare (live, screenshot real pe hero 44573, content 1375c)**: Rezumat ABSENT · „Pe scurt" prezent (1 bloc) · „De ce contează" prezent · **„ARTICOLUL COMPLET" cu textul integral vizibil** · expander ABSENT · „Mod simplu" ABSENT. tsc EXIT=0, build EXIT=0, PM2 stabil 0 unstable, :3002+public 200. (Assert-ul automat „Articolul complet" a dat fals-negativ — clasa CSS `uppercase` face `innerText` să întoarcă majuscule; screenshot-ul = dovada.)
 
 **STRATEGY.md Nivel 1 actualizat**: descrie noua ordine (Pe scurt → De ce contează → Articolul complet vizibil), eliminarea expander-ului + a toggle-ului „Mod simplu"; off-ramp = git history.
+
+---
+
+## 2026-07-07 (noapte 2) — True E2E audit (3 roluri) + P0 auth-bounce fix + propunere cu machete
+
+**Trigger**: user — audit complet toate rolurile/meniurile cu True E2E + toate tools, conformanță strategie↔realitate, apoi propunere cu machete „acum vs propunere", din unghiul „vreau să vând aplicația".
+
+**Walk (Playwright, live, 3 conturi × toate meniurile)**: 36 pagini, **0 nav-fails, 0 linkuri interne rupte** (28 testate). Anon: home/news/login/register/forgot/subscribe/newsletter/gdpr/privacy/terms/news-detail. Reader: dashboard/saved/subscriptions/deliveries/telegram/stats/settings/account-subscription/onboarding. Admin: cabina(WI-5) + 9 pagini plugin — toate 200 cu h1 corect.
+
+**P0 găsit + reparat + verificat (`3f198d5`)**: `dashboard/layout.tsx` + `onboarding/page.tsx` — gate-ul de auth redirecta pe render-ul inițial (isAuthenticated=false pre-rehydration) → **orice reader care dădea refresh / bookmark / tab-nou / deep-link pe /dashboard/* (sau /onboarding) era aruncat la /login**, deși localStorage + cookie-ul `teinformez_token` erau prezente. Dovedit live (reload + deep-link tab-nou → ambele bounce). Fix: gate pe `useAuthStore.persist.onFinishHydration/hasHydrated` (spinner până la hidratare, redirect doar după ce hidratarea confirmă logout real). **Verificat post-deploy: reload /dashboard → RĂMÂNE, deep-link /dashboard/settings tab-nou → RĂMÂNE.** tsc 0, build 0, PM2 stabil.
+
+**Findings deschise (în propunere, NEschimbate — user a cerut propunere înainte)**:
+1. **`/dashboard/telegram` = consolă de bot admin expusă la cititor** cu „Administrator access required" (403). Ar trebui flux reader „conectează Telegram ca să primești știri" (reuse @aledan/telegram). Impact mare.
+2. **`/account/subscription`** arată banner roșu „Nu s-a putut încărca" + card „Plan Gratuit" simultan (401); lipsa abonamentului = stare normală, nu eroare.
+3. **„AI" în copy vizibil**: „Digest AI de azi" (dashboard), „sintetizate de AI" (newsletter), „rezumate de AI" (OG card), meta news/newsletter.
+4. **Juridic invizibil**: modul complet în backend, 0 rută publică în frontend — decizie produs.
+
+**Conformanță strategie↔realitate**: Premium „out-of-scope" în STRATEGY dar LIVE (paywall+Stripe+upgrade) → cod înaintea strategiei; hosting „Vercel" în STRATEGY dar pe VPS2; Telegram — flux greșit livrat; Juridic „COMPLETE" dar invizibil; Referral out→in nesincronizat.
+
+**Livrabil**: artifact `claude.ai/code/artifact/0d05589e-e6a3-417b-8172-a390f11b8704` (audit + machete acum-vs-propunere pt Telegram-reader + account/subscription + tabel conformanță + ordine recomandată). NU s-a atins codul findings-urilor deschise — așteaptă decizia user pe ordine/machete.
