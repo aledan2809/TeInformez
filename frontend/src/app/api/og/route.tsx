@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
           }}
         >
           <div style={{ fontSize: '18px', color: '#94a3b8' }}>
-            {source ? `Sursa: ${source}` : 'Stiri rezumate de AI'}
+            {source ? `Sursa: ${source}` : 'Stiri pe scurt, pe intelesul tuturor'}
           </div>
           <div style={{ marginLeft: 'auto', fontSize: '18px', color: '#475569' }}>
             teinformez.eu

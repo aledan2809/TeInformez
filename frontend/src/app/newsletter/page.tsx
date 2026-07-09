@@ -73,7 +73,7 @@ export default function NewsletterPage() {
             Newsletter gratuit
           </h1>
           <p className="text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
-            Primești zilnic un rezumat cu știrile importante din România și lume, sintetizate de AI.
+            Primești zilnic un rezumat cu știrile importante din România și lume, pe scurt și pe înțelesul tuturor.
           </p>
         </div>
 

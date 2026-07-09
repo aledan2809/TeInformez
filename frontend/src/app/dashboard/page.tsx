@@ -203,7 +203,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold flex items-center">
               <Sparkles className="h-5 w-5 mr-2 text-purple-600" />
-              Digest AI de azi
+              Rezumatul zilei
             </h2>
             <span className="text-xs text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded-full font-medium">
               Auto-generat

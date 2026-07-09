@@ -4,7 +4,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://teinformez.eu';
 
 export const metadata: Metadata = {
   title: 'Abonare Newsletter',
-  description: 'Abonează-te la newsletter-ul TeInformez și primește zilnic știrile care contează, selectate de AI din cele mai importante surse.',
+  description: 'Abonează-te la newsletter-ul TeInformez și primește zilnic știrile care contează, selectate din cele mai importante surse.',
   alternates: {
     canonical: `${SITE_URL}/newsletter`,
   },

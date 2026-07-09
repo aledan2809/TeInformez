@@ -6,10 +6,10 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://teinformez.eu';
 
 export const metadata: Metadata = {
   title: 'Știri',
-  description: 'Ultimele știri personalizate de AI din România și din lume. Tehnologie, auto, finanțe, sport, politică și multe altele.',
+  description: 'Ultimele știri personalizate din România și din lume. Tehnologie, auto, finanțe, sport, politică și multe altele.',
   openGraph: {
     title: 'Știri - TeInformez.eu',
-    description: 'Ultimele știri personalizate de AI din România și din lume.',
+    description: 'Ultimele știri personalizate din România și din lume.',
     type: 'website',
     url: `${SITE_URL}/news`,
     siteName: 'TeInformez.eu',
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Știri - TeInformez.eu',
-    description: 'Ultimele știri personalizate de AI din România și din lume.',
+    description: 'Ultimele știri personalizate din România și din lume.',
   },
   alternates: {
     canonical: `${SITE_URL}/news`,
