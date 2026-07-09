@@ -12,19 +12,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const { isAuthenticated, isLoading } = useAuthStore();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Gate the auth check on zustand-persist rehydration. On a hard load / refresh
+  // / deep-link the store starts at isAuthenticated=false and only rehydrates
+  // from localStorage a tick later — redirecting before that bounces a
+  // logged-in user to /login on every refresh. Wait for hydration first.
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    const markHydrated = () => setHydrated(true);
+    const unsub = useAuthStore.persist.onFinishHydration(markHydrated);
+    if (useAuthStore.persist.hasHydrated()) markHydrated();
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (hydrated && !isLoading && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [hydrated, isAuthenticated, isLoading, router]);
 
   // Close the mobile drawer on any route change (covers back/forward too).
   useEffect(() => {
     setMobileNavOpen(false);
   }, [pathname]);
 
-  if (isLoading) {
+  if (!hydrated || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary-600" />

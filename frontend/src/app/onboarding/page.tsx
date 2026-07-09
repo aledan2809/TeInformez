@@ -40,6 +40,9 @@ export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  // Wait for zustand-persist rehydration before the auth redirect, or a
+  // logged-in user hard-loading /onboarding is bounced to /login.
+  const [hydrated, setHydrated] = useState(false);
 
   // Language state (NEW - Step 1)
   const [selectedLanguage, setSelectedLanguage] = useState('ro');
@@ -77,12 +80,19 @@ export default function OnboardingPage() {
     fetchCategories();
   }, []);
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated — but only after persist has rehydrated.
   useEffect(() => {
-    if (!isAuthenticated) {
+    const markHydrated = () => setHydrated(true);
+    const unsub = useAuthStore.persist.onFinishHydration(markHydrated);
+    if (useAuthStore.persist.hasHydrated()) markHydrated();
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (hydrated && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [hydrated, isAuthenticated, router]);
 
   const handleToggleCategory = (slug: string) => {
     setSelectedCategories((prev) =>
@@ -186,7 +196,7 @@ export default function OnboardingPage() {
     }
   };
 
-  if (!isAuthenticated) {
+  if (!hydrated || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
