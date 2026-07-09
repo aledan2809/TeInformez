@@ -7,18 +7,16 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, Calendar, ExternalLink, Tag, Loader2, Share2,
-  Bookmark, BookmarkCheck, Copy, Check, Clock, Sparkles,
-  PlayCircle, Lightbulb, Target, BookOpen, ChevronDown, ImageDown,
+  Bookmark, BookmarkCheck, Copy, Check, Clock,
+  PlayCircle, Lightbulb, Target, BookOpen, ImageDown,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { createTimeSpentTracker, trackArticleClick, trackPageView } from '@/lib/visitorAnalytics';
 import { gtagEvent } from '@/lib/gtag';
 import { useBookmarkStore } from '@/store/bookmarkStore';
 import { useReadingStore } from '@/store/readingStore';
-import { useSimpleModeStore } from '@/store/simpleModeStore';
 import ReadingProgressBar from '@/components/ReadingProgressBar';
 import ScrollToTop from '@/components/ScrollToTop';
-import { SimpleModeToggle } from '@/components/SimpleModeToggle';
 import AffiliateWidget from '@/components/AffiliateWidget';
 import type { ApiErrorShape, PublicNewsItem, AffiliateInfo } from '@/types';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -39,9 +37,7 @@ export default function NewsDetailClient() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [relatedArticles, setRelatedArticles] = useState<NewsItem[]>([]);
-  const [contentExpanded, setContentExpanded] = useState(false);
 
-  const { simpleMode } = useSimpleModeStore();
   const { isBookmarked, toggleBookmark } = useBookmarkStore();
   const { markAsRead } = useReadingStore();
   const { isPremium, loading: subscriptionLoading } = useSubscription();
@@ -66,7 +62,6 @@ export default function NewsDetailClient() {
   const fetchNews = async () => {
     setLoading(true);
     setError(null);
-    setContentExpanded(false);
 
     const newsId = parseInt(params.id as string);
     if (!Number.isFinite(newsId) || newsId <= 0) {
@@ -232,8 +227,6 @@ export default function NewsDetailClient() {
               Înapoi la știri
             </Link>
             <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
-              {/* Simple mode toggle */}
-              <SimpleModeToggle />
               {/* Bookmark button */}
               <motion.button
                 whileTap={{ scale: 0.9 }}
@@ -407,45 +400,24 @@ export default function NewsDetailClient() {
             </div>
           )}
 
-          {/* Summary */}
-          {news.summary && (
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
-              className="mb-8 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border-l-4 border-purple-600"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">Rezumat</span>
-              </div>
-              <p className="text-base font-medium text-gray-900 dark:text-gray-100 italic">
-                {news.summary}
-              </p>
-            </motion.div>
-          )}
-
-          {/* ELI12 shown first: the plain-language "Pe scurt" + "De ce contează" lead the article;
-              the full text sits behind the "Citește articolul complet" expander below. */}
-          {(news.simple_explanation || news.why_it_matters) && (
+          {/* One short lead: "Pe scurt" merges the old Rezumat + plain-language explainer
+              (falls back to the summary when no simple_explanation exists), then "De ce
+              contează". The full article is shown in full below — no longer behind an expander. */}
+          {(news.simple_explanation || news.summary || news.why_it_matters) && (
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4 }}
               className="mb-8 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border-l-4 border-emerald-500"
             >
-              {news.simple_explanation && (
+              {(news.simple_explanation || news.summary) && (
                 <>
                   <div className="flex items-center gap-2 mb-2">
                     <Lightbulb className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                     <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Pe scurt</span>
                   </div>
                   <p className="text-base text-gray-900 dark:text-gray-100 leading-relaxed mb-3">
-                    {(() => {
-                      const sentences = news.simple_explanation.match(/[^.!?]+[.!?]+/g);
-                      if (sentences && sentences.length > 3) return sentences.slice(0, 3).join('').trim();
-                      return news.simple_explanation;
-                    })()}
+                    {news.simple_explanation || news.summary}
                   </p>
                 </>
               )}
@@ -490,24 +462,23 @@ export default function NewsDetailClient() {
                 Abonează-te Premium →
               </Link>
             </motion.div>
-          ) : (news.simple_explanation || news.why_it_matters || simpleMode) && !contentExpanded ? (
-            <button
-              onClick={() => setContentExpanded(true)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <BookOpen className="h-4 w-4" />
-              Citește articolul complet
-              <ChevronDown className="h-4 w-4" />
-            </button>
-          ) : (
+          ) : news.content ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.5 }}
-              className="prose prose-lg dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(news.content) }}
-            />
-          )}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <BookOpen className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                <span className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Articolul complet</span>
+                <span className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+              </div>
+              <div
+                className="prose prose-lg dark:prose-invert max-w-none"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(news.content) }}
+              />
+            </motion.div>
+          ) : null}
 
           {/* Affiliate Widget */}
           {affiliate && <AffiliateWidget affiliate={affiliate} />}
