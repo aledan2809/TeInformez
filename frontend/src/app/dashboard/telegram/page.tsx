@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Bot, Download, Loader2, MessageSquare, RefreshCcw, Save, Send, Users } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
 import type {
   TelegramConfig,
   TelegramGroup,
@@ -19,6 +21,14 @@ const REPORT_DATE_FORMAT = new Intl.DateTimeFormat('ro-RO', {
 });
 
 export default function TelegramDashboardPage() {
+  const router = useRouter();
+  const role = useAuthStore((s) => s.user?.role);
+  // Admin-only ops tool. A reader who deep-links here should never see the
+  // bot console (or its 403) — send them back to their dashboard.
+  useEffect(() => {
+    if (role && role !== 'administrator') router.replace('/dashboard');
+  }, [role, router]);
+
   const [config, setConfig] = useState<TelegramConfig | null>(null);
   const [botTokenInput, setBotTokenInput] = useState('');
   const [groupsDraft, setGroupsDraft] = useState('');
@@ -37,6 +47,9 @@ export default function TelegramDashboardPage() {
   const [sendReport, setSendReport] = useState<TelegramSendReport | null>(null);
 
   useEffect(() => {
+    // Only fetch the (admin-gated) config for confirmed admins — avoids a 403
+    // in the console for a reader mid-redirect, and for the pre-hydration tick.
+    if (role !== 'administrator') return;
     const load = async () => {
       setLoadingConfig(true);
       setError(null);
@@ -53,7 +66,7 @@ export default function TelegramDashboardPage() {
     };
 
     void load();
-  }, []);
+  }, [role]);
 
   const groupsFromDraft = useMemo(() => parseGroupsText(groupsDraft), [groupsDraft]);
 
