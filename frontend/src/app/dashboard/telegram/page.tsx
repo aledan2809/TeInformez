@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Bot, Download, Loader2, MessageSquare, RefreshCcw, Save, Send, Users } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -20,14 +19,8 @@ const REPORT_DATE_FORMAT = new Intl.DateTimeFormat('ro-RO', {
   timeStyle: 'short',
 });
 
-export default function TelegramDashboardPage() {
-  const router = useRouter();
+function AdminTelegramWorkspace() {
   const role = useAuthStore((s) => s.user?.role);
-  // Admin-only ops tool. A reader who deep-links here should never see the
-  // bot console (or its 403) — send them back to their dashboard.
-  useEffect(() => {
-    if (role && role !== 'administrator') router.replace('/dashboard');
-  }, [role, router]);
 
   const [config, setConfig] = useState<TelegramConfig | null>(null);
   const [botTokenInput, setBotTokenInput] = useState('');
@@ -569,4 +562,145 @@ function downloadBlob(filename: string, blob: Blob): void {
   anchor.click();
   document.body.removeChild(anchor);
   URL.revokeObjectURL(url);
+}
+
+
+/**
+ * Reader-facing "primește știrile pe Telegram" connect flow (2 steps):
+ * mint a single-use deep-link -> user taps Start in Telegram -> linked.
+ * Fails soft to an "indisponibil" note until the reader bot is configured.
+ */
+function ReaderTelegramConnect() {
+  const [status, setStatus] = useState<{ configured: boolean; linked: boolean; bot: string } | null>(null);
+  const [minting, setMinting] = useState(false);
+  const [waiting, setWaiting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = async () => {
+    try {
+      setStatus(await api.getTelegramLinkStatus());
+    } catch {
+      setStatus({ configured: false, linked: false, bot: '' });
+    }
+  };
+
+  useEffect(() => {
+    void refresh();
+  }, []);
+
+  // While the user is off in Telegram pressing Start, poll for the bind.
+  useEffect(() => {
+    if (!waiting || status?.linked) return;
+    const t = setInterval(refresh, 4000);
+    const stop = setTimeout(() => setWaiting(false), 2 * 60 * 1000);
+    return () => { clearInterval(t); clearTimeout(stop); };
+  }, [waiting, status?.linked]);
+
+  const connect = async () => {
+    setMinting(true);
+    setError(null);
+    try {
+      const { link } = await api.mintTelegramLink();
+      window.open(link, '_blank', 'noopener');
+      setWaiting(true);
+    } catch {
+      setError('Nu am putut genera linkul de conectare. Încearcă din nou.');
+    } finally {
+      setMinting(false);
+    }
+  };
+
+  const disconnect = async () => {
+    try {
+      await api.unlinkTelegram();
+      await refresh();
+    } catch {
+      setError('Nu am putut deconecta. Încearcă din nou.');
+    }
+  };
+
+  if (!status) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 md:p-8 max-w-2xl">
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+        Primește știrile pe Telegram
+      </h1>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+        Gratuit. Îți trimitem digestul cu știrile tale direct în Telegram — fără un email în plus.
+      </p>
+
+      {error && (
+        <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300">
+          {error}
+        </div>
+      )}
+
+      {!status.configured ? (
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Canalul Telegram nu este disponibil momentan. Primești în continuare digestul pe email —
+            revino aici în curând.
+          </p>
+        </div>
+      ) : status.linked ? (
+        <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-6">
+          <p className="font-semibold text-emerald-800 dark:text-emerald-200 mb-1">✅ Contul tău e conectat</p>
+          <p className="text-sm text-emerald-700 dark:text-emerald-300 mb-4">
+            Digestul tău sosește pe Telegram conform programului din Setări. Asigură-te că ai bifat
+            canalul „Telegram" la Program livrare.
+          </p>
+          <button
+            onClick={disconnect}
+            className="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 underline underline-offset-2"
+          >
+            Deconectează Telegram
+          </button>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-900/10 p-6">
+          <ol className="space-y-3 mb-5">
+            <li className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center">1</span>
+              Apasă <b>„Conectează Telegram"</b> — se deschide botul nostru.
+            </li>
+            <li className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center">2</span>
+              În Telegram, apasă <b>Start</b>. Gata — ești conectat.
+            </li>
+          </ol>
+          <button
+            onClick={connect}
+            disabled={minting}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors disabled:opacity-60"
+          >
+            {minting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            Conectează Telegram
+          </button>
+          {waiting && (
+            <p className="mt-3 text-xs text-center text-gray-500 dark:text-gray-400">
+              Aștept confirmarea din Telegram… pagina se actualizează singură.
+            </p>
+          )}
+          <p className="mt-3 text-xs text-center text-gray-400 dark:text-gray-500">
+            Poți renunța oricând, dintr-un clic.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function TelegramDashboardPage() {
+  const role = useAuthStore((s) => s.user?.role);
+  // Admins keep the ops workspace (bot config + group messaging);
+  // readers get the connect flow for receiving their digest.
+  if (role === 'administrator') return <AdminTelegramWorkspace />;
+  return <ReaderTelegramConnect />;
 }

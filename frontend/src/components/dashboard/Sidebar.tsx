@@ -12,11 +12,9 @@ const MENU_ITEMS = [
   { href: '/news/saved', icon: Bookmark, label: 'Salvate' },
   { href: '/dashboard/subscriptions', icon: Bell, label: 'Abonamente' },
   { href: '/dashboard/deliveries', icon: Send, label: 'Livrări' },
-  // Telegram Workspace is an admin-only ops tool (bot config + bulk send); the
-  // backend gates it with manage_options. Hide it from regular readers so their
-  // account shows only what they can actually use. (A reader-facing "receive
-  // news on Telegram" flow is tracked separately — needs backend + a bot.)
-  { href: '/dashboard/telegram', icon: Bot, label: 'Telegram', adminOnly: true },
+  // Role-aware page: readers get the "primește știrile pe Telegram" connect
+  // flow; administrators get the ops workspace (bot config + group messaging).
+  { href: '/dashboard/telegram', icon: Bot, label: 'Telegram' },
   { href: '/dashboard/stats', icon: BarChart3, label: 'Statistici' },
   { href: '/dashboard/settings', icon: Settings, label: 'Setări' },
 ];
@@ -64,7 +62,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
 
       {/* Navigation */}
       <nav aria-label="Navigare panou" className="flex-1 p-4 space-y-1">
-        {MENU_ITEMS.filter((item) => !item.adminOnly || user?.role === 'administrator').map((item) => {
+        {MENU_ITEMS.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
 

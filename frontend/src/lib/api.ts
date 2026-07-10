@@ -373,6 +373,21 @@ class ApiClient {
   }
 
   // Telegram endpoints
+  // ── Reader Telegram connect flow ──
+  async mintTelegramLink(): Promise<{ link: string; bot: string }> {
+    const response = await this.client.post<APIResponse<{ link: string; bot: string }>>('/telegram/link/mint');
+    return response.data.data!;
+  }
+
+  async getTelegramLinkStatus(): Promise<{ configured: boolean; linked: boolean; bot: string }> {
+    const response = await this.client.get<APIResponse<{ configured: boolean; linked: boolean; bot: string }>>('/telegram/link/status');
+    return response.data.data!;
+  }
+
+  async unlinkTelegram(): Promise<void> {
+    await this.client.delete('/telegram/link');
+  }
+
   async getTelegramConfig(): Promise<TelegramConfig> {
     const response = await this.client.get<APIResponse<TelegramConfig>>('/telegram/config');
     return response.data.data!;

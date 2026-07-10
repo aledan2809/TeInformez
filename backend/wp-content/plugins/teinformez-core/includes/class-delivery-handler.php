@@ -50,7 +50,7 @@ class Delivery_Handler {
                     continue;
                 }
 
-                $result = $this->send_digest($user_id, $frequency, $schedule);
+                $result = $this->send_digest($user_id, $frequency, $schedule, $channels);
                 if ($result) {
                     $sent++;
                 } else {
@@ -172,7 +172,7 @@ class Delivery_Handler {
     /**
      * Send a personalized digest to a user.
      */
-    private function send_digest($user_id, $frequency, $schedule) {
+    private function send_digest($user_id, $frequency, $schedule, array $channels = ['email']) {
         $user = get_userdata($user_id);
         if (!$user) {
             return false;
@@ -211,6 +211,24 @@ class Delivery_Handler {
         $status = $result ? 'sent' : 'failed';
         $error = $result ? null : 'Email send failed';
         $this->update_delivery_log($log_ids, $status, $error);
+
+        // Telegram channel — piggybacks on the email cadence (v1): users who
+        // selected 'telegram' AND linked their account via the reader bot get
+        // the same digest as a compact Telegram message. Failures here never
+        // affect the email result. (Telegram-only cadence, without the email
+        // channel, is a tracked follow-up — the due/dedupe window is
+        // email-keyed today.)
+        if (in_array('telegram', $channels, true) && \TeInformez\Telegram_Reader::is_configured()) {
+            $chat_id = \TeInformez\Telegram_Reader::chat_id((int) $user_id);
+            if ($chat_id !== '') {
+                $tg_text = \TeInformez\Telegram_Reader::build_digest($all_news, rtrim(\TeInformez\Config::get('frontend_url', 'https://teinformez.eu'), '/'));
+                $tg_ok = \TeInformez\Telegram_Reader::send_message($chat_id, $tg_text, true);
+                $tg_log = $this->log_delivery($user_id, $all_news, $tg_ok ? 'sent' : 'failed', 'telegram');
+                if (!$tg_ok) {
+                    $this->update_delivery_log($tg_log, 'failed', 'Telegram send failed');
+                }
+            }
+        }
 
         return $result;
     }
@@ -955,7 +973,7 @@ class Delivery_Handler {
     /**
      * Log delivery attempts in delivery_log table.
      */
-    private function log_delivery($user_id, $news, $status) {
+    private function log_delivery($user_id, $news, $status, $channel = 'email') {
         global $wpdb;
         $table = $wpdb->prefix . 'teinformez_delivery_log';
         $log_ids = [];
@@ -964,7 +982,7 @@ class Delivery_Handler {
             $wpdb->insert($table, [
                 'user_id' => $user_id,
                 'news_id' => $item->id,
-                'channel' => 'email',
+                'channel' => $channel,
                 'status' => $status,
                 'scheduled_for' => current_time('mysql'),
                 'created_at' => current_time('mysql'),

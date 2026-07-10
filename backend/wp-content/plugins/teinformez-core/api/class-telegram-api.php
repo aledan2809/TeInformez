@@ -43,6 +43,74 @@ class Telegram_API extends REST_API {
             'callback' => [$this, 'send_message'],
             'permission_callback' => [$this, 'is_admin'],
         ]);
+
+        // ── Reader-facing connect flow ("primește știrile pe Telegram") ──
+        register_rest_route($this->namespace, '/telegram/link/mint', [
+            'methods' => 'POST',
+            'callback' => [$this, 'reader_mint_link'],
+            'permission_callback' => [$this, 'is_authenticated'],
+        ]);
+
+        register_rest_route($this->namespace, '/telegram/link/status', [
+            'methods' => 'GET',
+            'callback' => [$this, 'reader_link_status'],
+            'permission_callback' => [$this, 'is_authenticated'],
+        ]);
+
+        register_rest_route($this->namespace, '/telegram/link', [
+            'methods' => 'DELETE',
+            'callback' => [$this, 'reader_unlink'],
+            'permission_callback' => [$this, 'is_authenticated'],
+        ]);
+
+        // Telegram calls this; validated via the setWebhook secret_token header.
+        register_rest_route($this->namespace, '/telegram/webhook', [
+            'methods' => 'POST',
+            'callback' => [$this, 'reader_webhook'],
+            'permission_callback' => '__return_true',
+        ]);
+    }
+
+    // ── Reader connect flow handlers ─────────────────────────────────────
+
+    public function reader_mint_link($request) {
+        if (!\TeInformez\Telegram_Reader::is_configured()) {
+            return $this->error('Canalul Telegram nu este disponibil momentan.', 'tg_unavailable', 503);
+        }
+        $user_id = $this->get_current_user_id();
+        return $this->success([
+            'link' => \TeInformez\Telegram_Reader::mint_link($user_id),
+            'bot'  => \TeInformez\Telegram_Reader::bot_username(),
+        ]);
+    }
+
+    public function reader_link_status($request) {
+        $user_id = $this->get_current_user_id();
+        return $this->success([
+            'configured' => \TeInformez\Telegram_Reader::is_configured(),
+            'linked'     => \TeInformez\Telegram_Reader::chat_id($user_id) !== '',
+            'bot'        => \TeInformez\Telegram_Reader::bot_username(),
+        ]);
+    }
+
+    public function reader_unlink($request) {
+        \TeInformez\Telegram_Reader::unlink($this->get_current_user_id());
+        return $this->success(['linked' => false]);
+    }
+
+    public function reader_webhook($request) {
+        $secret = \TeInformez\Telegram_Reader::webhook_secret();
+        $header = (string) $request->get_header('x-telegram-bot-api-secret-token');
+        // Fail-closed: no secret configured, or mismatch -> reject.
+        if ($secret === '' || !hash_equals($secret, $header)) {
+            return new \WP_Error('forbidden', 'Invalid webhook secret', ['status' => 403]);
+        }
+        $update = $request->get_json_params();
+        if (is_array($update)) {
+            \TeInformez\Telegram_Reader::handle_update($update);
+        }
+        // Always 200 for valid-secret calls so Telegram doesn't retry-storm.
+        return rest_ensure_response(['ok' => true]);
     }
 
     public function get_config($request) {
