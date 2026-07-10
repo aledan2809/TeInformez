@@ -21,9 +21,11 @@ Cloneable architecture: configurable language/country/sources for replication to
 ### Out of Scope (for now)
 - Mobile app (future)
 - Web scraping (only RSS for now)
-- Paid subscriptions / monetization
-- Referral system
 - Multi-language frontend UI (backend supports it, UI is Romanian only)
+
+### Formerly out-of-scope, now IN SCOPE (strategy raised to match shipped code — 2026-07-10)
+- **Monetization / Premium** — LIVE: Stripe premium tier (paywall pe articole premium, `/subscribe`, `/account/subscription`, billing portal), Revenue Dashboard, Newsletter Ads, Affiliate Links (Faze 3+4, mai 2026). Follow-up cunoscut: endpoint-ul `/subscription/status` a fost făcut Bearer-aware abia 2026-07-10 (până atunci statusul Premium nu se încărca în frontend).
+- **Referral system** — planificat ca parte din WOW Nivel 2 (share-to-unlock / referral cu payoff real); încă neconstruit (M5 în TODO).
 
 ## Key Goals
 - [x] Phase A: User registration, onboarding, dashboard — COMPLETE
@@ -33,18 +35,18 @@ Cloneable architecture: configurable language/country/sources for replication to
 - [x] Phase E: Juridic section, Telegram integration, social posting — COMPLETE
 
 ## Constraints
-- **Technical**: WordPress backend (PHP 8.3 + MariaDB), Next.js frontend (Vercel)
-- **Hosting**: VPS2 (72.62.155.74) for backend, Vercel for frontend
-- **Budget**: OpenAI target ~$10-25/month (10-30 articles/day)
+- **Technical**: WordPress backend (PHP 8.3 + MariaDB), Next.js frontend — ambele pe VPS2 (Vercel abandonat, politica VPS+PG-only 2026-06-10)
+- **Budget**: AI processing pe groq free-tier (fallback-uri via ai-router-service :3100); OpenAI doar istoric
 - **Email**: Brevo free tier (300 emails/day)
 - **DNS**: teinformez.eu registered at Hostico, A record → VPS2
 
-## Architecture
-- **Frontend**: Next.js on Vercel (`teinformez.vercel.app`)
-- **Backend**: WordPress + `teinformez-core` plugin on VPS2
-- **DB**: MariaDB on VPS2 (9 custom tables)
-- **API**: 53 REST endpoints under `/wp-json/teinformez/v1/`
-- **Deploy**: `deploy.sh teinformez` on VPS2 (git pull + PHP-FPM restart)
+## Architecture (updated 2026-07-10)
+- **Frontend**: Next.js standalone pe VPS2, PM2 `teinformez` :3002 (build pe VPS după git pull → rsync la `/var/www/teinformez-frontend/`)
+- **Backend**: WordPress + `teinformez-core` plugin on VPS2 (`/var/www/teinformez`; plugin = symlink la `/var/www/teinformez-repo/backend/...`)
+- **DB**: MariaDB on VPS2 (custom tables incl. stripe_subscriptions)
+- **AI routing**: `ai-router-service` :3100 (groq-first; git-versionat local pe VPS din 2026-07-07)
+- **API**: REST endpoints under `/wp-json/teinformez/v1/`
+- **Deploy**: backend = `deploy.sh teinformez` (git pull + plugin build + PHP-FPM restart, health-check pe URL public); frontend = VPS-build recipe (vezi CLAUDE.md)
 
 ---
 
