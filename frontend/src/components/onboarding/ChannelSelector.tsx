@@ -131,6 +131,11 @@ export default function ChannelSelector({ selectedChannels, onToggleChannel }: C
                 .join(', ')}
             </strong>
           </p>
+          {selectedChannels.includes('telegram') && (
+            <p className="mt-1 text-xs text-primary-700 dark:text-primary-300">
+              Telegram devine activ după ce îți conectezi contul din Panou → Telegram.
+            </p>
+          )}
         </div>
       )}
 
