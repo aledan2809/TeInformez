@@ -133,3 +133,19 @@
 **Follow-on-uri backend puse în TODO** (necesită sesiune dedicată): (a) reader Telegram connect-flow real (@aledan/telegram + bot); (b) `/subscription/status` auth Bearer-aware; (c) sincronizare STRATEGY.md (Premium live, hosting VPS, referral).
 
 Deploy: build+rsync+restart, PM2 stabil 0 unstable, :3002 200. tsc EXIT=0.
+
+---
+
+## 2026-07-10 — Follow-on-uri A-D livrate + verificate (batch final mesh)
+
+**Trigger**: user „Continua cu toate, in regim de instructiuni mesh".
+
+**A (`b9530ca`) — `/subscription/status` Bearer-aware**: Stripe_API extinde REST_API, `require_auth` → `is_authenticated` (Bearer + sesiune, cu `wp_set_current_user`). **Verificat live cu token reader: 200** `{tier:free,status:none}` (era 401 pentru orice user logat prin frontend).
+
+**B (`d53200e`) — STRATEGY.md sincronizat**: Monetizare/Premium + Referral → „now IN SCOPE (strategy raised to match shipped code)"; Constraints + Architecture rescrise pe realitate (VPS2/PM2 :3002, Vercel abandonat, ai-router :3100, rețete deploy reale).
+
+**C (`f37ab3b`) — Juridic expus public**: root cause „Juridic invizibil" = `class-juridic-api.php` (rute publice GET, `__return_true`) NU era require-uit/instanțiat în loader → toate rutele 404 deși clasa exista din Phase E. Wired (2 linii) + pagină nouă `/juridic` (SSR revalidate 300, chips categorii, expand per item, răspunsuri text-rendered — fără HTML injection) + link în footer „Legal". **Verificat live**: API `success:true, total:4`, pagină 200, 4 expanders vizibili.
+
+**D (`1d1af29`) — Reader Telegram connect-flow (COD LIVE, INERT până la bot)**: `includes/class-telegram-reader.php` (bot GLOBAL de reader în options — separat deliberat de tool-ul admin per-user-meta; nonce single-use 15min → t.me deep-link; webhook DOAR chat privat, fail-closed; chat_id în user meta; sendMessage + digest compact HTML) + 4 rute REST (mint/status/unlink cu Bearer; webhook validează `X-Telegram-Bot-Api-Secret-Token`, secret gol/mismatch → 403) + livrare: canal `telegram` piggyback pe cadența email (email-path NEatins; eșecul TG nu afectează email-ul; `log_delivery` cu param channel) + frontend `/dashboard/telegram` role-aware (reader = connect UI 2 pași cu poll + unlink + stare graceful „indisponibil"; admin = workspace-ul vechi intact; sidebar-ul arată Telegram pentru toți din nou). **Verificat live**: mint fără auth → 401, webhook fără secret → 403, pagina reader = connect UI cu graceful unconfigured (screenshot), consola admin nu se scurge. **ACTIVARE (user, ~3 min)**: BotFather → 3 `wp option update` → `setWebhook` (rețeta în header-ul clasei + TODO). **V2 follow-up**: cadență telegram-only (dedupe email-keyed azi).
+
+**Deploy**: `deploy.sh teinformez` (health 200/200 — check-ul reparat pe 7 iul) + frontend VPS-build; PM2 stabil 0 unstable; tsc EXIT=0; php -l curat pe toate 5 fișierele PHP atinse. TODO markers sincronizați (A/B/C = [x], D = [~] inert-până-la-bot).
