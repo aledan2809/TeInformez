@@ -149,3 +149,21 @@ Deploy: build+rsync+restart, PM2 stabil 0 unstable, :3002 200. tsc EXIT=0.
 **D (`1d1af29`) — Reader Telegram connect-flow (COD LIVE, INERT până la bot)**: `includes/class-telegram-reader.php` (bot GLOBAL de reader în options — separat deliberat de tool-ul admin per-user-meta; nonce single-use 15min → t.me deep-link; webhook DOAR chat privat, fail-closed; chat_id în user meta; sendMessage + digest compact HTML) + 4 rute REST (mint/status/unlink cu Bearer; webhook validează `X-Telegram-Bot-Api-Secret-Token`, secret gol/mismatch → 403) + livrare: canal `telegram` piggyback pe cadența email (email-path NEatins; eșecul TG nu afectează email-ul; `log_delivery` cu param channel) + frontend `/dashboard/telegram` role-aware (reader = connect UI 2 pași cu poll + unlink + stare graceful „indisponibil"; admin = workspace-ul vechi intact; sidebar-ul arată Telegram pentru toți din nou). **Verificat live**: mint fără auth → 401, webhook fără secret → 403, pagina reader = connect UI cu graceful unconfigured (screenshot), consola admin nu se scurge. **ACTIVARE (user, ~3 min)**: BotFather → 3 `wp option update` → `setWebhook` (rețeta în header-ul clasei + TODO). **V2 follow-up**: cadență telegram-only (dedupe email-keyed azi).
 
 **Deploy**: `deploy.sh teinformez` (health 200/200 — check-ul reparat pe 7 iul) + frontend VPS-build; PM2 stabil 0 unstable; tsc EXIT=0; php -l curat pe toate 5 fișierele PHP atinse. TODO markers sincronizați (A/B/C = [x], D = [~] inert-până-la-bot).
+
+---
+
+## 2026-07-10 (PM) — Telegram v2: cadență telegram-only + canal în UI + upsert prefs
+
+**Trigger**: user „da, fa-le pe toate" pe planul propus (A+B+C + retragere Facebook/Twitter). Regim mesh (dev → /review → fix), RESTRICT propose-confirm respectat.
+
+**A (`5ac61b8`) — delivery-handler, cadență telegram-only**: gate-ul „doar email" acceptă acum și useri telegram-only, DOAR dacă botul reader e configurat + contul linkat (fail-closed → până la activarea botului comportamentul e identic v1, safe inert). Dedupe-ul ferestrei: `channel = 'email'` → `channel IN ('email','telegram')` — semantică asumată: digest ajuns pe ≥1 canal = done pe fereastră (succesul unui canal suprimă retry-ul celuilalt în aceeași fereastră; documentat, acceptat la /review). Emailul se trimite doar dacă e bifat; rezultatul digestului = succes pe oricare canal încercat.
+
+**B (`5ac61b8`) — telegram-reader, auto-opt-in la bind**: conectarea reușită din bot bifează automat canalul `telegram` în preferințe (idempotent, nu atinge alte canale, no-op fără rând de preferințe); mesajul de confirmare din bot actualizat (nu mai cere bifă manuală).
+
+**C (`5ac61b8`+`0910d18`) — ChannelSelector**: card Telegram adăugat (icon Send, descriere cu prerechizitul conectării); Facebook/Twitter retrase la „În curând" (nu livrau NIMIC pentru readeri — promisiune falsă în UI), dar rămân debifabile pentru userii care le aveau selectate istoric (ex. user 5 avea facebook); sumarul listează doar canale care livrează; hint condiționat la bifarea Telegram („devine activ după conectare" — finding /review, previne așteptarea de livrare fără cont linkat).
+
+**D (`5d57e22`) — BUG PREEXISTENT găsit de walk-ul de verificare**: `User_Manager::update_preferences` face `UPDATE` fără upsert → pentru userii FĂRĂ rând în `wp_teinformez_user_preferences` (creați via wp-cli/admin, ex. e2e-reader id 9), salvarea din Setări era un no-op silențios (UI arăta succes, DB rămânea gol). Fix: guard care creează rândul de default înainte de update. Dovedit pe live: înainte = FAIL persistență după reload; după = PASS.
+
+**Verificare (output real, nu tsc)**: php -l curat (3 fișiere PHP), tsc EXIT=0, deploy backend `deploy.sh teinformez` (health 200/200) + frontend VPS-build (exit 0, PM2 restart curat), **walk Playwright live logat ca reader: 9/9 PASS** (card vizibil/clickabil, FB/TW disabled+badge, hint, sumar, persistență după reload, revert). Screenshots în scratchpad sesiune. Cont test lăsat curat (`["email"]`).
+
+**Rămas**: test E2E real de livrare Telegram (mint→Start→bind→digest) — blocat pe activarea botului (acțiune user, rețeta în header `class-telegram-reader.php`).
