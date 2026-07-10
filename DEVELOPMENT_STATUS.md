@@ -1,5 +1,21 @@
 # Project Status — TeInformez
-Last Updated: 2026-06-04 (news throughput fix + WOW/viral plan + ELI12 backend M1)
+Last Updated: 2026-07-10 (True E2E persona-audit + P0 auth fix + Juridic public + Telegram reader flow)
+
+## Current State (Sesiunile 2026-07-07 → 2026-07-10, mesh)
+
+**Val UX + audit + follow-on-uri — totul LIVE pe teinformez.eu, ledger complet în `reports/DIRECT-CHANGES-2026-07.md`:**
+- WI-2/3/4/5 (ELI12 show-first → apoi articol-complet-vizibil + Rezumat contopit `1788767`; dashboard proactiv; homepage quick-start + „Pe scurt" pe lead-uri `1d61897` + fix API `72bc48e`; Cabina de comandă admin `ba98ffd`), mobile nav `d3bf346`.
+- **P0 auth-bounce reparat** `3f198d5`: gate-urile client (dashboard layout + onboarding) așteaptă rehidratarea Zustand-persist → refresh/deep-link nu mai aruncă userii logați la /login (dovedit live înainte/după).
+- GDPR: GA4 consent-gated + banner anonimi `5026f15` (walk 7/7); npm audit 25→5 vulns `65ebfc7` + 2 bug-uri lockfile reale fixate (`5a3bda0` integrity stale tgz, `2a333fa` placeholder null care crăpa npm 10).
+- True E2E persona-audit (3 roluri × 36 pagini, 0 nav-fail/0 link rupt) → artifact propunere cu machete: claude.ai/code/artifact/0d05589e-e6a3-417b-8172-a390f11b8704; items 1-3 livrate (`28b68c1` Telegram admin-tool ascuns de readeri, `cba889e` abonament fără eroare falsă, `6a05d7e` zero „AI" în copy).
+- Follow-on-uri A-D `b9530ca`/`d53200e`/`f37ab3b`/`1d1af29`: subscription/status Bearer-aware (401→200 verificat), STRATEGY sincronizată cu realitatea, **Juridic expus public** (`/juridic`, root cause: clasa API nu era instanțiată în loader), **Telegram reader connect-flow** (cod LIVE, INERT până creezi botul — rețeta în `class-telegram-reader.php`).
+- Alte: deploy.sh health-check reparat (404 fals → 200/200), ai-router-service git-versionat pe VPS (`529faac`, push blocat pe creare repo = acțiune user).
+
+**Pending user (3 acțiuni mici):** (1) creare repo GitHub `ai-router-service` + push; (2) activare bot Telegram (BotFather + 3 wp option + setWebhook, ~3 min); (3) nimic altceva blocant — CSP Report-Only + next@16 upgrade + cadență telegram-only = sesiuni viitoare.
+
+## Lessons Learned (sesiunile 2026-07-07 → 2026-07-10)
+- **L310** — Client-side auth gates trebuie să aștepte rehidratarea store-ului persistat (Zustand persist): gate-ul care redirectează pe `!isAuthenticated` la primul render aruncă TOȚI userii logați la /login la refresh/deep-link/tab-nou, deși cookie+localStorage sunt valide. Fix: `persist.onFinishHydration`/`hasHydrated` + spinner până la hidratare. (Full entry în Master `knowledge/lessons-learned.md`.)
+- Pattern secundar (nu L separat): „feature construit dar invizibil" = clasă API cu rute publice care nu e nici require-uită nici instanțiată în loader (Juridic, 404 pe toate rutele deși codul exista de la Phase E) — la audituri, verifică loader-ul, nu doar existența codului.
 
 ## Current State (Sesiunea 2026-06-04 — news throughput + WOW/viral ELI12)
 
