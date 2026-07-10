@@ -10,11 +10,7 @@ if (!defined('ABSPATH')) {
  * - GET  /teinformez/v1/subscription/status  — current user's tier + expiry (public auth)
  * - POST /teinformez/v1/stripe/internal-sync  — called by Next.js webhook handler (shared secret)
  */
-class Stripe_API {
-
-    public function __construct() {
-        add_action('rest_api_init', [$this, 'register_routes']);
-    }
+class Stripe_API extends REST_API {
 
     public function register_routes() {
         register_rest_route('teinformez/v1', '/subscription/status', [
@@ -33,7 +29,13 @@ class Stripe_API {
     // ── Permissions ──────────────────────────────────────────────────────
 
     public function require_auth($request) {
-        return is_user_logged_in();
+        // Accept BOTH the WP session cookie and the frontend's Bearer token.
+        // is_user_logged_in() alone 401'd every frontend-logged-in user (the
+        // Next.js app authenticates via Authorization: Bearer <token>), so the
+        // subscription status never loaded. is_authenticated() (base class)
+        // validates the token AND calls wp_set_current_user, so
+        // get_current_user_id() works in the handler.
+        return $this->is_authenticated($request);
     }
 
     public function require_internal_secret($request) {
