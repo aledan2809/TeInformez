@@ -19,6 +19,7 @@ export default function SharedFooter() {
           <div>
             <h4 className="font-semibold mb-3 text-sm">Legal</h4>
             <ul className="space-y-1.5 text-sm text-gray-600 dark:text-gray-400">
+              <li><Link href="/juridic" className="hover:text-primary-600">Juridic — întrebări și răspunsuri</Link></li>
               <li><Link href="/privacy" className="hover:text-primary-600">Politica de confidențialitate</Link></li>
               <li><Link href="/terms" className="hover:text-primary-600">Termeni și condiții</Link></li>
               <li><Link href="/gdpr" className="hover:text-primary-600">GDPR</Link></li>

@@ -92,6 +92,7 @@ function teinformez_init() {
 
     // Load delivery system (Phase C)
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-delivery-handler.php';
+    require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-telegram-reader.php';
 
     // Load social media posting (Phase E)
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-social-poster.php';
@@ -107,6 +108,7 @@ function teinformez_init() {
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-cas-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-stripe-api.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-legal-api.php';
+    require_once TEINFORMEZ_PLUGIN_DIR . 'api/class-juridic-api.php';
     // Initialize REST API
     new TeInformez\API\REST_API();
     new TeInformez\API\Auth_API();
@@ -118,6 +120,9 @@ function teinformez_init() {
     new TeInformez\API\CAS_API();
     new TeInformez\API\Stripe_API();
     new TeInformez\API\Legal_API();
+    // Juridic Q&A — class existed since Phase E but was never wired into the
+    // loader, so its public routes 404'd (the "Juridic invizibil" finding).
+    new TeInformez\API\Juridic_API();
 
     // Auto-merge new categories into stored option
     $current_cats = get_option('teinformez_categories', []);
