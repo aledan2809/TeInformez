@@ -1,6 +1,6 @@
 'use client';
 
-import { Mail, Facebook, Twitter, Instagram, CheckCircle2, Circle } from 'lucide-react';
+import { Mail, Send, Facebook, Twitter, Instagram, CheckCircle2, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Channel {
@@ -25,18 +25,25 @@ const CHANNELS: Channel[] = [
     enabled: true,
   },
   {
+    id: 'telegram',
+    label: 'Telegram',
+    description: 'Digestul direct în Telegram. Conectează întâi contul din Panou → Telegram.',
+    icon: <Send className="h-8 w-8" />,
+    enabled: true,
+  },
+  {
     id: 'facebook',
     label: 'Facebook',
     description: 'Postări publice pe pagina ta',
     icon: <Facebook className="h-8 w-8" />,
-    enabled: true,
+    enabled: false,
   },
   {
     id: 'twitter',
     label: 'Twitter/X',
     description: 'Tweet-uri automate cu știri',
     icon: <Twitter className="h-8 w-8" />,
-    enabled: true,
+    enabled: false,
   },
   {
     id: 'instagram',
@@ -60,7 +67,9 @@ export default function ChannelSelector({ selectedChannels, onToggleChannel }: C
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {CHANNELS.map((channel) => {
           const isSelected = selectedChannels.includes(channel.id);
-          const isDisabled = !channel.enabled;
+          // A disabled channel stays clickable while selected, so users who
+          // ticked it before it was retired can still untick it.
+          const isDisabled = !channel.enabled && !isSelected;
 
           return (
             <button
@@ -109,15 +118,16 @@ export default function ChannelSelector({ selectedChannels, onToggleChannel }: C
         })}
       </div>
 
-      {/* Selection summary */}
-      {selectedChannels.length > 0 && (
+      {/* Selection summary — only channels that actually deliver today */}
+      {selectedChannels.some((id) => CHANNELS.find((c) => c.id === id)?.enabled) && (
         <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-4">
           <p className="text-sm font-medium text-primary-900 dark:text-primary-200">
             📬 Vei primi știri pe:{' '}
             <strong>
               {selectedChannels
-                .map((id) => CHANNELS.find((c) => c.id === id)?.label)
-                .filter(Boolean)
+                .map((id) => CHANNELS.find((c) => c.id === id))
+                .filter((c) => c?.enabled)
+                .map((c) => c!.label)
                 .join(', ')}
             </strong>
           </p>

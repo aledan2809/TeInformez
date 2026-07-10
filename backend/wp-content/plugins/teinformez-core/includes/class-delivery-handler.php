@@ -46,7 +46,15 @@ class Delivery_Handler {
                 $channels = json_decode($user_row['delivery_channels'], true) ?: ['email'];
                 $schedule = json_decode($user_row['delivery_schedule'], true);
 
-                if (!in_array('email', $channels)) {
+                // Deliverable = email ticked, OR telegram ticked with the
+                // reader bot configured AND the account linked (telegram-only
+                // cadence, v2). Until the bot is live, behavior matches v1.
+                $email_on = in_array('email', $channels, true);
+                $telegram_on = in_array('telegram', $channels, true)
+                    && Telegram_Reader::is_configured()
+                    && Telegram_Reader::chat_id($user_id) !== '';
+
+                if (!$email_on && !$telegram_on) {
                     continue;
                 }
 
@@ -141,7 +149,7 @@ class Delivery_Handler {
             $lookback = $this->get_lookback_interval($frequency);
             $already_sent = $wpdb->get_var($wpdb->prepare(
                 "SELECT COUNT(*) FROM {$delivery_table}
-                 WHERE user_id = %d AND channel = 'email' AND status IN ('sent', 'pending')
+                 WHERE user_id = %d AND channel IN ('email', 'telegram') AND status IN ('sent', 'pending')
                  AND created_at > DATE_SUB(NOW(), INTERVAL %d MINUTE)",
                 $user['user_id'],
                 $lookback
@@ -197,32 +205,34 @@ class Delivery_Handler {
             return false;
         }
 
-        // Build and send email
-        $subject = $this->build_subject($frequency, count($all_news));
-        $html = $this->build_digest_html($user, $by_category, $frequency);
-        $text = $this->build_digest_text($user, $all_news);
+        // Email channel — only when ticked (v2: telegram can run alone).
+        $email_ok = false;
+        if (in_array('email', $channels, true)) {
+            $subject = $this->build_subject($frequency, count($all_news));
+            $html = $this->build_digest_html($user, $by_category, $frequency);
+            $text = $this->build_digest_text($user, $all_news);
 
-        // Log as pending
-        $log_ids = $this->log_delivery($user_id, $all_news, 'pending');
+            // Log as pending
+            $log_ids = $this->log_delivery($user_id, $all_news, 'pending');
 
-        $result = $this->email_sender->send($user->user_email, $subject, $html, $text);
+            $email_ok = $this->email_sender->send($user->user_email, $subject, $html, $text);
 
-        // Update log status
-        $status = $result ? 'sent' : 'failed';
-        $error = $result ? null : 'Email send failed';
-        $this->update_delivery_log($log_ids, $status, $error);
+            // Update log status
+            $status = $email_ok ? 'sent' : 'failed';
+            $error = $email_ok ? null : 'Email send failed';
+            $this->update_delivery_log($log_ids, $status, $error);
+        }
 
-        // Telegram channel — piggybacks on the email cadence (v1): users who
-        // selected 'telegram' AND linked their account via the reader bot get
-        // the same digest as a compact Telegram message. Failures here never
-        // affect the email result. (Telegram-only cadence, without the email
-        // channel, is a tracked follow-up — the due/dedupe window is
-        // email-keyed today.)
-        if (in_array('telegram', $channels, true) && \TeInformez\Telegram_Reader::is_configured()) {
-            $chat_id = \TeInformez\Telegram_Reader::chat_id((int) $user_id);
+        // Telegram channel — users who selected 'telegram' AND linked their
+        // account via the reader bot get the same digest as a compact
+        // Telegram message. Failures on one channel never affect the other;
+        // the due/dedupe window covers both (channel IN email, telegram).
+        $tg_ok = false;
+        if (in_array('telegram', $channels, true) && Telegram_Reader::is_configured()) {
+            $chat_id = Telegram_Reader::chat_id((int) $user_id);
             if ($chat_id !== '') {
-                $tg_text = \TeInformez\Telegram_Reader::build_digest($all_news, rtrim(\TeInformez\Config::get('frontend_url', 'https://teinformez.eu'), '/'));
-                $tg_ok = \TeInformez\Telegram_Reader::send_message($chat_id, $tg_text, true);
+                $tg_text = Telegram_Reader::build_digest($all_news, rtrim(Config::get('frontend_url', 'https://teinformez.eu'), '/'));
+                $tg_ok = Telegram_Reader::send_message($chat_id, $tg_text, true);
                 $tg_log = $this->log_delivery($user_id, $all_news, $tg_ok ? 'sent' : 'failed', 'telegram');
                 if (!$tg_ok) {
                     $this->update_delivery_log($tg_log, 'failed', 'Telegram send failed');
@@ -230,7 +240,7 @@ class Delivery_Handler {
             }
         }
 
-        return $result;
+        return $email_ok || $tg_ok;
     }
 
     /**

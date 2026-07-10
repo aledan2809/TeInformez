@@ -91,7 +91,8 @@ class Telegram_Reader {
             if ($user_id > 0) {
                 delete_transient('titg_link_' . $nonce); // single-use
                 update_user_meta($user_id, self::META_CHAT, $chat_id);
-                self::send_message($chat_id, "✅ Gata! Contul tău TeInformez e conectat.\n\nDe acum primești aici digestul cu știrile tale — activează canalul Telegram din Setări → Program livrare, dacă nu e deja bifat.");
+                self::enable_telegram_channel($user_id);
+                self::send_message($chat_id, "✅ Gata! Contul tău TeInformez e conectat.\n\nDe acum primești aici digestul cu știrile tale, conform programului din Setări. Poți ajusta oricând canalele din Setări → Program livrare.");
                 return;
             }
             self::send_message($chat_id, "Linkul de conectare a expirat sau a fost deja folosit. Generează unul nou din contul tău de pe teinformez.eu (Panou → Telegram).");
@@ -101,6 +102,26 @@ class Telegram_Reader {
         if (strpos($text, '/start') === 0) {
             self::send_message($chat_id, "Salut! Ca să primești știrile aici, conectează-ți contul din teinformez.eu → Panou → Telegram.");
         }
+    }
+
+    /**
+     * Tick the 'telegram' delivery channel for a user who just linked —
+     * pressing "Conectează Telegram" IS the opt-in for receiving the digest
+     * there (the connect card says exactly that). Idempotent; never removes
+     * other channels.
+     */
+    private static function enable_telegram_channel(int $user_id): void {
+        $um = new User_Manager();
+        $prefs = $um->get_user_preferences($user_id);
+        if (!$prefs) {
+            return; // no preferences row — nothing to tick
+        }
+        $channels = is_array($prefs['delivery_channels']) ? $prefs['delivery_channels'] : ['email'];
+        if (in_array('telegram', $channels, true)) {
+            return;
+        }
+        $channels[] = 'telegram';
+        $um->update_preferences($user_id, ['delivery_channels' => $channels]);
     }
 
     /** Plain sendMessage. Returns true on Telegram-confirmed delivery. */
