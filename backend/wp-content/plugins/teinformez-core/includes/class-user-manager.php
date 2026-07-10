@@ -76,6 +76,17 @@ class User_Manager {
             return null;
         }
 
+        // Upsert guard: users without a preferences row (e.g. created via
+        // wp-cli/admin instead of the app signup) would otherwise hit a
+        // silent 0-row UPDATE and lose the save.
+        $exists = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$this->table_name} WHERE user_id = %d",
+            $user_id
+        ));
+        if ($exists === 0) {
+            $this->create_default_preferences($user_id);
+        }
+
         // Encode JSON fields if they're arrays
         if (isset($data['delivery_channels']) && is_array($data['delivery_channels'])) {
             $data['delivery_channels'] = json_encode($data['delivery_channels']);
