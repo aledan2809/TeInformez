@@ -167,3 +167,19 @@ Deploy: build+rsync+restart, PM2 stabil 0 unstable, :3002 200. tsc EXIT=0.
 **Verificare (output real, nu tsc)**: php -l curat (3 fișiere PHP), tsc EXIT=0, deploy backend `deploy.sh teinformez` (health 200/200) + frontend VPS-build (exit 0, PM2 restart curat), **walk Playwright live logat ca reader: 9/9 PASS** (card vizibil/clickabil, FB/TW disabled+badge, hint, sumar, persistență după reload, revert). Screenshots în scratchpad sesiune. Cont test lăsat curat (`["email"]`).
 
 **Rămas**: test E2E real de livrare Telegram (mint→Start→bind→digest) — blocat pe activarea botului (acțiune user, rețeta în header `class-telegram-reader.php`).
+
+---
+
+## 2026-07-12 — Activare bot Telegram + activare FB posting + fix FK logging social + repo ai-router
+
+**Trigger**: continuare sesiune, user „1,2 si 3" (din lista pending) + „a" (fix FB logging). Regim mesh, RESTRICT propose-confirm respectat.
+
+**Item 1 — Telegram reader bot ACTIVAT + E2E real verificat**: bot @TeInformez_bot (token de la user, getMe valid). 3 `wp option` setate (`teinformez_tg_reader_{token,bot,webhook_secret}`, secret 48-hex generat) + `setWebhook` → OK, `getWebhookInfo` sănătos (0 pending, 0 error, IP VPS2). Config only — zero cod. **E2E real (nu doar API)**: mint link user 9 → user a apăsat Start → bind confirmat (`_teinformez_telegram_chat_id=8875047080`) + canal `telegram` auto-bifat în DB (`["email","telegram"]`) → digest telegram-only trimis pe calea reală (`build_digest`+`send_message`, SEND=OK) → **confirmat vizual de user în inbox** (screenshot: mesaj conectare + digest 5 titluri). Închide restul din v2.
+
+**Item 2 — FB posting ACTIVAT (reuse creds din MA)**: refolosit token-ul FB al Paginii TeInformez.eu deja existent în `Master/credentials/marketing-automation.env` (`FB_PAGE_ID=1139788592553322`). Validat la Graph API: tip PAGE, is_valid, expires_at=0, scope `pages_manage_posts` (caveat: `data_access_expires_at` ~mid-aug 2026 → posibil refresh 90-zile). 3 `wp option` (`teinformez_{facebook_page_id,facebook_access_token,social_posting_enabled}`). Chei reale = prefixate `teinformez_` (Config::get prepends) — rețeta din handoff fără prefix ar fi fost citită NICIODATĂ (prins, corectat). **Verificat pe output real (variant test+șters)**: `post_on_publish` pe articol real → postare FB live (post_id) → copy curat, zero „AI" branding → **ștearsă imediat** (Graph DELETE success, confirmat gone).
+
+**Item 2b — BUG FK real prins prin execuție (L05), fixat (`145df20`)**: `log_social_post` insera `user_id=0` pt postări platform-level, dar `wp_teinformez_delivery_log.user_id` = NOT NULL + FK→`wp_users(ID)`; user 0 nu există → **fiecare postare socială ieșea dar NU se loga** (fără audit, `retry_failed_posts` orb). Fix chirurgical: `class-social-poster.php` `user_id 0→null` (+ comentariu) + `class-activator.php` CREATE delivery_log `user_id NULL` + prod `ALTER ... MODIFY user_id BIGINT(20) UNSIGNED NULL` (FK păstrat, NULL exceptat; rânduri existente neatinse). `/review`: safe — `retry_failed_posts` filtrează pe channel/status, nu user_id; niciun cititor pe `user_id=0`. **Re-verificat real**: re-postare test → log_row inserat (`user_id=NULL, status=sent, post_id`) → FB post + log-row de test șterse. php -l curat, deploy `deploy.sh teinformez` (health 200/200).
+
+**Item 3 — repo `ai-router-service`**: creat privat `aledan2809/ai-router-service` + push de pe VPS2 (`main`, commit `529faac`). SPOF :3100 acum are backup versionat GitHub.
+
+**Corecție onestă**: „știre pusă de 4×" observată de user = artefact de la testul MEU (digest construit din `news_archive` = tabel istoric cu ~53% duplicate legacy). Fluxul LIVE (`news_queue`) e curat (89/89 titluri distincte, publică azi ~7h cadență) → digestul real al userilor NU are duplicate. Dups din `news_archive` = date legacy, prioritate mică.
