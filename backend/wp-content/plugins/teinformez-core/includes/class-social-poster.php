@@ -7,7 +7,7 @@ if (!defined('ABSPATH')) {
 
 /**
  * Social Media Poster
- * Auto-posts published news to Facebook Page and Twitter/X.
+ * Auto-posts published news to Facebook Page, Twitter/X, and Instagram.
  * Platform-level posting (user_id=NULL in delivery_log — not tied to a WP user).
  */
 class Social_Poster {
@@ -18,6 +18,7 @@ class Social_Poster {
     private $twitter_api_secret;
     private $twitter_access_token;
     private $twitter_access_secret;
+    private $instagram_business_id;
     private $enabled;
 
     public function __construct() {
@@ -28,6 +29,7 @@ class Social_Poster {
         $this->twitter_api_secret   = Config::get('twitter_api_secret', '');
         $this->twitter_access_token = Config::get('twitter_access_token', '');
         $this->twitter_access_secret = Config::get('twitter_access_token_secret', '');
+        $this->instagram_business_id = Config::get('instagram_business_id', '');
     }
 
     /**
@@ -65,6 +67,18 @@ class Social_Poster {
                 $tw_result['success'] ? 'sent' : 'failed',
                 $tw_result['error'] ?? null,
                 $tw_result['data'] ?? null
+            );
+        }
+
+        // Post to Instagram if configured (Graph API content publishing requires an image)
+        if (!empty($this->instagram_business_id) && !empty($this->facebook_token) && !empty($content['image'])) {
+            $ig_result = $this->post_to_instagram($content['instagram'], $content['image']);
+            $this->log_social_post(
+                $item->id,
+                'instagram_post',
+                $ig_result['success'] ? 'sent' : 'failed',
+                $ig_result['error'] ?? null,
+                $ig_result['data'] ?? null
             );
         }
     }
@@ -107,9 +121,21 @@ class Social_Poster {
             $tweet_base = mb_substr($title, 0, Config::MAX_SOCIAL_SNIPPET_LENGTH - mb_strlen("\n\n" . $url) - 3) . "...\n\n" . $url;
         }
 
+        // Instagram: caption = title + summary + UTM link + hashtags. IG shows no
+        // clickable links in captions; the UTM URL rides along for the funnel.
+        $ig_caption = $title;
+        if (!empty($summary)) {
+            $ig_caption .= "\n\n" . mb_substr($summary, 0, 200);
+        }
+        $ig_caption .= "\n\n" . $url . '?utm_source=instagram&utm_medium=social';
+        if (!empty($hashtags)) {
+            $ig_caption .= "\n\n" . $hashtags;
+        }
+
         return [
             'text' => $fb_text,
             'tweet' => $tweet_base,
+            'instagram' => $ig_caption,
             'url' => $url,
             'image' => $image,
         ];
@@ -145,6 +171,63 @@ class Social_Poster {
 
         $error = $result['error']['message'] ?? "HTTP {$code}";
         return ['success' => false, 'error' => $error, 'data' => json_encode($result)];
+    }
+
+    /**
+     * Post to an Instagram Business account via Graph API (2-step: create a
+     * media container, then publish it). IG has no text-only feed post — an
+     * image_url is required. Reuses the Facebook Page token, which must carry
+     * the instagram_content_publish + instagram_basic permissions and be for a
+     * Page linked to the IG Business account (instagram_business_id).
+     */
+    private function post_to_instagram(string $caption, string $image_url): array {
+        $base = Config::FACEBOOK_GRAPH_API . '/' . $this->instagram_business_id;
+
+        // Step 1: create the media container
+        $create = wp_remote_post($base . '/media', [
+            'timeout' => 30,
+            'body'    => [
+                'image_url'    => $image_url,
+                'caption'      => $caption,
+                'access_token' => $this->facebook_token,
+            ],
+        ]);
+
+        if (is_wp_error($create)) {
+            return ['success' => false, 'error' => $create->get_error_message()];
+        }
+
+        $create_code = wp_remote_retrieve_response_code($create);
+        $create_body = json_decode(wp_remote_retrieve_body($create), true);
+        $creation_id = $create_body['id'] ?? '';
+
+        if ($create_code !== 200 || $creation_id === '') {
+            $error = $create_body['error']['message'] ?? "HTTP {$create_code} (media)";
+            return ['success' => false, 'error' => $error, 'data' => json_encode($create_body)];
+        }
+
+        // Step 2: publish the container
+        $publish = wp_remote_post($base . '/media_publish', [
+            'timeout' => 30,
+            'body'    => [
+                'creation_id'  => $creation_id,
+                'access_token' => $this->facebook_token,
+            ],
+        ]);
+
+        if (is_wp_error($publish)) {
+            return ['success' => false, 'error' => $publish->get_error_message()];
+        }
+
+        $publish_code = wp_remote_retrieve_response_code($publish);
+        $publish_body = json_decode(wp_remote_retrieve_body($publish), true);
+
+        if ($publish_code === 200 && !empty($publish_body['id'])) {
+            return ['success' => true, 'data' => json_encode(['post_id' => $publish_body['id']])];
+        }
+
+        $error = $publish_body['error']['message'] ?? "HTTP {$publish_code} (publish)";
+        return ['success' => false, 'error' => $error, 'data' => json_encode($publish_body)];
     }
 
     /**
@@ -245,7 +328,7 @@ class Social_Poster {
                      WHERE dl2.news_id = dl.news_id AND dl2.channel = dl.channel) as attempt_count
              FROM {$table} dl
              WHERE dl.status = 'failed'
-               AND dl.channel IN ('facebook_post', 'twitter_post')
+               AND dl.channel IN ('facebook_post', 'twitter_post', 'instagram_post')
                AND dl.created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)
              HAVING attempt_count < %d",
             Config::SOCIAL_MAX_RETRY
@@ -267,6 +350,8 @@ class Social_Poster {
                 $result = $this->post_to_facebook($content['text'], $content['url'], $content['image']);
             } elseif ($post->channel === 'twitter_post' && !empty($this->twitter_access_token)) {
                 $result = $this->post_to_twitter($content['tweet']);
+            } elseif ($post->channel === 'instagram_post' && !empty($this->instagram_business_id) && !empty($this->facebook_token) && !empty($content['image'])) {
+                $result = $this->post_to_instagram($content['instagram'], $content['image']);
             } else {
                 continue;
             }
