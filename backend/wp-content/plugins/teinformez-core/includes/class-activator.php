@@ -100,7 +100,7 @@ class Activator {
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             user_id BIGINT(20) UNSIGNED NULL,
             news_id BIGINT(20) UNSIGNED NOT NULL,
-            channel ENUM('email', 'facebook_post', 'twitter_post', 'instagram_post') DEFAULT 'email',
+            channel ENUM('email', 'facebook_post', 'twitter_post', 'instagram_post', 'telegram') DEFAULT 'email',
             status ENUM('pending', 'sent', 'failed', 'opened', 'clicked') DEFAULT 'pending',
             scheduled_for DATETIME DEFAULT NULL,
             sent_at DATETIME DEFAULT NULL,
