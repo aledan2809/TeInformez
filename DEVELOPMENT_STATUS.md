@@ -1,5 +1,21 @@
 # Project Status — TeInformez
-Last Updated: 2026-07-10 (True E2E persona-audit + P0 auth fix + Juridic public + Telegram reader flow)
+Last Updated: 2026-07-12 (Telegram v2 telegram-only cadence + canal în UI + upsert prefs fix)
+
+## Current State (Sesiunea 2026-07-12, mesh)
+
+**Telegram v2 — cadență telegram-only + selector canale onest — LIVE pe teinformez.eu, verificat walk Playwright 9/9. Ledger: `reports/DIRECT-CHANGES-2026-07.md` (secțiunea 07-10 PM).**
+
+- **`5ac61b8`** — `class-delivery-handler.php` + `class-telegram-reader.php`: userii telegram-only sunt acum livrabili (gate fail-closed: bot configurat + chat linkat → până la activarea botului, comportament identic v1); dedupe `channel IN ('email','telegram')`; email condiționat pe canal; rezultat digest = succes pe oricare canal; **bind-ul din bot bifează automat canalul telegram** (idempotent).
+- **`0910d18`** — `ChannelSelector.tsx`: card Telegram (icon Send); Facebook/Twitter retrase la „În curând" (nu livrau nimic pt readeri) dar rămân debifabile pt cine le avea; sumar doar pe canale care livrează; hint condiționat „Telegram devine activ după conectare" (finding /review).
+- **`5d57e22`** — **BUG PREEXISTENT găsit de walk-ul live** (nu de tsc): `User_Manager::update_preferences` făcea `UPDATE` fără upsert → salvarea din Setări era no-op silențios pentru userii fără rând de preferințe (creați via wp-cli/admin, ex. e2e-reader id 9). Fix: guard care creează rândul default înainte de update. Dovedit înainte/după pe live (FAIL→PASS persistență). → **L05**.
+- **`1266c6c`** — TODO + ledger: Telegram v2 marcat `[~]` (rămâne test E2E real după activarea botului) + **M6b: analiză Instagram/CAS** (livrare știri IG = imposibil fără API broadcast; bani direcți ≈0; valoarea = funnel + CAS; pas 0 zero-cod = activare FB posting existent dar neconfigurat pe prod; build-prompt IG Graph API complet în TODO).
+
+**Deploy**: backend `deploy.sh teinformez` (health 200/200) + frontend VPS-build (exit 0, PM2 restart curat). php -l curat pe 3 fișiere PHP, tsc EXIT=0.
+
+## Lessons Learned (sesiunea 2026-07-12)
+- **L05** — `UPDATE` fără upsert = salvare silent no-op pentru rândurile create în afara signup-ului aplicației (prins de walk live, nu de tsc). Detalii complete în `knowledge/lessons-learned.md`.
+
+---
 
 ## Current State (Sesiunile 2026-07-07 → 2026-07-10, mesh)
 

@@ -48,3 +48,18 @@
 **Prevention**: Logica de recuperare/watchdog trebuie ancorată într-un punct care rulează **independent** de componenta monitorizată (plugins_loaded / init / cron de sistem extern), niciodată în interiorul componentei pe care o monitorizează. Dacă „X se repară prin Y", iar Y rulează doar când X rulează → X nu se mai reface niciodată după ce cade.
 
 **Bonus** (mascat de bug): publisher-ul real e agentul `Chief_Editor` (pe hook-ul `teinformez_article_pending_review`), nu `auto_publish_expired`/`publish_approved` din docs — orice throttle de cadență trebuie să gate-ze Chief Editor. Lecție secundară: verifică CINE publică efectiv în runtime, nu ce zice documentația.
+
+## L05 — 2026-07-12 — UPDATE fără upsert = salvare silent no-op pentru rândurile create în afara signup-ului aplicației
+
+**Symptom**: Verificarea live (walk Playwright logat ca reader) a picat pe „preferințele persistă după reload" — deși UI-ul arăta salvare reușită, iar `tsc` era verde. Canalul Telegram bifat + „Salvează" → succes vizual, dar după reload revenea la starea veche.
+
+**Root cause**: `User_Manager::update_preferences()` folosea `$wpdb->update()` direct. Pentru userii FĂRĂ rând în `wp_teinformez_user_preferences` (creați via wp-cli / admin, NU prin signup-ul aplicației care apelează `create_default_preferences`), `UPDATE ... WHERE user_id=X` afectează 0 rânduri și întoarce `0` — pe care WordPress îl tratează ca „no rows changed", nu ca eroare. REST API-ul întorcea 200, frontend-ul afișa succes, baza rămânea goală. Contul de test (e2e-reader id 9) era exact un astfel de user → simptomul apărea doar pe conturile de test, nu pe userii reali (care au signup normal).
+
+**Fix**: guard de upsert în `update_preferences` — `SELECT COUNT(*)` pe `user_id`; dacă 0, apelează `create_default_preferences($user_id)` înainte de `UPDATE`. Idempotent, aditiv. (`class-user-manager.php`, commit `5d57e22`.)
+
+**Prevention**:
+1. Orice `UPDATE ... WHERE key=X` pe un rând care „ar trebui să existe" dar poate fi creat pe căi paralele (admin, wp-cli, import, SSO-provisioning) = candidat de upsert. `$wpdb->update` cu 0 rânduri afectate NU e eroare — nu te baza pe return-ul lui ca semnal de succes.
+2. **Lecția de proces (repetă memory `feedback-verify-against-user-goal-not-claims`)**: `tsc`/build verde + UI care zice „salvat" NU dovedesc persistența. Doar walk-ul pe output real (reload + citire DB directă) a prins-o. Verify = privește rezultatul real, nu claim-ul componentei.
+3. Conturile de test create manual (wp-cli) diferă subtil de userii reali (lipsesc rânduri satelit din signup) → un test care trece pe user real poate pica pe cont de test și invers. Merită aliniate la fluxul real de signup.
+
+**Cross-ref**: commit `5d57e22`; ledger `reports/DIRECT-CHANGES-2026-07.md` 2026-07-10 PM entry D; memory `feedback-verify-against-user-goal-not-claims`.
