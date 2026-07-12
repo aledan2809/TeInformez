@@ -1,5 +1,23 @@
 # Project Status — TeInformez
-Last Updated: 2026-07-12 (Telegram v2 telegram-only cadence + canal în UI + upsert prefs fix)
+Last Updated: 2026-07-12 (cont. — Telegram bot activat + FB posting ON + fix FK logging + CSP Report-Only + IG core + CAS-blocker)
+
+## Current State (Sesiunea 2026-07-12 cont., mesh — activare + fix + CSP + IG)
+
+**Continuare sesiune (regim mesh, RESTRICT). 7 commits TeInformez pe origin/master + 1 MA. Tot LIVE + verificat pe output real.**
+
+- **Item 1 — bot Telegram reader ACTIVAT** (config only, zero cod): @TeInformez_bot, 3 `wp option` + `setWebhook` (healthy). **E2E real verificat**: mint user 9 → user a apăsat Start → bind (`chat_id=8875047080`) + canal `telegram` auto-bifat în DB → digest telegram-only livrat (`SEND=OK`) → **confirmat vizual în inbox** (screenshot user). Restul din v2 = închis.
+- **Item 2 — FB posting ON** (`teinformez_social_posting_enabled=1`): reuse token Pagina TeInformez.eu din `Master/credentials/marketing-automation.env` (`FB_PAGE_ID=1139788592553322`, validat Graph — PAGE, `pages_manage_posts`, expires_at=0; caveat `data_access_expires_at` ~mid-aug 2026). Chei prefixate `teinformez_` (Config::get). Test: `post_on_publish` → postare live → copy curat → ștearsă imediat.
+- **Item 2b — BUG FK real fixat** (`145df20`): `log_social_post` insera `user_id=0` (platform post) dar coloana = NOT NULL + FK→wp_users → postările sociale ieșeau dar NU se logau. Fix `user_id 0→NULL` + activator CREATE nullable + prod ALTER (FK păstrat). `/review` clean. Re-verificat: log inserează acum (`status=sent`, post_id). → **L06**.
+- **Item 3 — repo `ai-router-service`** (`aledan2809`, privat): creat + push de pe VPS2 (`main`, `529faac`). SPOF :3100 are backup GitHub.
+- **CSP Report-Only LIVE** (`8062e43`, `frontend/next.config.js`): header pe toate rutele, origini curatoriate din runtime real, sink Sentry derivat din DSN (fără secret nou). Verificat live pe prod (header + report-uri corect). Enforce = după observare rapoarte.
+- **M6b Instagram publishing CORE LIVE (inert)** (`325d7a1`): `Social_Poster` + Graph API 2-pași (media→media_publish), caption+UTM, log `instagram_post`, retry extins; inert până la `teinformez_instagram_business_id` (user leagă cont IG Business + token cu `instagram_content_publish`).
+- **CAS-pe-social → BLOCAT pe MA** (`dfea241` + MA `eaf6fbd`): contractul CAS actual (`/api/cas/render`) întoarce HTML, nu {image_url,caption,link} de care are nevoie o postare socială. Zero cod speculativ; build-prompt detaliat scris în `MarketingAutomation/TODO_PERSISTENT.md`. → **L08**.
+- **Corecție onestă**: „știre pusă de 4×" (observat de user) = artefact de la testul MEU (digest din `news_archive` istoric cu duplicate); fluxul LIVE (`news_queue`) e curat. → **L07**.
+
+## Lessons Learned (sesiunea 2026-07-12 cont.)
+- **L06** — Rând platform-level într-un tabel cu FK pe `user_id`→users: folosește `NULL` (exceptat de FK), NU un sentinel `user_id=0` (0 nu există în users → FK-fail silent la insert). Prins doar prin execuție reală (instanță de L05).
+- **L07** — Igienă date de test: construiește artefactul de test din ACELAȘI tabel pe care-l folosește calea reală (aici `news_queue`, nu `news_archive` istoric) — altfel produci alarme false („duplicate bug") care nu există în prod.
+- **L08** — Reuse-boundary: o integrare „reutilizabilă" (CAS) poate să NU se potrivească pe un canal nou — `/api/cas/render` întoarce HTML, dar o postare socială cere `image_url`+`caption`+`link`. Cercetează forma contractului înainte de a presupune reuse; propune endpoint-ul lipsă în loc să parsezi HTML sau să scrii cod speculativ.
 
 ## Current State (Sesiunea 2026-07-12, mesh)
 

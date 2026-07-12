@@ -63,3 +63,41 @@
 3. Conturile de test create manual (wp-cli) diferă subtil de userii reali (lipsesc rânduri satelit din signup) → un test care trece pe user real poate pica pe cont de test și invers. Merită aliniate la fluxul real de signup.
 
 **Cross-ref**: commit `5d57e22`; ledger `reports/DIRECT-CHANGES-2026-07.md` 2026-07-10 PM entry D; memory `feedback-verify-against-user-goal-not-claims`.
+
+---
+
+## L06 — 2026-07-12 — Rând platform-level într-un tabel cu FK pe user_id: NULL, nu sentinel 0
+
+**Symptom**: La activarea FB posting, fiecare postare socială ieșea pe Facebook (Graph API 200 + post_id) dar `log_social_post` arunca `WordPress database error Cannot add or update a child row: a foreign key constraint fails (fk_delivery_log_user_id)`. Postările erau trimise dar NU se logau → fără audit trail, `retry_failed_posts` orb. Prins doar prin execuție reală (instanță de L05), nu de `tsc`/`php -l`.
+
+**Root cause**: `wp_teinformez_delivery_log.user_id` = `BIGINT NOT NULL` + FK → `wp_users(ID) ON DELETE CASCADE`. Postările platform-level (fără user) erau logate cu sentinel `user_id = 0`, dar user 0 nu există în `wp_users` → FK respinge insert-ul. Nefuncțional dintotdeauna — a ieșit la prima rulare reală (posting-ul social n-a fost activat pe prod până acum).
+
+**Fix**: `user_id 0 → null` în `log_social_post` (NULL e exceptat de la verificarea FK) + `ALTER TABLE ... MODIFY user_id BIGINT UNSIGNED NULL` pe prod (rânduri existente neatinse, FK păstrat) + CREATE TABLE din activator făcut nullable pt instalări noi. `/review`: safe — `retry_failed_posts` filtrează pe channel/status, nu user_id; niciun cititor pe `user_id=0`. (`class-social-poster.php` + `class-activator.php`, commit `145df20`.)
+
+**Anti-pattern**: NU refolosi un id-sentinel fals (0/-1) pentru rânduri „fără owner" într-un tabel cu FK — FK-ul îl respinge. Coloană nullable + FK (NULL exempt) e semantica corectă. Aceeași greșeală ar apărea în orice tabel user-scoped reutilizat pentru rânduri platform-level.
+
+**Cross-ref**: L05 (verify-real-output); commit `145df20`; ledger `reports/DIRECT-CHANGES-2026-07.md` 2026-07-12.
+
+---
+
+## L07 — 2026-07-12 — Igienă date de test: folosește ACELAȘI tabel ca produsul, nu unul „vecin"
+
+**Symptom**: Am trimis un digest Telegram de test construit din `wp_teinformez_news_archive` → userul a raportat corect „o știre pusă de 4 ori". A părut un bug de conținut în producție.
+
+**Root cause**: `news_archive` = tabel ISTORIC (ultima scriere acum ~o lună, ~53% titluri duplicate legacy). Fluxul REAL de digest (`get_news_for_user`) trage din `news_queue` (viu, publică la ~7h, 0 duplicate). Testul meu a lovit tabelul greșit → artefact de test, nu bug de prod.
+
+**Fix / lecție**: când construiești manual un artefact de verificare (digest de test, seed, fixture), trage din EXACT sursa pe care o folosește calea reală de cod. Altfel produci alarme false care costă timp de investigație și subminează încrederea. Verifică întâi ce tabel/endpoint folosește codul real (`get_news_for_user` → `news_queue`), apoi oglindește-l în test.
+
+**Cross-ref**: sesiunea 2026-07-12; ledger `reports/DIRECT-CHANGES-2026-07.md`.
+
+---
+
+## L08 — 2026-07-12 — Reuse-boundary: o piesă „reutilizabilă" nu se potrivește automat pe un canal nou
+
+**Symptom**: CAS-pe-social (postează creative CAS din MA pe FB/IG) părea un simplu reuse al integrării CAS existente (deja live pe newsletter). Nu e.
+
+**Root cause**: contractul CAS existent `GET {MA}/api/cas/render?slot=...` întoarce **HTML** (pentru embed în web/newsletter). O postare FB/IG are nevoie de câmpuri **separate**: `image_url` public (IG îl fetch-uiește server-side) + `caption` text + `link`. HTML-ul nu se poate folosi direct, iar parsarea lui = fragilă.
+
+**Fix / lecție**: înainte de a presupune că un modul „reutilizabil" acoperă un caz nou, cercetează FORMA contractului (ce întoarce, în ce shape), nu doar existența lui. Când forma nu se potrivește, propune endpoint-ul/adaptorul lipsă (aici: `GET /api/cas/social` → JSON) în TODO-ul proiectului sursă — NU scrie cod speculativ împotriva unui contract inexistent (untestabil, „fabricated requirements").
+
+**Cross-ref**: `class-cas-api.php` (contract HTML); build-prompt în `MarketingAutomation/TODO_PERSISTENT.md`; commit `dfea241`; memory `feedback-detailed-todo-reuse-prompt`.
