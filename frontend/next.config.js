@@ -14,14 +14,16 @@ function sentryDsnParts() {
   }
 }
 
-// Content-Security-Policy in Report-Only mode: observe violations, block
-// nothing. Origins curated from the real runtime — GA4 (gtag script +
-// beacons), Sentry ingest, WP media/API on 'self', arbitrary https images
-// (next/image remotePatterns). 'unsafe-inline' on script/style reflects
-// Next.js bootstrap + gtag-init; a nonce migration is out of scope for the
-// Report-Only observation phase. Reports go to the Sentry Security endpoint
-// when a DSN is set; otherwise the header ships without report-uri.
-function cspReportOnly() {
+// Content-Security-Policy in ENFORCING mode: violations are now blocked.
+// Flipped from Report-Only 2026-07-12 after a real-runtime observation walk
+// (29 page-loads: public + real articles + consented/authenticated dashboard,
+// GA4 actively beaconing) surfaced zero violations. Origins curated from the
+// real runtime — GA4 (gtag script + beacons), Sentry ingest, WP media/API on
+// 'self', arbitrary https images (next/image remotePatterns). 'unsafe-inline'
+// on script/style reflects Next.js bootstrap + gtag-init; a nonce migration is
+// out of scope. report-uri is retained in enforce mode so any block that slips
+// through is still reported to the Sentry Security endpoint (when a DSN is set).
+function cspPolicy() {
   const s = sentryDsnParts();
   const connect = [
     "'self'",
@@ -88,7 +90,7 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Permissions-Policy', value: 'geolocation=(), microphone=(), camera=()' },
-          { key: 'Content-Security-Policy-Report-Only', value: cspReportOnly() },
+          { key: 'Content-Security-Policy', value: cspPolicy() },
         ],
       },
       {
