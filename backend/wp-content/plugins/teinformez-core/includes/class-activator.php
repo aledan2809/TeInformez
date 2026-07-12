@@ -98,7 +98,7 @@ class Activator {
         $table_delivery = $wpdb->prefix . 'teinformez_delivery_log';
         $sql_delivery = "CREATE TABLE IF NOT EXISTS {$table_delivery} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-            user_id BIGINT(20) UNSIGNED NOT NULL,
+            user_id BIGINT(20) UNSIGNED NULL,
             news_id BIGINT(20) UNSIGNED NOT NULL,
             channel ENUM('email', 'facebook_post', 'twitter_post', 'instagram_post') DEFAULT 'email',
             status ENUM('pending', 'sent', 'failed', 'opened', 'clicked') DEFAULT 'pending',

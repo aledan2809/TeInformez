@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
 /**
  * Social Media Poster
  * Auto-posts published news to Facebook Page and Twitter/X.
- * Platform-level posting (user_id=0 in delivery_log).
+ * Platform-level posting (user_id=NULL in delivery_log — not tied to a WP user).
  */
 class Social_Poster {
 
@@ -215,7 +215,7 @@ class Social_Poster {
         $table = $wpdb->prefix . 'teinformez_delivery_log';
 
         $wpdb->insert($table, [
-            'user_id'       => 0, // Platform-level post
+            'user_id'       => null, // Platform-level post (no WP user; NULL is exempt from the user_id FK)
             'news_id'       => $news_id,
             'channel'       => $channel,
             'status'        => $status,
