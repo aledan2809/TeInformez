@@ -1,5 +1,57 @@
 const { withSentryConfig } = require('@sentry/nextjs');
 
+// Parse the already-wired Sentry DSN once — reused for the CSP connect-src
+// ingest origin AND the CSP report sink (no new secret/host hardcoded).
+function sentryDsnParts() {
+  const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN || '';
+  try {
+    const u = new URL(dsn);
+    const projectId = u.pathname.replace(/^\//, '');
+    if (!u.username || !projectId) return null;
+    return { host: u.host, protocol: u.protocol, projectId, key: u.username };
+  } catch {
+    return null;
+  }
+}
+
+// Content-Security-Policy in Report-Only mode: observe violations, block
+// nothing. Origins curated from the real runtime — GA4 (gtag script +
+// beacons), Sentry ingest, WP media/API on 'self', arbitrary https images
+// (next/image remotePatterns). 'unsafe-inline' on script/style reflects
+// Next.js bootstrap + gtag-init; a nonce migration is out of scope for the
+// Report-Only observation phase. Reports go to the Sentry Security endpoint
+// when a DSN is set; otherwise the header ships without report-uri.
+function cspReportOnly() {
+  const s = sentryDsnParts();
+  const connect = [
+    "'self'",
+    'https://www.google-analytics.com',
+    'https://*.google-analytics.com',
+    'https://*.analytics.google.com',
+    'https://www.googletagmanager.com',
+  ];
+  if (s) connect.push(`https://${s.host}`);
+  const directives = [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'self'",
+    "form-action 'self'",
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    `connect-src ${connect.join(' ')}`,
+    "worker-src 'self'",
+    "manifest-src 'self'",
+    "frame-src 'self'",
+  ];
+  if (s) {
+    directives.push(`report-uri ${s.protocol}//${s.host}/api/${s.projectId}/security/?sentry_key=${s.key}`);
+  }
+  return directives.join('; ') + ';';
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
@@ -36,6 +88,7 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Permissions-Policy', value: 'geolocation=(), microphone=(), camera=()' },
+          { key: 'Content-Security-Policy-Report-Only', value: cspReportOnly() },
         ],
       },
       {
