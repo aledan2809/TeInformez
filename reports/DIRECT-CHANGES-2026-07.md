@@ -183,3 +183,9 @@ Deploy: build+rsync+restart, PM2 stabil 0 unstable, :3002 200. tsc EXIT=0.
 **Item 3 — repo `ai-router-service`**: creat privat `aledan2809/ai-router-service` + push de pe VPS2 (`main`, commit `529faac`). SPOF :3100 acum are backup versionat GitHub.
 
 **Corecție onestă**: „știre pusă de 4×" observată de user = artefact de la testul MEU (digest construit din `news_archive` = tabel istoric cu ~53% duplicate legacy). Fluxul LIVE (`news_queue`) e curat (89/89 titluri distincte, publică azi ~7h cadență) → digestul real al userilor NU are duplicate. Dups din `news_archive` = date legacy, prioritate mică.
+
+---
+
+## 2026-07-12 (cont.) — CSP Report-Only (rest GDPR)
+
+**`8062e43` — `frontend/next.config.js`**: header `Content-Security-Policy-Report-Only` pe `/:path*`. Origini curatoriate din runtime REAL (citite din cod, nu ghicite): script `self`+`unsafe-inline`+googletagmanager; connect `self`+GA(`www`+`*.google-analytics.com`+`*.analytics.google.com`+googletagmanager)+Sentry-ingest; img `self data: blob: https:` (remotePatterns=`https://**`); font `self` (next/font self-hosted); worker/manifest/frame `self`; `frame-ancestors 'self'` (aliniat X-Frame-Options); YouTube = doar link-uri, fără iframe. `unsafe-inline` pe script/style = necesar (Next.js bootstrap + gtag-init inline); migrarea pe nonce = out-of-scope pt faza de observare. **Sink = Sentry**: helper `sentryDsnParts()` derivă host-ul ingest (connect-src) + endpoint-ul `/security/?sentry_key=` (report-uri) din `NEXT_PUBLIC_SENTRY_DSN` existent — zero secret/host hardcodat; fără DSN → header fără report-uri (graceful). `node --check` OK + logica testată (cu/fără DSN). **Report-Only = zero blocare** (safe pe prod). Deploy frontend (build pe VPS, exit 0, 53 pagini, pm2 restart curat). **Verificat live**: `curl -sI teinformez.eu` → 200 + header complet + report-uri corect spre Sentry. **Rămas enforce**: după observare rapoarte în Sentry → `Content-Security-Policy` blocking când e curat.
