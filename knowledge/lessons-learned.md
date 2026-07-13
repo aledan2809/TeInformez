@@ -101,3 +101,15 @@
 **Fix / lecție**: înainte de a presupune că un modul „reutilizabil" acoperă un caz nou, cercetează FORMA contractului (ce întoarce, în ce shape), nu doar existența lui. Când forma nu se potrivește, propune endpoint-ul/adaptorul lipsă (aici: `GET /api/cas/social` → JSON) în TODO-ul proiectului sursă — NU scrie cod speculativ împotriva unui contract inexistent (untestabil, „fabricated requirements").
 
 **Cross-ref**: `class-cas-api.php` (contract HTML); build-prompt în `MarketingAutomation/TODO_PERSISTENT.md`; commit `dfea241`; memory `feedback-detailed-todo-reuse-prompt`.
+
+---
+
+## L09 — 2026-07-13 — Observă violările CSP Report-Only direct în browser, nu aștepta Sentry
+
+**Symptom**: decizia „CSP Report-Only → enforce" era gate-uită pe „observare rapoarte în Sentry", dar aveam doar DSN-ul (fără `SENTRY_AUTH_TOKEN`) → nu puteam interoga Sentry API pentru violări. Aparent blocat până apar date longitudinale.
+
+**Root cause / insight**: rapoartele CSP nu trăiesc DOAR în Sentry. Browser-ul emite evenimente DOM `securitypolicyviolation` pentru fiecare violare — **inclusiv în Report-Only** (`disposition: "report"`) — cu `effectiveDirective` + `blockedURI`. Un walk headless (Playwright, `addInitScript` cu listener pe `document` → array global citit după `networkidle`) peste paginile prod reale colectează exact ce s-ar bloca la enforce. E output real (nu tsc, nu presupuneri).
+
+**Fix / metodă (reutilizabilă pe orice proiect cu CSP Report-Only)**: (1) walk publice + articole reale (id-uri din API) + **consimțit + autentificat** (cookie sesiune + `localStorage` consent='accepted' ca să se încarce efectiv GA/third-party — altfel originile din policy NU-s exercitate); confirmă că GA chiar a încărcat (`window.gtag`/`dataLayer`). (2) Static: scanează corpurile de conținut pentru `<iframe>`/`<script>`/embed + verifică cum se randează câmpuri media (ex: `youtube_url` = `<a href>` link, NU iframe → zero risc `frame-src`) + confirmă că nu există SDK third-party client-side (Stripe redirect-only = fără `stripe.js`). (3) După flip, **re-walk live sub enforce** (`disposition` acum „enforce") ca dovadă că nimic nu se blochează. Caveat onest: crawl point-in-time ≠ date multi-browser/longitudinale → păstrează `report-uri` activ și în enforce; rollback = 1 linie (redenumește header key înapoi).
+
+**Cross-ref**: `frontend/next.config.js` (`cspPolicy()` + `report-uri`); commit `418cd30`; ledger `reports/DIRECT-CHANGES-2026-07.md` (secțiunea CSP enforce); memory `feedback-verify-against-user-goal-not-claims`.
