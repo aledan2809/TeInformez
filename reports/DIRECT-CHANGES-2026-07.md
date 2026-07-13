@@ -267,3 +267,21 @@ Cerut de user după M6b IG core. Research în cod (`class-cas-api.php` + `class-
 **Verificare (pe output real, nu tsc-only)**: tsc 0 erori; build local + **build VPS webpack heap-4096 exit 0** (clean `rm -rf node_modules`), standalone non-nested confirmat. Deploy gated pe `[ -f .next/standalone/server.js ]` → cp static+public → rsync → pm2 restart curat. **LIVE post-deploy**: 7 pagini SSR 200 (public+articol+dashboard+API route); **browser real** homepage = randează+hidratează (10 articole client-fetched, 12 iconițe lucide-react, 17 butoane client, 7 chunk-uri Next16, readyState complete); **console 0 erori** pe homepage/articol/register; **re-walk CSP sub enforce = 0 violări** pe 3 tipuri de pagină (CSP header neatins). react-hook-form + formular randează curat sub React 19.
 
 **Rămas (follow-on, non-blocker)**: (1) `eslint-config-next`→16 + eslint 8→9 flat-config migration (tooling `next lint`, deferat); (2) trecere `next build` webpack→**Turbopack** (Sentry 10.x auto-detectează; unele opțiuni `withSentryConfig` devin no-op — de mutat `sentry.*.config.ts`→`instrumentation-client.ts` per deprecation warning); (3) opțional bump framer-motion→12/zustand→5 (deja React-19-ready pe versiunile curente). **Rollback**: `git revert 96faf70 580b5ed` + `git checkout -- frontend/package-lock.json` pe VPS + clean install + rebuild.
+
+---
+
+## 2026-07-13 (cont.) — CAS-06: atribuire signup via utm_content end-to-end (`7202fb1`)
+
+**Finding (cod înaintea docs)**: item-ul TODO CAS-06 zicea „emitter TeInformez deferred", dar `MA_Emitter` era **deja construit + activ** (cron 5-min `teinformez_emit_to_ma`, batch+cursor, wired `teinformez-core.php:147`+`:236`) — emite `TEINFORMEZ_USER_REGISTERED` + newsletter + article events. MA receiver-ul (`ma.techbiz.ae/api/external/teinformez/events`) autentifică cu **`X-Webhook-Secret`** (nu `X-Internal-Key` cum zicea TODO) și **atribuie pe `event.utm_content` = trackingCode** matchuit vs `LaunchPlanAction.trackingCode`.
+
+**Gap real**: `utm_content` (trackingCode-ul din click-ul CAS) era **scăpat pe tot lanțul de signup** → fiecare `USER_REGISTERED` ajungea la MA dar `SKIPPED` (neatribuit). Cauze: `lib/utm.ts` captează doar source/medium/campaign; register forward doar 3 utm; `class-auth-api.php` stochează usermeta doar source/medium/campaign; emitter-ul nu citea usermeta pe USER_REGISTERED.
+
+**Fix (aditiv, 6 fișiere, RESTRICT propose-confirm, user „da aplica")**:
+- `frontend/lib/utm.ts`: captează `utm_content` din URL (+`UTMData`).
+- `frontend/types RegisterData` + `authStore.register` type + `register/page.tsx`: forward `utm_content`.
+- `backend/class-auth-api.php`: persistă `teinformez_utm_content` usermeta la signup (oglindă a scrierilor utm_source/medium/campaign existente).
+- `backend/class-ma-emitter.php`: `LEFT JOIN wp_usermeta` pe `teinformez_utm_content` + include `utm_content` pe evenimentul `TEINFORMEZ_USER_REGISTERED` când există. (cheia `ID` păstrată → cursor + is_test_user neafectate; `update_user_meta` = un rând/user → zero duplicare la JOIN.)
+
+**Verificare pe output real**: tsc 0, `php -l` clean pe ambele. Deploy: backend `deploy.sh teinformez` (WordPress+REST 200/200) + frontend rebuild VPS (exit 0, server.js, pm2 restart curat). **E2E pe prod (user test `.example.com` → is_test → emitter NU postează la MA)**: `POST /wp-json/teinformez/v1/auth/register` cu `utm_content=CAS06_TRACK_TEST` → **HTTP 201** → `wp user meta get teinformez_utm_content` = **`CAS06_TRACK_TEST`** → query-ul JOIN al emitter-ului întoarce `utm_content=CAS06_TRACK_TEST` pe eveniment. Test user șters + confirmat (L07). **Neexercitat direct**: match-ul final de atribuire în MA (cere un `LaunchPlanAction.trackingCode` real = un click CAS live → signup real; mecanismul e probat la fiecare strat, receiver-ul MA cheiază pe utm_content verificat în cod).
+
+**Notă**: `NEWSLETTER_SUBSCRIBED` are aceeași limitare (query-ul lui selectează utm_source/medium/campaign, nu utm_content) → dacă se vrea atribuirea abonărilor la newsletter din click CAS, e un fix analog separat (out-of-scope CAS-06 = signup).
