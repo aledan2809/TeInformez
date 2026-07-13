@@ -245,3 +245,25 @@ Cerut de user după M6b IG core. Research în cod (`class-cas-api.php` + `class-
 **Verificare**: `tsc --noEmit` exit 0. **Build PE VPS** (recipe frontend + `npm install` adăugat — recipe-ul standard nu-l avea → altfel VPS build-uia cu lucide vechi) exit 0, toate rutele compilate inclusiv `/onboarding` (webpack rezolvă `import {Facebook,Twitter,Instagram}` → ar fi picat dacă lipseau). Deploy: cp static+public → rsync → pm2 restart curat (uptime fresh). **Post-deploy LIVE**: /, /onboarding, /register, /reset-password = 200; logo lucide (Newspaper) randează în browser real; CSP header tot enforce (neatins). Brand-icons verificate la nivel build (SVG pure — build resolve = render garantat); `ChannelSelector` e auth-gated → n-am forțat login pe user test (evit mutare stare onboarding). `/review` (low): pur bump de versiune, 0 findings.
 
 **Impact**: zero vizibil. Scade cu 1 necunoscută saltul viitor React 19 (lucide nu mai dă peer-mismatch). **Rollback**: `git revert 2f5cbbe` + `npm install` + rebuild. **Notă deploy**: bump-urile de dep pe frontend cer `npm install` în recipe (nu e default).
+
+---
+
+## 2026-07-13 (cont.) — Upgrade Next 14→16 + React 18→19 (LIVE, `580b5ed`+`96faf70`)
+
+**Context**: saltul mare din item-ul TODO „next@16", executat în aceeași sesiune ca de-risc-ul lucide (decizie user: „continua acum Next 15+16 + React 19 împreună"). **Motivare structură**: Next 15 App Router are React 19 cerință dură → 14→15→16 + React 18→19 = **un singur salt combinat** (nu se pot separa). Făcut în 2 hop-uri verificate conceptual (recon 14→15 = ~zero cod; apoi 16+React19), deploy într-un singur ciclu.
+
+**Recon confirmase risc mic**: cod forward-compat (async params gata, `next:{revalidate}` explicit peste tot, `next.config.js` curat) + **0 pattern-uri React-19-breaking** (0 string-refs, 0 forwardRef, 0 ReactDOM.render/PropTypes/defaultProps/useFormState). Node VPS v22 ≥ Next16 (`>=20.9`). Sentry 10.x peer include deja `^16`.
+
+**Modificări (`580b5ed`)**:
+- `next 14→16.2.10`, `react`/`react-dom 18→19.2.7`, `@types/react(-dom) 19`, `@sentry/nextjs 10.52→10.65`.
+- `eslint-config-next` **rămas ^14** (16 cere eslint 9 flat-config — tooling dev, nu în build path; deferat, evit scope creep).
+- Build pin `next build --webpack` — **același bundler ca Next 14** (izolează saltul framework/React de trecerea la Turbopack, care e default în 16). Trecere Turbopack = pas separat viitor.
+- `.npmrc legacy-peer-deps=true` — `@projects/stripe-module` (vendored) declară `peerOptional next "^14||^15"` (pachetat pre-16) → fresh install strict hard-fail. legacy-peer-deps tolerează (consistent ecosistem). Efect secundar: oprește auto-instalarea peers → am declarat explicit `@stripe/react-stripe-js ^3` + `@stripe/stripe-js ^5` (rezolvă importul lui PaymentForm din barrel = cod mort în TeInformez, Stripe doar server-side, tree-shaken).
+- `NewsListClient`: `useRef<T>()` → `useRef<T|undefined>(undefined)` — singurul type-break React 19. Identic comportamental.
+- `next-env.d.ts`+`tsconfig.json`: auto Next 16 (typed-routes ref, `jsx preserve→react-jsx` pt runtime automat React 19).
+
+**Fix `96faf70` (`next.config.js`)**: `outputFileTracingRoot: __dirname` — pe VPS, un `package-lock.json` stray la rădăcina repo-ului făcea Next 16 să infereze workspace-root monorepo → nesta standalone la `.next/standalone/frontend/server.js` (rupea deploy-ul: rsync+pm2 așteaptă calea non-nested). Pin determinist → mereu `.next/standalone/server.js`. (Deploy gotcha adiacent, lecția RPA-Hub: `npm install` de la deploy-ul lucide murdărise `package-lock.json` pe VPS → `git pull` abort silent, HEAD blocat → fix `git checkout -- frontend/package-lock.json` înainte de pull.)
+
+**Verificare (pe output real, nu tsc-only)**: tsc 0 erori; build local + **build VPS webpack heap-4096 exit 0** (clean `rm -rf node_modules`), standalone non-nested confirmat. Deploy gated pe `[ -f .next/standalone/server.js ]` → cp static+public → rsync → pm2 restart curat. **LIVE post-deploy**: 7 pagini SSR 200 (public+articol+dashboard+API route); **browser real** homepage = randează+hidratează (10 articole client-fetched, 12 iconițe lucide-react, 17 butoane client, 7 chunk-uri Next16, readyState complete); **console 0 erori** pe homepage/articol/register; **re-walk CSP sub enforce = 0 violări** pe 3 tipuri de pagină (CSP header neatins). react-hook-form + formular randează curat sub React 19.
+
+**Rămas (follow-on, non-blocker)**: (1) `eslint-config-next`→16 + eslint 8→9 flat-config migration (tooling `next lint`, deferat); (2) trecere `next build` webpack→**Turbopack** (Sentry 10.x auto-detectează; unele opțiuni `withSentryConfig` devin no-op — de mutat `sentry.*.config.ts`→`instrumentation-client.ts` per deprecation warning); (3) opțional bump framer-motion→12/zustand→5 (deja React-19-ready pe versiunile curente). **Rollback**: `git revert 96faf70 580b5ed` + `git checkout -- frontend/package-lock.json` pe VPS + clean install + rebuild.
