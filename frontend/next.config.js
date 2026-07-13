@@ -57,6 +57,12 @@ function cspPolicy() {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  // Pin the file-tracing root to this frontend dir so `output: standalone`
+  // always emits at .next/standalone/server.js (non-nested). Next 16 otherwise
+  // infers a monorepo workspace root when a stray lockfile exists above this
+  // dir, nesting the output under .next/standalone/frontend/ and breaking the
+  // deploy (rsync + pm2 expect the non-nested path).
+  outputFileTracingRoot: __dirname,
   reactStrictMode: true,
   images: {
     formats: ['image/avif', 'image/webp'],
