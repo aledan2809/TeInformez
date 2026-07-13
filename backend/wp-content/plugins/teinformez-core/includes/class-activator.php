@@ -216,7 +216,7 @@ class Activator {
 
             PRIMARY KEY (id),
             KEY status (status),
-            KEY original_url (original_url(191)),
+            UNIQUE KEY uq_archive_url (original_url),
             KEY published_at (published_at),
             KEY archived_at (archived_at)
         ) {$charset_collate};";

@@ -422,9 +422,14 @@ class News_Publisher {
 
         $cutoff = date('Y-m-d H:i:s', strtotime("-{$days} days"));
 
-        // Archive published articles older than $days
+        // Archive published articles older than $days.
+        // INSERT IGNORE + UNIQUE(original_url) on the archive prevents re-archiving
+        // a URL that was already archived (a re-fetched/re-published article aging
+        // out again) — the source of ~43% duplicate rows cleaned up 2026-07-13.
+        // The queue row is still deleted below regardless (its URL is safely in the
+        // archive), so no article is lost.
         $archived = $wpdb->query($wpdb->prepare(
-            "INSERT INTO {$archive}
+            "INSERT IGNORE INTO {$archive}
                 (original_url, original_title, original_content, original_language,
                  source_name, source_type, processed_title, processed_summary,
                  processed_content, target_language, ai_generated_image_url, youtube_embed,
