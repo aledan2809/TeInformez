@@ -73,10 +73,15 @@ class MA_Emitter {
         do {
             $cursor = self::get_cursor_id('users');
 
+            // LEFT JOIN usermeta to carry the CAS trackingCode (utm_content) captured
+            // at signup — MA attributes the registration to a LaunchPlanAction on match.
             $rows = $wpdb->get_results($wpdb->prepare(
-                "SELECT ID, user_email, user_registered FROM {$wpdb->users}
-                 WHERE ID > %d
-                 ORDER BY ID ASC
+                "SELECT u.ID, u.user_email, u.user_registered, um.meta_value AS utm_content
+                 FROM {$wpdb->users} u
+                 LEFT JOIN {$wpdb->usermeta} um
+                   ON um.user_id = u.ID AND um.meta_key = 'teinformez_utm_content'
+                 WHERE u.ID > %d
+                 ORDER BY u.ID ASC
                  LIMIT %d",
                 $cursor,
                 self::BATCH_LIMIT
@@ -92,12 +97,16 @@ class MA_Emitter {
                 if (class_exists('TeInformez\\User_Helper') && \TeInformez\User_Helper::is_test_user((int) $row['ID'])) {
                     continue;
                 }
-                $events[] = [
+                $event = [
                     'event_type'  => 'TEINFORMEZ_USER_REGISTERED',
                     'occurred_at' => self::to_iso($row['user_registered']),
                     'user_id'     => (int) $row['ID'],
                     'email'       => $row['user_email'],
                 ];
+                if (!empty($row['utm_content'])) {
+                    $event['utm_content'] = (string) $row['utm_content'];
+                }
+                $events[] = $event;
             }
 
             $last = end($rows);

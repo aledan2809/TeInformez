@@ -51,6 +51,7 @@ export default function RegisterPage() {
         utm_source: utm?.utm_source,
         utm_medium: utm?.utm_medium,
         utm_campaign: utm?.utm_campaign,
+        utm_content: utm?.utm_content,
       });
 
       gtagEvent('register', { method: 'email', utm_source: utm?.utm_source });

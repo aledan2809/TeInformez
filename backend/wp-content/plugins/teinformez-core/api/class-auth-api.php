@@ -166,6 +166,11 @@ class Auth_API extends REST_API {
         if (!empty($params['utm_campaign'])) {
             update_user_meta($user_id, 'teinformez_utm_campaign', sanitize_text_field($params['utm_campaign']));
         }
+        // utm_content carries the CAS trackingCode → MA attributes the signup to a
+        // LaunchPlanAction when the emitter forwards it on TEINFORMEZ_USER_REGISTERED.
+        if (!empty($params['utm_content'])) {
+            update_user_meta($user_id, 'teinformez_utm_content', sanitize_text_field($params['utm_content']));
+        }
 
         // Schedule D+1 welcome email — fires 24h after registration
         // Callback checks for article engagement and skips if user is already active

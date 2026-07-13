@@ -28,6 +28,7 @@ interface AuthState {
     utm_source?: string;
     utm_medium?: string;
     utm_campaign?: string;
+    utm_content?: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
   fetchUser: () => Promise<void>;

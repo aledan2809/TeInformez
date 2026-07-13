@@ -4,6 +4,7 @@ export interface UTMData {
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;
+  utm_content?: string;
 }
 
 /** Call on first page load to capture UTM params from URL → localStorage. */
@@ -14,12 +15,15 @@ export function captureUTM(): void {
   const source = params.get('utm_source');
   const medium = params.get('utm_medium');
   const campaign = params.get('utm_campaign');
+  // utm_content carries the CAS trackingCode → needed for MA signup attribution.
+  const content = params.get('utm_content');
 
-  if (source || medium || campaign) {
+  if (source || medium || campaign || content) {
     const data: UTMData = {};
     if (source) data.utm_source = source;
     if (medium) data.utm_medium = medium;
     if (campaign) data.utm_campaign = campaign;
+    if (content) data.utm_content = content;
     try {
       localStorage.setItem(UTM_KEY, JSON.stringify(data));
     } catch {
