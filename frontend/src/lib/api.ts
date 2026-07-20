@@ -7,6 +7,7 @@ import type {
   AuthResponse,
   APIResponse,
   UserPreferences,
+  Referral,
   Subscription,
   SubscriptionStats,
   Categories,
@@ -226,6 +227,11 @@ class ApiClient {
   async getPreferences(): Promise<UserPreferences> {
     const response = await this.client.get<APIResponse<{ preferences: UserPreferences }>>('/user/preferences');
     return response.data.data!.preferences;
+  }
+
+  async getReferral(): Promise<Referral> {
+    const response = await this.client.get<APIResponse<{ referral: Referral }>>('/user/referral');
+    return response.data.data!.referral;
   }
 
   async updatePreferences(data: Partial<UserPreferences>): Promise<UserPreferences> {

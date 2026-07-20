@@ -169,6 +169,15 @@ export interface RegisterData {
   utm_medium?: string;
   utm_campaign?: string;
   utm_content?: string;
+  ref?: string;
+}
+
+export interface Referral {
+  code: string;
+  referred: number;
+  reward_days: number;
+  cap_days: number;
+  granted_until: string | null;
 }
 
 export interface AuthResponse {

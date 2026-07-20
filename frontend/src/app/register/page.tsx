@@ -8,6 +8,7 @@ import { Newspaper, Loader2, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { gtagEvent } from '@/lib/gtag';
 import { captureUTM, getStoredUTM, clearUTM } from '@/lib/utm';
+import { captureRef, getStoredRef, clearRef } from '@/lib/ref';
 
 interface RegisterForm {
   email: string;
@@ -34,6 +35,7 @@ export default function RegisterPage() {
   // Capture UTM params from current URL on mount
   useEffect(() => {
     captureUTM();
+    captureRef();
   }, []);
 
   const onSubmit = async (data: RegisterForm) => {
@@ -52,10 +54,12 @@ export default function RegisterPage() {
         utm_medium: utm?.utm_medium,
         utm_campaign: utm?.utm_campaign,
         utm_content: utm?.utm_content,
+        ref: getStoredRef() ?? undefined,
       });
 
       gtagEvent('register', { method: 'email', utm_source: utm?.utm_source });
       clearUTM();
+      clearRef();
       router.push('/onboarding');
     } catch (err) {
       // Error is handled by store
