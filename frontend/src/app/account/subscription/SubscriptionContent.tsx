@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Check, Zap, Calendar, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import PremiumWelcome from '@/components/PremiumWelcome';
 
 interface SubscriptionStatus {
   tier: 'free' | 'premium';
@@ -99,17 +100,7 @@ export default function SubscriptionContent() {
           Abonamentul meu
         </h1>
 
-        {checkoutSuccess && (
-          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-start gap-3">
-            <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-green-700 dark:text-green-300 font-medium text-sm">Plată procesată cu succes!</p>
-              <p className="text-green-600 dark:text-green-400 text-xs mt-1">
-                Abonamentul tău Premium este acum activ. Bucură-te de toate funcționalitățile.
-              </p>
-            </div>
-          </div>
-        )}
+        {checkoutSuccess && <PremiumWelcome />}
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-3">
