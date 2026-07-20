@@ -294,6 +294,22 @@ class Activator {
             KEY status (status)
         ) {$charset_collate};";
 
+        // M5 referral tracking — one row per referred user (UNIQUE enforces single reward).
+        $table_referrals = $wpdb->prefix . 'teinformez_referrals';
+        $sql_referrals = "CREATE TABLE IF NOT EXISTS {$table_referrals} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            referrer_user_id BIGINT(20) UNSIGNED NOT NULL,
+            referred_user_id BIGINT(20) UNSIGNED NOT NULL,
+            referred_email VARCHAR(200) DEFAULT NULL,
+            referral_code VARCHAR(32) DEFAULT NULL,
+            rewarded TINYINT(1) NOT NULL DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY referred_user_id (referred_user_id),
+            KEY referrer_user_id (referrer_user_id),
+            KEY referral_code (referral_code)
+        ) {$charset_collate};";
+
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql_preferences);
         dbDelta($sql_subscriptions);
@@ -307,6 +323,7 @@ class Activator {
         dbDelta($sql_bookmarks);
         dbDelta($sql_visitor_events);
         dbDelta($sql_stripe);
+        dbDelta($sql_referrals);
 
         // Run migrations for existing installations
         self::run_migrations();

@@ -59,22 +59,36 @@ class Stripe_API extends REST_API {
             $user_id
         ));
 
-        if (!$row) {
+        // Paid (Stripe) Premium takes precedence.
+        if ($row && in_array($row->status, ['active', 'trialing'], true)) {
             return rest_ensure_response([
-                'tier'               => 'free',
-                'status'             => 'none',
-                'current_period_end' => null,
-                'cancel_at_period_end' => false,
+                'tier'                 => $row->tier,
+                'status'               => $row->status,
+                'current_period_end'   => $row->current_period_end,
+                'cancel_at_period_end' => (bool) $row->cancel_at_period_end,
             ]);
         }
 
-        $is_active = in_array($row->status, ['active', 'trialing'], true);
+        // Complimentary (M5 referral-granted) Premium — separate from Stripe, auto-expires.
+        if (class_exists('TeInformez\\Referral_Manager')) {
+            $granted = \TeInformez\Referral_Manager::granted_until($user_id);
+            if ($granted !== null) {
+                return rest_ensure_response([
+                    'tier'                 => 'premium',
+                    'status'               => 'granted',
+                    'current_period_end'   => $granted,
+                    'cancel_at_period_end' => false,
+                    'source'               => 'referral',
+                ]);
+            }
+        }
 
+        // Free (preserve any lapsed-Stripe details for the UI).
         return rest_ensure_response([
-            'tier'               => $is_active ? $row->tier : 'free',
-            'status'             => $row->status,
-            'current_period_end' => $row->current_period_end,
-            'cancel_at_period_end' => (bool) $row->cancel_at_period_end,
+            'tier'                 => 'free',
+            'status'               => $row ? $row->status : 'none',
+            'current_period_end'   => $row ? $row->current_period_end : null,
+            'cancel_at_period_end' => $row ? (bool) $row->cancel_at_period_end : false,
         ]);
     }
 

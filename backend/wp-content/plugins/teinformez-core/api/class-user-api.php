@@ -82,6 +82,13 @@ class User_API extends REST_API {
             'permission_callback' => [$this, 'is_authenticated']
         ]);
 
+        // M5 referral: personal invite code + stats
+        register_rest_route($this->namespace, '/user/referral', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_referral'],
+            'permission_callback' => [$this, 'is_authenticated']
+        ]);
+
         // Export user data (GDPR)
         register_rest_route($this->namespace, '/user/export', [
             'methods' => 'GET',
@@ -337,6 +344,15 @@ class User_API extends REST_API {
         $stats = $sub_manager->get_user_stats($user_id);
 
         return $this->success(['stats' => $stats]);
+    }
+
+    /** M5 referral: the user's personal invite code + reward stats. */
+    public function get_referral($request) {
+        $user_id = $this->get_current_user_id();
+        if (!class_exists('TeInformez\\Referral_Manager')) {
+            return $this->error(__('Referral module unavailable.', 'teinformez'), 'unavailable', 500);
+        }
+        return $this->success(['referral' => \TeInformez\Referral_Manager::get_stats((int) $user_id)]);
     }
 
     /**

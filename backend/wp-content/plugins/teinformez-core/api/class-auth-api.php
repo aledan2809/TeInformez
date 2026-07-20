@@ -172,6 +172,16 @@ class Auth_API extends REST_API {
             update_user_meta($user_id, 'teinformez_utm_content', sanitize_text_field($params['utm_content']));
         }
 
+        // M5 referral: signup via an invite link → grant complimentary Premium to
+        // both the referrer and this new user (Referral_Manager applies all guards).
+        if (!empty($params['ref']) && class_exists('TeInformez\\Referral_Manager')) {
+            \TeInformez\Referral_Manager::process_referral(
+                $user_id,
+                sanitize_email($params['email'] ?? ''),
+                sanitize_text_field($params['ref'])
+            );
+        }
+
         // Schedule D+1 welcome email — fires 24h after registration
         // Callback checks for article engagement and skips if user is already active
         wp_schedule_single_event(time() + DAY_IN_SECONDS, 'teinformez_welcome_d1_email', [$user_id]);
