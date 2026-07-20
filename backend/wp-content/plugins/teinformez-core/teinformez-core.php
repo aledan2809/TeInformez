@@ -73,6 +73,7 @@ function teinformez_init() {
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-user-manager.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-subscription-manager.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-referral-manager.php';
+    require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-churn-mailer.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-gdpr-handler.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-email-sender.php';
     require_once TEINFORMEZ_PLUGIN_DIR . 'includes/class-ma-client.php';
@@ -168,6 +169,7 @@ function teinformez_ensure_crons() {
         'teinformez_process_news'          => 'every_30_minutes',
         'teinformez_check_deliveries'      => 'every_15_minutes',
         'teinformez_check_delivery_health' => 'every_15_minutes',
+        'teinformez_churn_check'           => 'daily',
     );
     foreach ($crons as $hook => $recurrence) {
         if (!wp_next_scheduled($hook)) {
@@ -235,6 +237,10 @@ add_action('teinformez_check_delivery_health', function() {
 
 add_action('teinformez_emit_to_ma', function() {
     TeInformez\MA_Emitter::run();
+});
+
+add_action('teinformez_churn_check', function() {
+    TeInformez\Churn_Mailer::run();
 });
 
 add_action('teinformez_daily_cleanup', function() {

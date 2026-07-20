@@ -229,6 +229,64 @@ class Email_Sender {
     }
 
     /**
+     * OP-01 churn reminder — sent ~3 days before a Premium access window ends
+     * (a canceled Stripe subscription, or a referral-granted complimentary period).
+     * $expiry is 'Y-m-d H:i:s' (UTC). $promo_code is optional (empty = no code line).
+     */
+    public function send_churn_reminder($user_email, $user_name, $expiry, $renew_url, $promo_code = '', $kind = 'stripe') {
+        $frontend_url = Config::get('frontend_url', Config::FRONTEND_URL);
+        $renew_url    = $renew_url ?: ($frontend_url . '/subscribe');
+
+        $ts   = strtotime($expiry . ' UTC');
+        $when = $ts ? wp_date('j F Y', $ts) : '';
+        $when_html = $when ? '<strong>' . esc_html($when) . '</strong>' : 'în curând';
+
+        $subject = 'Premium-ul tău TeInformez expiră curând';
+        $lead = ($kind === 'granted')
+            ? 'Perioada ta de Premium gratuit se apropie de final'
+            : 'Abonamentul tău Premium se apropie de final';
+
+        $promo_html = '';
+        if (!empty($promo_code)) {
+            $promo_html = '
+        <div style="background:#eff6ff;border:1px dashed #93c5fd;border-radius:8px;padding:14px;text-align:center;margin:18px 0;">
+            <p style="margin:0 0 4px;font-size:13px;color:#1e40af;">Reînnoiește azi și primești <strong>10% reducere</strong> cu codul:</p>
+            <p style="margin:0;font-size:20px;font-weight:700;letter-spacing:2px;color:#1d4ed8;">' . esc_html($promo_code) . '</p>
+        </div>';
+        }
+
+        $html = '<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background:#f3f4f6;">
+<div style="max-width:600px;margin:0 auto;padding:20px;">
+    <div style="background:#2563eb;color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">
+        <h1 style="margin:0;font-size:22px;">TeInformez</h1>
+        <p style="margin:6px 0 0;font-size:13px;opacity:.85;">Știri din România, rezumate de AI</p>
+    </div>
+    <div style="background:#f9fafb;padding:28px;border-radius:0 0 8px 8px;">
+        <h2 style="margin:0 0 6px;color:#111827;font-size:18px;">Bună, ' . esc_html($user_name) . '!</h2>
+        <p style="margin:0 0 8px;font-size:14px;color:#374151;">' . $lead . ' — accesul Premium se termină ' . $when_html . '.</p>
+        <p style="margin:0 0 8px;font-size:14px;color:#6b7280;">
+            Reînnoiește ca să nu pierzi digestul complet, toate categoriile și notificările instant.
+        </p>
+        ' . $promo_html . '
+        <p style="text-align:center;margin-top:24px;">
+            <a href="' . esc_url($renew_url) . '" style="display:inline-block;background:#2563eb;color:white;padding:12px 28px;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;">
+                Reînnoiește Premium →
+            </a>
+        </p>
+    </div>
+</div>
+</body>
+</html>';
+
+        $html .= $this->get_unsubscribe_footer($user_email, 'registered');
+
+        return $this->send($user_email, $subject, $html);
+    }
+
+    /**
      * Send welcome email after registration
      */
     public function send_welcome($user_email, $user_name) {
