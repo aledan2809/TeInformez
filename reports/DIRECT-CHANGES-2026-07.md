@@ -303,3 +303,17 @@ Cerut de user după M6b IG core. Research în cod (`class-cas-api.php` + `class-
 **Verificare pe output real**: php -l clean (6 fișiere), tsc 0, build VPS exit 0. **E2E pe prod prin endpoint-ul real** (conturi non-test `@qa-teinformez.ro`, șterse imediat — fereastra cron emitter 5min): `POST /auth/register` cu `ref=<cod>` → **HTTP 201** → ambii (referrer+prieten) `granted_until` = azi+7 zile → stats `referred:1` → curățat. Guards verificate izolat (idempotent `already_referred`, `self_referral`, `unknown_code`). **Vizual LIVE**: logat ca cititor test → `/dashboard/invite` randează link personal (`?ref=ZP97GD7S`) + buton copiază + contoare (0 / „Încă niciunul"). Ruta 200.
 
 **Rămas (opțional)**: promovare in-app a paginii (card „invită prieteni" pe dashboard/după acțiuni) pt adopție; dacă abuz → confirmare email (variant B).
+
+---
+
+## 2026-07-13 (cont.) — OP-02 Premium onboarding: post-upgrade activation step (`7e93b1b`)
+
+**Feature (aprobat user).** Reduce time-to-value pentru clienții noi de Premium: în loc de mesajul static „Plată procesată cu succes" de pe ecranul de checkout-success (`/account/subscription?checkout=success`), acum un **pas de activare în 2 pași**:
+1. **„Activează toate categoriile"** — un click → `bulkAddSubscriptions` pe toate slug-urile din `getCategories` → digestul e complet imediat. Buton → checkmark verde „Gata ✓".
+2. **„Conectează Telegram"** — link la fluxul de conectare (`/dashboard/telegram`) pt livrare instant gratuită (bind-ul e deep-link → linkuim, nu completăm aici).
+
+**Reuse-first**: refolosește API-urile existente (`getCategories`, `bulkAddSubscriptions`) — zero logică nouă de backend.
+
+**Cod (`7e93b1b`)**: `components/PremiumWelcome.tsx` nou (client, stări loading/activated/failed) + `SubscriptionContent.tsx` înlocuiește blocul static `checkoutSuccess` cu `<PremiumWelcome/>`. tsc 0, build VPS exit 0.
+
+**Verificare vizuală LIVE** (logat ca cititor test → `/account/subscription?checkout=success`): pasul randează (header „Premium activat! Hai să-l pornim" + 2 pași); click „Activează toate" → **Pasul 1 devine verde „Gata ✓"** (abonare bulk reușită pe prod); Pasul 2 Telegram linkuiește corect.

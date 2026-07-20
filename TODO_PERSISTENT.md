@@ -336,7 +336,7 @@ After ABIP2 + both Triage sessions land:
 ### Faza 4 — Optimizări post-monetization
 
 - [ ] **OP-01** — Churn prevention: email la 3 zile înainte de expirarea subscripției Premium ("Reînnoiește acum — ofertă 10% dacă reînnoiești azi")
-- [ ] **OP-02** — Onboarding Premium: după upgrade, wizard scurt (1 pas) care activează Telegram push + setează toate categoriile → reduce time-to-value
+- [x] **OP-02 — DONE 2026-07-13 (`7e93b1b`, LIVE + verificat vizual)**: pe ecranul de checkout-success, pas de activare în 2 pași — „Activează toate categoriile" (1 click → bulkAddSubscriptions, verificat „Gata ✓" pe prod) + „Conectează Telegram" (link la connect flow). Reuse `getCategories`+`bulkAddSubscriptions`. Componentă `PremiumWelcome.tsx`. Detalii: ledger.
 - [x] **OP-03** — Affiliate links: admin poate taga categorii cu `affiliate_provider` (ex: Bancă X pentru categoria Finanțe) → articolele din acea categorie includ un link de tip "Deschide cont" în sidebar — separat de conținut editorial — DONE 2026-05-13 (`759c1e0`)
 
 ---
