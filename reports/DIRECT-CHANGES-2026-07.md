@@ -285,3 +285,21 @@ Cerut de user după M6b IG core. Research în cod (`class-cas-api.php` + `class-
 **Verificare pe output real**: tsc 0, `php -l` clean pe ambele. Deploy: backend `deploy.sh teinformez` (WordPress+REST 200/200) + frontend rebuild VPS (exit 0, server.js, pm2 restart curat). **E2E pe prod (user test `.example.com` → is_test → emitter NU postează la MA)**: `POST /wp-json/teinformez/v1/auth/register` cu `utm_content=CAS06_TRACK_TEST` → **HTTP 201** → `wp user meta get teinformez_utm_content` = **`CAS06_TRACK_TEST`** → query-ul JOIN al emitter-ului întoarce `utm_content=CAS06_TRACK_TEST` pe eveniment. Test user șters + confirmat (L07). **Neexercitat direct**: match-ul final de atribuire în MA (cere un `LaunchPlanAction.trackingCode` real = un click CAS live → signup real; mecanismul e probat la fiecare strat, receiver-ul MA cheiază pe utm_content verificat în cod).
 
 **Notă**: `NEWSLETTER_SUBSCRIBED` are aceeași limitare (query-ul lui selectează utm_source/medium/campaign, nu utm_content) → dacă se vrea atribuirea abonărilor la newsletter din click CAS, e un fix analog separat (out-of-scope CAS-06 = signup).
+
+---
+
+## 2026-07-13 (cont.) — M5 referral: invite links → complimentary Premium (`277b2f9`+`a4f4205`)
+
+**Feature nou (aprobat user, variant A anti-abuz).** Cititorii își invită prietenii; pentru fiecare prieten care își face cont prin link, **ambii** primesc **+7 zile Premium gratuit** (dublu-față), plafonat la 60 zile. Recompensă = zile de Premium (decizia user, varianta B).
+
+**Descoperire de design**: Premium-ul la TeInformez se vinde prin **Stripe** (tabela `stripe_subscriptions`, status citit din `/subscription/status`), nu un simplu câmp de zile. Deci „Premium cadou" cere un mecanism separat de Stripe. Soluție (Option C): usermeta `teinformez_premium_granted_until` (UTC), onorat de `/subscription/status` ca fallback **doar dacă nu e Stripe activ** — money-path neatins, auto-expiră.
+
+**Anti-abuz variant A** (înscrierea NU are confirmare email — `is_test_user` flags doar `@teinformez.test`/`@example.*`): prietenul „se numără" la cont real prin link; guards = cod valid, referrer≠referred, o recompensă per prieten (UNIQUE `referred_user_id` + query idempotent), conturi test sărite. Notat: dacă apare abuz, se adaugă confirmare email (varianta B) ulterior.
+
+**Backend (`277b2f9`)**: `class-referral-manager.php` nou (mint cod, `grant_premium_days` extend-din-max(now,current) cap 60, `process_referral` cu guards, `get_stats`) + tabela `wp_teinformez_referrals` (activator + creată manual pe prod) + require în plugin + hook în `class-auth-api.php` register (dacă `?ref`) + fallback în `class-stripe-api.php` `/subscription/status` (Stripe are prioritate; free-branch păstrat identic) + endpoint `GET /user/referral` în `class-user-api.php`.
+
+**Frontend (`a4f4205`)**: `lib/ref.ts` nou (capture `?ref=` → localStorage, SSR-safe) + register captează+forward+clear `ref` (Next proxy forward-uiește body-ul complet) + `RegisterData.ref`+`Referral` types + `api.getReferral()` + pagina `/dashboard/invite` (link personal + buton copiază + contoare „prieteni aduși"/„Premium activ până la") + nav Sidebar „Invită prieteni" (Gift).
+
+**Verificare pe output real**: php -l clean (6 fișiere), tsc 0, build VPS exit 0. **E2E pe prod prin endpoint-ul real** (conturi non-test `@qa-teinformez.ro`, șterse imediat — fereastra cron emitter 5min): `POST /auth/register` cu `ref=<cod>` → **HTTP 201** → ambii (referrer+prieten) `granted_until` = azi+7 zile → stats `referred:1` → curățat. Guards verificate izolat (idempotent `already_referred`, `self_referral`, `unknown_code`). **Vizual LIVE**: logat ca cititor test → `/dashboard/invite` randează link personal (`?ref=ZP97GD7S`) + buton copiază + contoare (0 / „Încă niciunul"). Ruta 200.
+
+**Rămas (opțional)**: promovare in-app a paginii (card „invită prieteni" pe dashboard/după acțiuni) pt adopție; dacă abuz → confirmare email (variant B).
