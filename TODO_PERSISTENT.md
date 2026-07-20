@@ -335,7 +335,7 @@ After ABIP2 + both Triage sessions land:
 
 ### Faza 4 — Optimizări post-monetization
 
-- [ ] **OP-01** — Churn prevention: email la 3 zile înainte de expirarea subscripției Premium ("Reînnoiește acum — ofertă 10% dacă reînnoiești azi")
+- [x] **OP-01 — DONE 2026-07-13 (`438fc30`, LIVE + verificat E2E Brevo)**: cron zilnic `teinformez_churn_check` → email de reînnoire ~3 zile înainte, pentru (a) abonamente Stripe cu cancel-at-end + (b) Premium-cadou referral (conversie). `Churn_Mailer` (dedup + skip test/stripe-activ) + `send_churn_reminder` (CTA reînnoire + cod promo opțional din `teinformez_churn_promo_code`). Discount centralizat prin broker = sesiune dedicată (prompt `Master/reports/handoffs/ST-2026-07-20-broker-discounts.md`). **Acțiune user opțional**: creează cod în Stripe + `wp option update teinformez_churn_promo_code <COD>`. Detalii: ledger.
 - [x] **OP-02 — DONE 2026-07-13 (`7e93b1b`, LIVE + verificat vizual)**: pe ecranul de checkout-success, pas de activare în 2 pași — „Activează toate categoriile" (1 click → bulkAddSubscriptions, verificat „Gata ✓" pe prod) + „Conectează Telegram" (link la connect flow). Reuse `getCategories`+`bulkAddSubscriptions`. Componentă `PremiumWelcome.tsx`. Detalii: ledger.
 - [x] **OP-03** — Affiliate links: admin poate taga categorii cu `affiliate_provider` (ex: Bancă X pentru categoria Finanțe) → articolele din acea categorie includ un link de tip "Deschide cont" în sidebar — separat de conținut editorial — DONE 2026-05-13 (`759c1e0`)
 

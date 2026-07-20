@@ -317,3 +317,17 @@ Cerut de user după M6b IG core. Research în cod (`class-cas-api.php` + `class-
 **Cod (`7e93b1b`)**: `components/PremiumWelcome.tsx` nou (client, stări loading/activated/failed) + `SubscriptionContent.tsx` înlocuiește blocul static `checkoutSuccess` cu `<PremiumWelcome/>`. tsc 0, build VPS exit 0.
 
 **Verificare vizuală LIVE** (logat ca cititor test → `/account/subscription?checkout=success`): pasul randează (header „Premium activat! Hai să-l pornim" + 2 pași); click „Activează toate" → **Pasul 1 devine verde „Gata ✓"** (abonare bulk reușită pe prod); Pasul 2 Telegram linkuiește corect.
+
+---
+
+## 2026-07-13 (cont.) — OP-01 churn: email de reînnoire ~3 zile înainte de expirare (`438fc30`)
+
+**Feature (aprobat user).** Stripe se reînnoiește automat → „expiră" doar (a) abonamentele cu `cancel_at_period_end=1` și (b) Premium-cadou de la referral (M5, fără auto-renew = oportunitate de conversie). Un cron zilnic le trimite ambelor un email ~3 zile înainte, cu CTA de reînnoire + cod promo opțional.
+
+**Cod (`438fc30`)**: `class-churn-mailer.php` nou (cron zilnic `teinformez_churn_check` în lista self-heal; scanează `stripe_subscriptions` cancel-at-end cu expirare now+2..3d + usermeta `teinformez_premium_granted_until` în aceeași fereastră; **dedup** per-user `teinformez_churn_emailed_for`=expirarea avertizată → o reînnoire re-armează un viitor reminder; sare conturi test + granted-cu-Stripe-activ) + `Email_Sender::send_churn_reminder` (CTA → `FRONTEND_URL/subscribe` + bloc cod promo opțional; mesaj adaptat stripe-cancel vs granted) + wire în `teinformez-core.php`.
+
+**Discount 10%**: codul vine din opțiunea `teinformez_churn_promo_code` (gol → emailul omite linia de cod; CTA-ul de reînnoire merge oricum). Checkout-ul TeInformez are deja `allowPromotionCodes:true`. **Mecanismul centralizat de discount prin broker** (pentru toate aplicațiile) = sesiune dedicată — prompt în `Master/reports/handoffs/ST-2026-07-20-broker-discounts.md`.
+
+**Verificare pe output real (prod)**: php -l clean. E2E via `wp eval` (user temporar non-test `@qa-teinformez.ro`, șters): cron programat (daily 17:19 UTC) → granted expiry setat în fereastra 2.5z → `Churn_Mailer::run()` → **Brevo a trimis emailul** (status 201, messageId, subiect corect) → dedup meta setat → **a doua rulare NU retrimite** (idempotent) → curățat.
+
+**Acțiune user (opțional, pt discount real)**: creează codul promo în Stripe-ul TeInformez (dashboard, ex. `REVINO10` = 10% off) apoi `wp option update teinformez_churn_promo_code REVINO10` (sau prin admin). Fără asta, emailul tot pleacă (doar fără linia de cod).
