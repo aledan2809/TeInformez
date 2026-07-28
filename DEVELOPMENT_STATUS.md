@@ -1,7 +1,25 @@
 # Project Status — TeInformez
-Last Updated: 2026-07-12 (cont. — Telegram bot activat + FB posting ON + fix FK logging + CSP Report-Only + IG core + CAS-blocker)
+Last Updated: 2026-07-13 (cont. — next@16+React19 + CAS-06 + M5 referral + OP-01/OP-02 + M6 recon)
 
-## Current State (Sesiunea 2026-07-12 cont., mesh — activare + fix + CSP + IG)
+## Current State (Sesiunea 2026-07-13, mesh — upgrade major + growth features)
+
+**Sesiune mare, regim mesh secvențial (dev → /review → verify pe output real → deploy → next). 14 commits pe origin/master, toate LIVE pe teinformez.eu + verificate (browser real / endpoint E2E / Brevo send real), zero necomis.**
+
+1. **`2f5cbbe`+`3353ea5`** — de-risc React 19: `lucide-react` 0.321→0.469 (ultima versiune cu brand-icons + peer React19; 0.474+ le scoate) + `react-hook-form` floor. Corecție de plan descoperită: Next 15 App Router **forțează** React 19 (nu peer-recomandare) → pașii 14→15 și React18→19 nu se pot separa.
+2. **`580b5ed`+`96faf70`+`c78cd4d`** — **upgrade combinat Next 14→16.2.10 + React 18→19.2.7**. Recon: suprafața de cod migrare = ~zero (app deja forward-compat — async params, `fetch` revalidate explicit peste tot, 0 string-refs/forwardRef/ReactDOM.render). Build pinned `--webpack` (izolează saltul de trecerea la Turbopack, deferată). `.npmrc legacy-peer-deps` (stripe-module vendored are peer `next ^14||^15`, pre-16) + `@stripe/react-stripe-js`+`@stripe/stripe-js` explicite (peer auto-install oprit de legacy-peer-deps). Fix `outputFileTracingRoot` (Next 16 nesta standalone-ul dacă găsește lockfile stray deasupra). 1 fix de tip (`useRef` cere argument în React19). **Verificat browser real**: homepage hidratează (10 articole, 12 iconițe lucide, 0 erori console), CSP re-walk pe 3 pagini = 0 violări sub enforce.
+3. **`7202fb1`+`3dbe6de`** — CAS-06 atribuire signup: `MA_Emitter` exista deja (cod înaintea docs), dar `utm_content` (trackingCode) se pierdea pe tot lanțul de înregistrare → signup-uri `SKIPPED` neatribuite în MA. Fix aditiv pe 6 fișiere (capture→forward→usermeta→JOIN emitter). E2E prin endpoint real: 201→usermeta→query JOIN confirmă trackingCode.
+4. **`277b2f9`+`a4f4205`+`3f6366e`** — **M5 referral**: link personal de invitație → +7 zile Premium **dublu-față** (referrer+prieten), plafon 60z. Premium-cadou = usermeta separat de Stripe (onorat de `/subscription/status` doar dacă nu e Stripe activ — money-path neatins). Anti-abuz variant A (fără confirmare email pe înscriere → guards cod/self/test/o-recompensă-per-prieten). Pagina `/dashboard/invite`. E2E prin endpoint real (ambii granted) + verificat vizual live (screenshot).
+5. **`7e93b1b`+`125bf3e`** — OP-02 onboarding Premium: ecranul de checkout-success primește un pas de activare 2-pași (Activează toate categoriile — 1 click, verificat „Gata ✓" pe prod / Conectează Telegram). Reuse `getCategories`+`bulkAddSubscriptions`.
+6. **`438fc30`+`60794ae`** — OP-01 churn: cron zilnic `teinformez_churn_check` → email ~3 zile înainte de expirare (abonamente Stripe cu cancel-at-end + Premium-cadou referral). Dedup per-expirare, skip test/stripe-activ. Cod promo opțional din `teinformez_churn_promo_code`. **E2E verificat: Brevo a trimis emailul real (status 201)**, idempotent la a doua rulare.
+7. **Prompt scris pentru sesiune dedicată**: discount centralizat prin Stripe Broker (`stripe.knowbest.ro`) pentru toate aplicațiile — `Master/reports/handoffs/ST-2026-07-20-broker-discounts.md`. TeInformez folosește azi modulul Stripe direct (cheie proprie), nu brokerul — fork de decis în acea sesiune (migrare checkout prin broker vs discount și în modulul partajat).
+8. **M6 — recon, ZERO cod (corecție importantă)**: presupusesem greșit că fundația „Explică pe scurt" (ELI12) nu există. **Verificat pe cod: ELI12 EXISTĂ deja, live din 2026-06-04** (`simple_explanation`+`why_it_matters`, generate AI, expuse API, randate pe frontend ca secțiunea „Pe scurt" pe fiecare articol — vezi Current State 2026-06-04 + WI-2/3/4/5 mai jos). Ce lipsește real pentru M6: (a) TTS/citire audio a textului ELI12, (b) pipeline video (montaj+voce), (c) card-post (nu link) pe Telegram/FB cu conținut ELI12, (d) expunere SEO dedicată a ELI12 (dacă „Pe scurt" de pe pagină nu e suficient). Sesiunea s-a oprit aici la `backup status` — planul M6 corectat rămâne de reluat.
+
+**Deploy**: fiecare item = backend `deploy.sh teinformez` (200/200) și/sau frontend build-pe-VPS (`npm install` + `next build --webpack`, gated pe `.next/standalone/server.js`) + rsync + pm2 restart. php -l + tsc curat pe toate.
+
+## Lessons Learned (sesiunea 2026-07-13)
+- **L09 (session)** — Nu presupune că un feature „lipsește" doar pentru că nu apare la un grep superficial pe zona de cod pe care o cauți (M6). Verifică EXPLICIT în cod + DEVELOPMENT_STATUS/ledger istoric înainte de a declara o fundație absentă — aici ELI12 exista integral (backend din 2026-06-04, frontend din 2026-07-07/10), dar afirmasem greșit contrariul către user. Corectat la primul `backup status`, nu lăsat nescris.
+- Pattern reconfirmat (`feedback_research_before_proposing`): fiecare din cele 6 feature-uri livrate a pornit cu recon pe cod real (nu presupuneri) — de 2 ori (CAS-06, M5) recon-ul a găsit că infrastructura presupusă „lipsă" în TODO exista deja parțial, schimbând scope-ul real al muncii.
+
 
 **Continuare sesiune (regim mesh, RESTRICT). 7 commits TeInformez pe origin/master + 1 MA. Tot LIVE + verificat pe output real.**
 

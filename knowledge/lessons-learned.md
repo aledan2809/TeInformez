@@ -113,3 +113,15 @@
 **Fix / metodă (reutilizabilă pe orice proiect cu CSP Report-Only)**: (1) walk publice + articole reale (id-uri din API) + **consimțit + autentificat** (cookie sesiune + `localStorage` consent='accepted' ca să se încarce efectiv GA/third-party — altfel originile din policy NU-s exercitate); confirmă că GA chiar a încărcat (`window.gtag`/`dataLayer`). (2) Static: scanează corpurile de conținut pentru `<iframe>`/`<script>`/embed + verifică cum se randează câmpuri media (ex: `youtube_url` = `<a href>` link, NU iframe → zero risc `frame-src`) + confirmă că nu există SDK third-party client-side (Stripe redirect-only = fără `stripe.js`). (3) După flip, **re-walk live sub enforce** (`disposition` acum „enforce") ca dovadă că nimic nu se blochează. Caveat onest: crawl point-in-time ≠ date multi-browser/longitudinale → păstrează `report-uri` activ și în enforce; rollback = 1 linie (redenumește header key înapoi).
 
 **Cross-ref**: `frontend/next.config.js` (`cspPolicy()` + `report-uri`); commit `418cd30`; ledger `reports/DIRECT-CHANGES-2026-07.md` (secțiunea CSP enforce); memory `feedback-verify-against-user-goal-not-claims`.
+
+---
+
+## L10 — 2026-07-13 — Verifică pe cod înainte de a declara o fundație „lipsă", chiar când presiunea e să mergi repede
+
+**Symptom**: la recon-ul pentru M6 (distribuție/video), am căutat superficial „ELI12/explain" prin grep pe zonele evidente de cod (Social_Poster, delivery templates) — n-am găsit nimic → am declarat către user „ELI12 nu există, e fundația lipsă a lui M6" și am construit un plan de fază pornind de la asta.
+
+**Root cause**: grep-ul a țintit denumirea „ELI12" (termenul din TODO/STRATEGY), dar implementarea reală folosește nume de câmp diferite (`simple_explanation`, `why_it_matters`). Feature-ul era deja LIVE din 2026-06-04 (M1 backend) + consumat pe frontend din 2026-07-07/10 (secțiunea „Pe scurt" pe pagina articolului) — vizibil clar în `DEVELOPMENT_STATUS.md` (Current State sesiunile respective), pe care nu l-am recitit înainte de a afirma.
+
+**Fix / metodă**: înainte de a declara o fundație/feature „absent(ă)", verifică pe **minimum 2 căi independente**: (1) grep pe termenii conceptuali DIN TODO/STRATEGY *și* pe nume de câmp/variabile plauzibile din schema DB (aici: căutarea inițială a ratat exact pentru că a folosit doar termenul conceptual); (2) `DEVELOPMENT_STATUS.md` — istoricul de sesiuni e sursă de adevăr pentru ce s-a livrat deja, chiar dacă TODO-ul curent nu reflectă corect. Corectat aici la primul `backup status` din sesiune, nu lăsat nescris — dar corect era să prind asta ÎNAINTE de a prezenta planul greșit userului.
+
+**Cross-ref**: `class-ai-processor.php` (generare AI `simple_explanation`+`why_it_matters`), `NewsDetailClient.tsx` (randare „Pe scurt"), `DEVELOPMENT_STATUS.md` Current State 2026-06-04 + 2026-07-07→10; memory `feedback-research-before-proposing`.
