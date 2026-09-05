@@ -107,9 +107,11 @@ export default function JuridicList({ initialItems }: { initialItems: JuridicIte
                 )}
               </button>
             </article>
-            {/* Slot CAS după fiecare al 4-lea răspuns — același mecanism ca pe /news
-                (proxy WP server-to-server, deci fără cheie în bundle-ul din browser). */}
-            {(i + 1) % 4 === 0 && i < items.length - 1 ? <InFeedAd index={Math.floor(i / 4)} /> : null}
+            {/* Slot CAS după fiecare al 3-lea răspuns, niciodată ultimul (să nu închidă lista cu
+                o reclamă). Pas 3, nu 5 ca pe /news: pagina are puține întrebări, iar cu pas mai mare
+                regula „niciodată ultimul" ar suprima slotul complet. Același mecanism: proxy WP
+                server-to-server, deci fără cheie în bundle-ul din browser. */}
+            {(i + 1) % 3 === 0 && i < items.length - 1 ? <InFeedAd index={Math.floor(i / 3)} /> : null}
             </Fragment>
           );
         })}
