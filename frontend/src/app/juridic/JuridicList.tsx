@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, Scale } from 'lucide-react';
 import type { JuridicItem } from './page';
+import InFeedAd from '@/components/home/InFeedAd';
 
 /**
  * Client list for the public Juridic Q&A page: category filter chips +
@@ -62,11 +63,11 @@ export default function JuridicList({ initialItems }: { initialItems: JuridicIte
       )}
 
       <div className="space-y-4">
-        {items.map((item) => {
+        {items.map((item, i) => {
           const isOpen = openId === item.id;
           return (
+            <Fragment key={item.id}>
             <article
-              key={item.id}
               className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5"
             >
               <div className="flex items-start gap-2 mb-1">
@@ -106,6 +107,10 @@ export default function JuridicList({ initialItems }: { initialItems: JuridicIte
                 )}
               </button>
             </article>
+            {/* Slot CAS după fiecare al 4-lea răspuns — același mecanism ca pe /news
+                (proxy WP server-to-server, deci fără cheie în bundle-ul din browser). */}
+            {(i + 1) % 4 === 0 && i < items.length - 1 ? <InFeedAd index={Math.floor(i / 4)} /> : null}
+            </Fragment>
           );
         })}
       </div>
