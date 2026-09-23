@@ -100,8 +100,9 @@ class MA_Emitter {
                 $event = [
                     'event_type'  => 'TEINFORMEZ_USER_REGISTERED',
                     'occurred_at' => self::to_iso($row['user_registered']),
-                    'user_id'     => (int) $row['ID'],
-                    'email'       => $row['user_email'],
+                    // MA's receiver accepts only its own top-level keys (strict schema) — anything else goes
+                    // under `payload`. Sending these at the top level got every batch refused with HTTP 400.
+                    'payload'     => ['user_id' => (int) $row['ID'], 'email' => $row['user_email']],
                 ];
                 if (!empty($row['utm_content'])) {
                     $event['utm_content'] = (string) $row['utm_content'];
@@ -154,7 +155,7 @@ class MA_Emitter {
                 $event = [
                     'event_type'  => 'TEINFORMEZ_NEWSLETTER_SUBSCRIBED',
                     'occurred_at' => self::to_iso($row['confirmed_at']),
-                    'email'       => $row['email'],
+                    'payload'     => ['email' => $row['email']], // under payload: see the users source above
                 ];
                 if (!empty($row['utm_source']))   $event['utm_source']   = $row['utm_source'];
                 if (!empty($row['utm_medium']))   $event['utm_medium']   = $row['utm_medium'];

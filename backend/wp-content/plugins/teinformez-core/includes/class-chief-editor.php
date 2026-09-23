@@ -387,7 +387,10 @@ PROMPT;
                 'Content-Type' => 'application/json',
             ],
             'body' => json_encode([
-                'model' => 'llama-3.3-70b-versatile',
+                // llama-3.3-70b-versatile was retired by Groq (every call failed from 2026-09-08). gpt-oss-120b
+                // reasons before answering; 'low' keeps that short so it fits in max_tokens (lesson L587).
+                'model' => 'openai/gpt-oss-120b',
+                'reasoning_effort' => 'low',
                 'messages' => [
                     ['role' => 'system', 'content' => $system_prompt],
                     ['role' => 'user', 'content' => $user_message],
